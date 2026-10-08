@@ -2,9 +2,24 @@
 
 Painel reflexo da minha vida. Começando pela aba **Financeiro**.
 
-## Como usar
+## Site publicado (Vercel + Supabase)
 
-1. Abra o `index.html` no navegador (não precisa instalar nada).
+O site é estático e fica na Vercel; os dados ficam no Supabase, no schema **`financeiro`**
+(tabelas `dividas`, `ganhos`, `gastos`, `investimentos`, `cartoes`, `faturas`, `lancamentos`
+e `pagamentos` — veja `supabase/migrations/`).
+
+- **Login:** e-mail e senha (Supabase Auth). Só os e-mails da tabela
+  `financeiro.emails_permitidos` conseguem criar conta.
+- **Segurança:** RLS em todas as tabelas — cada linha pertence a um usuário e só ele lê ou altera.
+- **Tempo real:** o painel escuta as mudanças das tabelas (Supabase Realtime), então o que muda
+  num aparelho aparece nos outros.
+- `config.js` tem a URL do projeto e a chave publicável (pode ficar no navegador).
+- A Vercel publica a cada push: `vercel.json` copia os arquivos do site para `public/`.
+
+## Como usar localmente
+
+1. Abra o `index.html` no navegador (não precisa instalar nada). Aberto como arquivo,
+   o painel usa o localStorage do navegador em vez do Supabase.
 2. Use **+ Adicionar dívida** para cadastrar, e a setinha de cada dívida para
    **Editar** ou **Excluir**. Os dados ficam salvos no navegador (localStorage).
    `dividas.js` só define os exemplos mostrados na primeira abertura.
@@ -78,4 +93,7 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/02-simulacao.test.mjs` — importa 5 faturas em PDF (Nubank, Itaú, Bradesco, Inter e C6,
   gerados em `tests/simulacao/gerar-pdfs.mjs`), cadastra 13 contas e confere totais, parcelas,
   previsão, timeline, atualização em tempo real (inclusive entre abas), recarga e celular.
+- `tests/03-site-publicado.test.mjs` — modo site publicado com um Supabase simulado
+  (`tests/supabase-simulado.js`): login, e-mail não permitido, gravação nas tabelas, lançamentos
+  da fatura, conta automática, recarga e sair.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.

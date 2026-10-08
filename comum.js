@@ -148,6 +148,11 @@ function usarRecurso(nome) {
 }
 
 async function abrirArmazenamento(nome, exemplos) {
+  // Site publicado: espera o login e usa as tabelas do Supabase (supabase.js).
+  if (typeof supa !== "undefined" && supa) {
+    await sessaoPronta;
+    return armazenamentoSupabase(nome);
+  }
   const db = await usarRecurso("db");
   return db ? armazenamentoNuvem(db, nome) : armazenamentoLocal(nome, exemplos);
 }

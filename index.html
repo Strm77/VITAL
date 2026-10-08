@@ -7,11 +7,31 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="tela-login" id="tela-login" hidden>
+    <form class="cartao-login" id="form-login" novalidate>
+      <h1>V.I.T.A.L</h1>
+      <p class="login-sub">Entre para ver o seu painel financeiro.</p>
+      <label class="campo">E-mail
+        <input id="login-email" name="email" type="email" autocomplete="email" required>
+      </label>
+      <label class="campo">Senha
+        <input id="login-senha" name="senha" type="password" autocomplete="current-password" minlength="6" required>
+      </label>
+      <p class="aviso" id="login-aviso" role="alert" hidden></p>
+      <button type="submit" class="botao primario" data-acao="entrar">Entrar</button>
+      <button type="submit" class="botao" data-acao="criar">Primeiro acesso: criar minha conta</button>
+    </form>
+  </div>
+
   <header class="topo">
     <h1>V.I.T.A.L</h1>
     <nav class="abas" aria-label="Áreas">
       <span class="aba ativa" aria-current="page">Financeiro</span>
     </nav>
+    <div class="conta" id="conta" hidden>
+      <span id="usuario-email"></span>
+      <button type="button" class="botao mini" id="sair">Sair</button>
+    </div>
   </header>
 
   <nav class="submenu" aria-label="Financeiro">
@@ -306,7 +326,10 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
   <script src="comum.js"></script>
+  <script src="supabase.js"></script>
   <script src="dividas.js"></script>
   <script src="app.js"></script>
   <script src="torre.js"></script>

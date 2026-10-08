@@ -28,6 +28,7 @@ export async function abrirPainel(contexto, { hash = "", manterDados = false, la
     const arquivo = rota.request().url().split("/").pop();
     rota.fulfill({ path: path.join(RAIZ, "node_modules/pdfjs-dist/build", arquivo), contentType: "application/javascript" });
   });
+  await pagina.route("https://cdn.jsdelivr.net/**", (rota) => rota.abort()); // Supabase não é usado nos testes locais
   await pagina.goto(URL_PAINEL + hash);
   if (!manterDados) {
     await pagina.evaluate(() => localStorage.clear());

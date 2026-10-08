@@ -646,3 +646,22 @@ a.aba { text-decoration: none; }
 .coluna.atual .coluna-mes { color: var(--texto); font-weight: 600; }
 .coluna-fim { color: var(--progresso); min-height: 1em; }
 .previsao .dica { margin: 10px 0 0; font-size: 12px; color: var(--texto-suave); }
+
+/* Login (site publicado) */
+body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
+.tela-login { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+.cartao-login {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  gap: 14px;
+  padding: 28px 24px;
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+}
+.cartao-login h1 { margin: 0; font-size: 18px; letter-spacing: 0.2em; font-weight: 600; }
+.login-sub { margin: 0 0 4px; font-size: 13px; color: var(--texto-suave); }
+.cartao-login .botao { padding: 10px 14px; font-size: 14px; }
+.aviso.ok { color: var(--progresso); }
+.topo { flex-wrap: wrap; }
+.conta { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--texto-suave); }
