@@ -265,7 +265,7 @@ function renderizarCartoes() {
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
     .forEach((c) => {
       const faturas = fat.faturas.filter((f) => f.cartaoId === c.id).sort((a, b) => b.mes.localeCompare(a.mes));
-      const ultima = faturas[0];
+      const ultima = faturas.find((f) => f.mes === mesRef);
       const botao = document.createElement("button");
       botao.type = "button";
       botao.className = "cartao" + (fat.filtroCartao === c.id ? " selecionado" : "");
@@ -278,7 +278,7 @@ function renderizarCartoes() {
         <span class="cartao-final">•••• ${escapar(c.final || "····")}</span>
         <span class="cartao-total">${ultima
           ? `${nomeDoMes(ultima.mes)}: ${moeda.format(totalFatura(ultima.lancamentos || []))}`
-          : "Sem faturas"} · ${faturas.length} fatura${faturas.length === 1 ? "" : "s"}</span>`;
+          : `Sem fatura em ${nomeMesRef()}`} · ${faturas.length} fatura${faturas.length === 1 ? "" : "s"}</span>`;
       botao.addEventListener("click", () => {
         fat.filtroCartao = c.id;
         fat.filtroMes = "";
@@ -409,6 +409,7 @@ async function salvarImportacao(evento) {
     fat.filtroCartao = cartaoId;
     fat.filtroMes = mes;
     fat.todosOsMeses = false;
+    definirMes(mes); // a timeline vai para o mês da fatura importada
     cancelarImportacao();
     estadoLeitura(`Fatura de ${nomeDoMes(mes)} salva.`);
     renderizarFaturas();
@@ -457,14 +458,14 @@ function renderizarFiltros() {
   const comFatura = fat.cartoes.filter((c) => fat.faturas.some((f) => f.cartaoId === c.id));
   if (!comFatura.some((c) => c.id === fat.filtroCartao)) fat.filtroCartao = comFatura[0]?.id || "";
   const meses = fat.faturas.filter((f) => f.cartaoId === fat.filtroCartao).map((f) => f.mes).sort().reverse();
-  if (fat.filtroMes && !meses.includes(fat.filtroMes)) fat.filtroMes = "";
-  if (!fat.filtroMes && meses.length && !fat.todosOsMeses) fat.filtroMes = meses[0];
+  if (!fat.filtroMes && !fat.todosOsMeses) fat.filtroMes = mesRef;
+  const opcoes = [...new Set([...meses, ...(fat.filtroMes ? [fat.filtroMes] : [])])].sort().reverse();
 
   const selCartao = document.getElementById("filtro-cartao");
   selCartao.innerHTML = comFatura.map((c) => `<option value="${c.id}">${escapar(c.nome)}</option>`).join("");
   selCartao.value = fat.filtroCartao;
   const selMes = document.getElementById("filtro-mes");
-  selMes.innerHTML = meses.map((m) => `<option value="${m}">${nomeDoMes(m)}</option>`).join("") +
+  selMes.innerHTML = opcoes.map((m) => `<option value="${m}">${nomeDoMes(m)}${meses.includes(m) ? "" : " (sem fatura)"}</option>`).join("") +
     (meses.length > 1 ? `<option value="todos">Todos os meses</option>` : "");
   selMes.value = fat.todosOsMeses && meses.length > 1 ? "todos" : fat.filtroMes;
   selCartao.hidden = selMes.hidden = !comFatura.length;
@@ -493,6 +494,10 @@ async function removerLancamento(fatura, indice) {
 function renderizarPlanilha() {
   const faturas = faturasSelecionadas();
   const vazia = !faturas.length;
+  const cartao = fat.cartoes.find((c) => c.id === fat.filtroCartao);
+  document.getElementById("planilha-vazia").textContent = cartao
+    ? `Nenhuma fatura de ${cartao.nome} em ${nomeDoMes(fat.filtroMes || mesRef)}. Escolha outro mês na timeline ou importe a fatura abaixo.`
+    : "Nenhuma fatura importada ainda. Importe o PDF de uma fatura acima.";
   document.getElementById("planilha-vazia").hidden = !vazia;
   document.getElementById("planilha-conteudo").hidden = vazia;
   document.getElementById("excluir-fatura").hidden = faturas.length !== 1;
@@ -537,7 +542,11 @@ function renderizarRelatorio() {
   const faturas = faturasSelecionadas();
   const lancs = faturas.flatMap((f) => f.lancamentos || []).filter((l) => l.valor > 0 && l.categoria !== CREDITO);
   const lista = document.getElementById("relatorio");
-  document.getElementById("relatorio-vazio").hidden = lancs.length > 0;
+  const vazio = document.getElementById("relatorio-vazio");
+  vazio.hidden = lancs.length > 0;
+  vazio.textContent = fat.faturas.length
+    ? `Nenhum gasto neste cartão em ${nomeDoMes(fat.filtroMes || mesRef)}.`
+    : "O relatório aparece aqui depois que você importar uma fatura em “Importar fatura”, logo abaixo.";
   const cartao = fat.cartoes.find((c) => c.id === fat.filtroCartao);
   document.getElementById("relatorio-periodo").textContent = cartao
     ? `${cartao.nome} · ${fat.filtroMes ? nomeDoMes(fat.filtroMes) : "todos os meses"}`
@@ -727,6 +736,11 @@ async function iniciarFaturas() {
     }
   });
 
+  aoMudarMes(() => {
+    fat.filtroMes = mesRef;
+    fat.todosOsMeses = false;
+    renderizarFaturas();
+  });
   renderizarFaturas();
   fat.armCartoes = await abrirArmazenamento("cartoes", []);
   fat.armFaturas = await abrirArmazenamento("faturas", []);

@@ -17,11 +17,15 @@ function calcular(divida) {
   let pagas = divida.parcelasPagas;
   if (pagas == null || pagas === "") {
     pagas = 0;
-    while (pagas < total && vencimento(divida, pagas) < hoje) pagas++;
+    while (pagas < total && vencimento(divida, pagas) < dataRef()) pagas++;
   }
   pagas = Math.max(0, Math.min(Number(pagas), total));
 
   const quitada = pagas >= total;
+  // A dívida tem parcela no mês da timeline? (entre o mês da 1ª e o da última parcela)
+  const termino = vencimento(divida, Math.max(total - 1, 0));
+  const mesFim = `${termino.getFullYear()}-${String(termino.getMonth() + 1).padStart(2, "0")}`;
+  const ativaNoMes = total > 0 && divida.primeiraParcela <= mesRef && mesRef <= mesFim;
   return {
     ...divida,
     valorParcela,
@@ -33,7 +37,8 @@ function calcular(divida) {
     valorTotal: valorParcela * total,
     valorPago: valorParcela * pagas,
     valorRestante: valorParcela * (total - pagas),
-    termino: vencimento(divida, Math.max(total - 1, 0)),
+    termino,
+    ativaNoMes,
     progresso: total ? pagas / total : 1,
   };
 }
@@ -64,7 +69,7 @@ function abrirFormulario(id) {
       form.elements[campo].value = divida[campo] ?? "";
     });
   } else {
-    form.elements.primeiraParcela.value = hoje.toISOString().slice(0, 7);
+    form.elements.primeiraParcela.value = mesRef;
     form.elements.diaVencimento.value = 10;
   }
   form.hidden = false;
@@ -133,6 +138,7 @@ async function excluir(botao, id) {
 }
 
 function renderizar(lista) {
+  document.getElementById("mes-atual").textContent = nomeMesRef();
   dividasAtuais = [...lista].sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"));
   const dividas = dividasAtuais.map(calcular);
   const ul = document.getElementById("lista-dividas");
@@ -143,7 +149,7 @@ function renderizar(lista) {
 
   dividas.forEach((d) => {
     const item = document.createElement("li");
-    item.className = "divida";
+    item.className = "divida" + (d.ativaNoMes ? "" : " fora-do-mes");
     const idDetalhes = `detalhes-${d.id}`;
     item.innerHTML = `
       <button class="linha" aria-expanded="false" aria-controls="${idDetalhes}">
@@ -156,7 +162,7 @@ function renderizar(lista) {
       </div>
       <div class="porcentagem">
         <span>${Math.round(d.progresso * 100)}% pago</span>
-        <span>falta ${Math.round((1 - d.progresso) * 100)}%</span>
+        <span>${d.ativaNoMes ? `falta ${Math.round((1 - d.progresso) * 100)}%` : "sem parcela neste mês"}</span>
       </div>
       <div class="detalhes-grupo" id="${idDetalhes}" hidden>
         <dl class="detalhes">
@@ -183,7 +189,7 @@ function renderizar(lista) {
     botaoExcluir.addEventListener("click", () => excluir(botaoExcluir, d.id));
   });
 
-  const ativas = dividas.filter((d) => !d.quitada);
+  const ativas = dividas.filter((d) => d.ativaNoMes);
   const soma = (campo, lista = dividas) => lista.reduce((t, d) => t + d[campo], 0);
   const total = soma("valorTotal");
   const pago = soma("valorPago");
@@ -191,14 +197,14 @@ function renderizar(lista) {
 
   dividasCalculadas = dividas;
   renderizarGrafico();
-  parcelasDoMes = dividas.filter((d) => !d.quitada).reduce((t, d) => t + d.valorParcela, 0);
+  parcelasDoMes = soma("valorParcela", ativas);
   document.dispatchEvent(new CustomEvent("dividas-atualizadas", { detail: { parcelasMes: parcelasDoMes } }));
 
   document.getElementById("total-mensal").textContent = moeda.format(soma("valorParcela", ativas));
   preencherBarra(document.getElementById("barra-geral"), total ? pago / total : 1);
 
   document.getElementById("detalhes-resumo").innerHTML = `<dl class="detalhes">${listaDetalhes([
-    ["Dívidas ativas", `${ativas.length} de ${dividas.length}`],
+    ["Dívidas com parcela no mês", `${ativas.length} de ${dividas.length}`],
     ["Valor total das dívidas", moeda.format(total)],
     ["Já pago", `${moeda.format(pago)} (${Math.round((pago / total) * 100 || 0)}%)`],
     ["Falta pagar", moeda.format(total - pago)],
@@ -244,10 +250,10 @@ function fatia(cx, cy, r, inicio, fim) {
 function compromissosDoMes() {
   let contas = [];
   try { contas = typeof pag !== "undefined" ? pag.contas : []; } catch {}
-  const doMes = contas.filter((c) => String(c.vencimento || "").startsWith(mesHoje) && Number(c.valor) > 0);
+  const doMes = contas.filter((c) => String(c.vencimento || "").startsWith(mesRef) && Number(c.valor) > 0);
   const item = (nome, valor, pago) => ({ nome, valor: Number(valor), pago });
   return {
-    dividas: dividasCalculadas.filter((d) => !d.quitada && d.valorParcela > 0).map((d) => item(d.nome, d.valorParcela, false)),
+    dividas: dividasCalculadas.filter((d) => d.ativaNoMes && d.valorParcela > 0).map((d) => item(d.nome, d.valorParcela, false)),
     contas: doMes.filter((c) => c.origem !== "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
     cartoes: doMes.filter((c) => c.origem === "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
   };
@@ -266,7 +272,7 @@ function renderizarGrafico() {
   });
   const total = fatias.reduce((t, f) => t + f.valor, 0);
 
-  document.getElementById("grafico-mes").textContent = capitalizar(mesAno.format(hoje));
+  document.getElementById("grafico-mes").textContent = nomeMesRef();
   svg.innerHTML = "";
   legenda.innerHTML = "";
   document.getElementById("pizza-total").textContent = "";
@@ -340,11 +346,11 @@ function renderizarGrafico() {
 }
 
 async function iniciar() {
-  document.getElementById("mes-atual").textContent = capitalizar(mesAno.format(hoje));
   alternar(document.getElementById("botao-resumo"), document.getElementById("detalhes-resumo"), "resumo");
   document.getElementById("botao-adicionar").addEventListener("click", () => abrirFormulario(""));
   document.getElementById("botao-cancelar").addEventListener("click", () => { mostrarAviso(""); fecharFormulario(); });
   document.getElementById("formulario").addEventListener("submit", enviarFormulario);
+  aoMudarMes(() => renderizar(dividasAtuais));
 
   armazenamento = await abrirArmazenamento("dividas", typeof DIVIDAS !== "undefined" ? DIVIDAS : []);
   armazenamento.observar(

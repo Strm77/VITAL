@@ -3,9 +3,9 @@
  * abrirArmazenamento). Cada bloco tem sua própria coleção.
  */
 
-const mesCorrente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
 const porcento = (v) => `${Math.round(v * 100)}%`;
-const doMes = (item) => item.recorrente || item.mes === mesCorrente;
+// Recorrentes valem a partir do mês em que foram lançados; os demais, só no próprio mês.
+const doMes = (item) => (item.recorrente ? !item.mes || item.mes <= mesRef : item.mes === mesRef);
 
 const torre = {
   ganhos: [],
@@ -83,8 +83,8 @@ function conteudo(tipo) {
       perigo: daRenda > 1,
       legenda: [`${porcento(daRenda)} da renda`, maior ? `maior: ${escapar(maior.nome)}` : ""],
       resumo: [
-        ["Gastos fixos (todo mês)", moeda.format(soma(torre.gastos.filter((g) => g.recorrente), "valor"))],
-        ["Gastos só deste mês", moeda.format(soma(torre.gastos.filter((g) => !g.recorrente && g.mes === mesCorrente), "valor"))],
+        ["Gastos fixos (todo mês)", moeda.format(soma(torre.gastos.filter((g) => g.recorrente && doMes(g)), "valor"))],
+        ["Gastos só deste mês", moeda.format(soma(torre.gastos.filter((g) => !g.recorrente && g.mes === mesRef), "valor"))],
         ["Com as parcelas das dívidas", moeda.format(r.gastos + r.parcelas)],
       ],
     };
@@ -234,7 +234,7 @@ async function salvarTorre(tipo, evento) {
       if (c.obrigatorio && !dados[c.nome]) return avisoTorre(tipo, `Preencha “${c.rotulo}”.`);
     }
   }
-  if (tipo !== "investimentos") dados.mes = anterior?.mes || mesCorrente;
+  if (tipo !== "investimentos") dados.mes = anterior?.mes || mesRef;
 
   const botao = form.querySelector("[type=submit]");
   botao.disabled = true;
@@ -300,6 +300,7 @@ async function iniciarTorre() {
   torre.parcelasMes = parcelasDoMes;
   renderizarTorre();
 
+  aoMudarMes(renderizarTorre);
   document.addEventListener("dividas-atualizadas", (e) => {
     torre.parcelasMes = e.detail.parcelasMes;
     renderizarTorre();

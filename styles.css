@@ -513,3 +513,93 @@ a.aba { text-decoration: none; }
 .total-pizza { margin: 0; text-align: center; font-size: 13px; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
 .total-pizza strong { color: var(--texto); font-weight: 600; }
 .grafico { position: relative; }
+
+/* Submenu do Financeiro */
+.submenu { display: flex; gap: 6px; padding: 14px 32px 0; }
+.subaba {
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--borda);
+  color: var(--texto-suave);
+  text-decoration: none;
+}
+.subaba:hover { color: var(--texto); }
+.subaba.ativa { background: var(--texto); border-color: var(--texto); color: var(--fundo); }
+.subaba:focus-visible { outline: 2px solid var(--progresso); outline-offset: 2px; }
+
+/* Timeline de meses */
+.timeline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - 64px);
+  max-width: 1308px;
+  margin: 16px auto 0;
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  min-width: 0;
+}
+.timeline-ano { display: flex; align-items: center; gap: 4px; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; flex: none; }
+.seta-ano {
+  all: unset;
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 18px;
+  color: var(--texto-suave);
+}
+.seta-ano:hover { background: var(--superficie); color: var(--texto); }
+.seta-ano:focus-visible { outline: 2px solid var(--progresso); }
+.timeline-meses {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(44px, 1fr));
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.timeline .mes {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  text-align: center;
+  padding: 7px 4px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--texto-suave);
+  position: relative;
+}
+.timeline .mes:hover { background: var(--superficie); color: var(--texto); }
+.timeline .mes:focus-visible { outline: 2px solid var(--progresso); outline-offset: -2px; }
+.timeline .mes.hoje::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--progresso);
+}
+.timeline .mes.ativo { background: var(--progresso); color: var(--fundo); font-weight: 600; }
+.timeline .mes.ativo.hoje::after { background: var(--fundo); }
+#timeline-hoje { flex: none; }
+
+.divida.fora-do-mes .linha, .divida.fora-do-mes .barra { opacity: 0.5; }
+
+@media (max-width: 480px) {
+  .submenu { padding: 12px 16px 0; }
+  .timeline { width: calc(100% - 32px); margin-top: 12px; }
+}
+
+@media (max-width: 700px) {
+  .timeline { flex-wrap: wrap; }
+  .timeline-meses { flex-basis: 100%; order: 3; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; }
+}

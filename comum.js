@@ -7,6 +7,72 @@ const hoje = new Date();
 hoje.setHours(0, 0, 0, 0);
 const mesHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`; // "AAAA-MM"
 
+/* ---------- Mês de referência (timeline) ----------
+ * Todas as seções mostram o mês escolhido na timeline. O painel sempre abre no mês atual.
+ */
+let mesRef = mesHoje;
+const ouvintesDoMes = [];
+
+/* Data usada para decidir o que já venceu: hoje no mês atual; nos outros meses, o dia 1º. */
+function dataRef() {
+  if (mesRef === mesHoje) return hoje;
+  const [a, m] = mesRef.split("-").map(Number);
+  return new Date(a, m - 1, 1);
+}
+function dataDoMesRef() {
+  const [a, m] = mesRef.split("-").map(Number);
+  return new Date(a, m - 1, 1);
+}
+function nomeMesRef() {
+  return capitalizar(mesAno.format(dataDoMesRef()));
+}
+function aoMudarMes(fn) {
+  ouvintesDoMes.push(fn);
+}
+function definirMes(mes) {
+  if (!/^\d{4}-\d{2}$/.test(mes) || mes === mesRef) return;
+  mesRef = mes;
+  anoTimeline = Number(mes.slice(0, 4));
+  renderizarTimeline();
+  ouvintesDoMes.forEach((fn) => fn());
+}
+
+const MESES_CURTOS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+let anoTimeline = Number(mesRef.slice(0, 4));
+
+function renderizarTimeline() {
+  const raiz = document.getElementById("timeline");
+  if (!raiz) return;
+  document.getElementById("timeline-ano").textContent = anoTimeline;
+  const lista = document.getElementById("timeline-meses");
+  lista.innerHTML = "";
+  MESES_CURTOS.forEach((nome, i) => {
+    const mes = `${anoTimeline}-${String(i + 1).padStart(2, "0")}`;
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "mes" + (mes === mesRef ? " ativo" : "") + (mes === mesHoje ? " hoje" : "");
+    botao.textContent = nome;
+    botao.setAttribute("aria-pressed", String(mes === mesRef));
+    botao.setAttribute("aria-label", capitalizar(mesAno.format(new Date(anoTimeline, i, 1))) + (mes === mesHoje ? " (mês atual)" : ""));
+    botao.addEventListener("click", () => definirMes(mes));
+    lista.appendChild(botao);
+  });
+  document.getElementById("timeline-hoje").hidden = mesRef === mesHoje;
+  const ativo = lista.querySelector(".ativo");
+  if (ativo) ativo.scrollIntoView({ block: "nearest", inline: "center" });
+}
+
+function iniciarTimeline() {
+  document.getElementById("timeline-anterior").addEventListener("click", () => { anoTimeline--; renderizarTimeline(); });
+  document.getElementById("timeline-proximo").addEventListener("click", () => { anoTimeline++; renderizarTimeline(); });
+  document.getElementById("timeline-hoje").addEventListener("click", () => {
+    anoTimeline = Number(mesHoje.slice(0, 4));
+    definirMes(mesHoje);
+    renderizarTimeline();
+  });
+  renderizarTimeline();
+}
+
 /* ---------- Armazenamento ----------
  * Publicado no claude.ai: banco de dados do artifact (uma coleção por tipo).
  * Aberto como arquivo local: localStorage do navegador.
@@ -126,11 +192,11 @@ function alternar(botao, painel, chave) {
 /* ---------- Navegação entre as abas (Financeiro / Faturas) ---------- */
 
 function mostrarVista() {
-  const vista = location.hash === "#faturas" ? "faturas" : "financeiro";
+  const vista = location.hash === "#faturas" ? "faturas" : "painel";
   document.querySelectorAll("[data-vista]").forEach((el) => {
     el.hidden = el.dataset.vista !== vista;
   });
-  document.querySelectorAll(".aba[data-aba]").forEach((aba) => {
+  document.querySelectorAll(".subaba[data-aba]").forEach((aba) => {
     const ativa = aba.dataset.aba === vista;
     aba.classList.toggle("ativa", ativa);
     if (ativa) aba.setAttribute("aria-current", "page");
@@ -140,3 +206,4 @@ function mostrarVista() {
 }
 window.addEventListener("hashchange", mostrarVista);
 mostrarVista();
+iniciarTimeline();

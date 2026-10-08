@@ -24,9 +24,17 @@ cadastre cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a d
 hora do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
 aparecem como *Atrasada*.
 
-## Aba Faturas
+## Navegação e timeline
 
-O botão **Faturas** (ou a aba no topo) abre:
+**Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a
+**timeline** com os meses do ano (setas para trocar de ano). O painel sempre abre no mês
+atual; ao escolher outro mês, todas as seções passam a mostrar aquele mês: parcelas das
+dívidas, compromissos da pizza, ganhos e gastos, contas do controle de pagamentos e a
+fatura de cada cartão.
+
+## Faturas
+
+O submenu **Faturas** (ou o botão Faturas no painel) abre:
 
 - **Cartões** — aparecem sozinhos quando você importa a fatura de um cartão.
 - **Importar fatura** — arraste o PDF da fatura. Ele é lido no próprio navegador

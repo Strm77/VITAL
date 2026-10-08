@@ -28,7 +28,11 @@ function avisoPag(texto) {
 }
 
 function renderizarPagamentos() {
-  const contas = [...pag.contas].sort((a, b) => {
+  document.getElementById("pagamentos-mes").textContent = nomeMesRef();
+  document.getElementById("pag-vazio").textContent = pag.contas.length
+    ? `Nenhuma conta com vencimento em ${nomeMesRef()}.`
+    : "Nenhuma conta cadastrada. Use “Adicionar conta” para registrar a primeira.";
+  const contas = pag.contas.filter((c) => String(c.vencimento || "").startsWith(mesRef)).sort((a, b) => {
     // pendentes/atrasadas primeiro, depois por vencimento
     const pa = a.status === "pago" ? 1 : 0, pb = b.status === "pago" ? 1 : 0;
     return pa - pb || String(a.vencimento).localeCompare(String(b.vencimento));
@@ -112,7 +116,7 @@ function abrirFormularioPag(id) {
   form.reset();
   form.elements.nome.value = conta?.nome ?? "";
   form.elements.valor.value = conta?.valor ?? "";
-  form.elements.vencimento.value = conta?.vencimento ?? "";
+  form.elements.vencimento.value = conta?.vencimento ?? `${mesRef}-10`;
   form.elements.status.value = conta?.status ?? "pendente";
   const origem = document.getElementById("pag-origem");
   origem.hidden = conta?.origem !== "fatura";
@@ -168,7 +172,7 @@ async function salvarPag(evento) {
 }
 
 async function iniciarPagamentos() {
-  document.getElementById("pagamentos-mes").textContent = capitalizar(mesAno.format(hoje));
+  aoMudarMes(renderizarPagamentos);
   document.getElementById("pag-adicionar").addEventListener("click", () => abrirFormularioPag(""));
   document.getElementById("pag-cancelar").addEventListener("click", fecharFormularioPag);
   document.getElementById("pag-form").addEventListener("submit", salvarPag);
