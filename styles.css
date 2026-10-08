@@ -7,6 +7,10 @@
   --progresso: #2f7d5b;
   --superficie: #fafafa;
   --perigo: #c0392b;
+  --cartao-fundo: #23262b;
+  --cartao-texto: #f4f5f6;
+  --cartao-chip: #c9a96b;
+  --cat-cor: #4a6fa5;
 }
 
 * { box-sizing: border-box; }
@@ -48,8 +52,9 @@ body {
 }
 
 /* Grade: dívidas | pizza | torre; Faturas e Pagamentos embaixo de dívidas + pizza */
-main {
-  padding: 32px;
+main { padding: 32px; }
+
+.vista-financeiro {
   display: grid;
   justify-content: center;
   align-items: start;
@@ -68,7 +73,7 @@ main {
 .area-torre { grid-area: torre; }
 
 @media (max-width: 1340px) {
-  main {
+  .vista-financeiro {
     grid-template-columns: minmax(0, 520px) minmax(0, 360px);
     grid-template-rows: none;
     grid-template-areas:
@@ -80,7 +85,7 @@ main {
 }
 
 @media (max-width: 920px) {
-  main {
+  .vista-financeiro {
     grid-template-columns: minmax(0, 560px);
     grid-template-areas: "dividas" "pizza" "pagamentos" "torre";
   }
@@ -384,42 +389,105 @@ main {
 }
 .formulario .dica { margin: 0; color: var(--texto-suave); }
 
-/* Página de faturas */
-.pagina-faturas { display: grid; gap: 24px; grid-template-columns: minmax(0, 900px); grid-template-areas: none; }
-.pagina-faturas h2 { margin: 0; font-size: 16px; font-weight: 600; }
+/* Aba Faturas */
+.vista-faturas { display: grid; gap: 24px; grid-template-columns: minmax(0, 960px); justify-content: center; align-content: start; }
+.vista-faturas h2 { margin: 0; font-size: 16px; font-weight: 600; }
 a.aba { text-decoration: none; }
-.voltar { justify-self: start; font-size: 13px; color: var(--texto-suave); text-decoration: none; }
-.voltar:hover { color: var(--texto); }
+.aba:focus-visible { outline: 2px solid var(--progresso); outline-offset: 4px; border-radius: 2px; }
 
 .cartoes {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
   margin-top: 12px;
 }
 /* Proporção de um cartão de verdade: 85,6 × 54 mm */
-.cartao-vazio {
+.cartao, .cartao-vazio {
+  all: unset;
+  box-sizing: border-box;
   aspect-ratio: 85.6 / 54;
   max-width: 100%;
-  border: 1.5px dashed var(--borda);
   border-radius: 14px;
-  padding: 18px;
+  padding: 16px 18px;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: 2px;
-  color: var(--texto-suave);
+  justify-content: space-between;
+  gap: 4px;
   font-size: 13px;
   position: relative;
 }
+.cartao-vazio { border: 1.5px dashed var(--borda); color: var(--texto-suave); justify-content: flex-end; }
 .cartao-vazio p { margin: 0; }
 .cartao-vazio .dica { font-size: 12px; }
-.cartao-vazio .chip {
-  position: absolute;
-  top: 18px;
-  left: 18px;
+.chip {
   width: 34px;
   height: 26px;
   border-radius: 5px;
   border: 1.5px dashed var(--borda);
 }
+.cartao-vazio .chip { position: absolute; top: 16px; left: 18px; }
+.cartao {
+  cursor: pointer;
+  background: var(--cartao-fundo);
+  color: var(--cartao-texto);
+  border: 2px solid transparent;
+}
+.cartao.selecionado { border-color: var(--progresso); box-shadow: 0 0 0 3px var(--fundo) inset; }
+.cartao:focus-visible { outline: 2px solid var(--progresso); outline-offset: 3px; }
+.cartao .chip { border: none; background: var(--cartao-chip); }
+.cartao-nome { font-weight: 600; font-size: 15px; }
+.cartao-final { font-variant-numeric: tabular-nums; letter-spacing: 0.12em; opacity: 0.85; }
+.cartao-total { font-size: 12px; opacity: 0.85; font-variant-numeric: tabular-nums; }
+.cartao-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+
+.soltar {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--borda);
+  border-radius: 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--texto-suave);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.soltar strong { color: var(--texto); font-size: 14px; font-weight: 600; }
+.soltar.arrastando, .soltar:hover { background: var(--superficie); border-color: var(--progresso); }
+.soltar input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.soltar:focus-within { outline: 2px solid var(--progresso); outline-offset: 2px; }
+
+.senha-pdf { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 12px; }
+.senha-pdf .campo { flex: 1 1 240px; }
+.previa { margin-top: 12px; }
+.previa-resumo { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: 13px; color: var(--texto-suave); }
+.previa-resumo strong { color: var(--texto); font-weight: 600; font-variant-numeric: tabular-nums; }
+.vista-faturas > .painel > .dica { margin: 12px 0 0; font-size: 12px; color: var(--texto-suave); }
+
+.filtros { display: flex; flex-wrap: wrap; gap: 8px; }
+.filtros select, .planilha select {
+  font: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo);
+  color: var(--texto);
+  max-width: 100%;
+}
+.planilha { min-width: 560px; }
+.planilha .credito { color: var(--progresso); }
+.planilha tfoot td { font-weight: 600; border-top: 1px solid var(--texto); border-bottom: none; }
+#planilha-conteudo .acoes { margin-top: 12px; }
+
+.relatorio { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 12px; }
+.relatorio li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px 12px; align-items: baseline; font-size: 13px; }
+.relatorio .cat-nome { min-width: 0; overflow-wrap: anywhere; }
+.relatorio .cat-valor { font-weight: 600; font-variant-numeric: tabular-nums; }
+.relatorio .cat-pct { color: var(--texto-suave); font-variant-numeric: tabular-nums; min-width: 4ch; text-align: right; }
+.relatorio .cat-qtd { font-size: 12px; color: var(--texto-suave); }
+.relatorio .barra { grid-column: 1 / -1; margin-top: 0; height: 10px; }
+.relatorio .barra .preenchimento { background: var(--cat-cor); }
+.relatorio .total-relatorio { border-top: 1px solid var(--borda); padding-top: 10px; font-weight: 600; }

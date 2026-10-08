@@ -1,73 +1,4 @@
-const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const mesAno = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
-
-const hoje = new Date();
-hoje.setHours(0, 0, 0, 0);
-
 const CAMPOS = ["nome", "valorParcela", "totalParcelas", "primeiraParcela", "diaVencimento", "parcelasPagas"];
-
-/* ---------- Armazenamento ----------
- * Publicado no claude.ai: banco de dados do artifact (uma coleção por tipo).
- * Aberto como arquivo local: localStorage do navegador.
- */
-
-function armazenamentoLocal(nome, exemplos) {
-  const CHAVE = "vital." + nome;
-  let ouvinte = () => {};
-  const ler = () => {
-    try {
-      const salvo = localStorage.getItem(CHAVE);
-      if (salvo) return JSON.parse(salvo);
-    } catch {}
-    return (exemplos || []).map((d, i) => ({ id: nome + i, ...d }));
-  };
-  let dados = ler();
-  const gravar = () => {
-    try { localStorage.setItem(CHAVE, JSON.stringify(dados)); } catch {}
-    ouvinte(dados);
-  };
-  return {
-    observar(fn) { ouvinte = fn; fn(dados); },
-    async salvar(id, item) {
-      if (id) dados = dados.map((d) => (d.id === id ? { id, ...item } : d));
-      else dados = [...dados, { id: nome + Date.now(), ...item }];
-      gravar();
-    },
-    async excluir(id) {
-      dados = dados.filter((d) => d.id !== id);
-      gravar();
-    },
-  };
-}
-
-function armazenamentoNuvem(db, nome) {
-  const colecao = db.collection(nome);
-  return {
-    observar(fn, erro) {
-      colecao.onSnapshot(
-        (snap) => fn(snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))),
-        erro
-      );
-    },
-    salvar(id, item) {
-      return id ? colecao.doc(id).set(item) : colecao.add(item);
-    },
-    excluir(id) {
-      return colecao.doc(id).delete();
-    },
-  };
-}
-
-let bancoNuvem = null;
-async function abrirArmazenamento(nome, exemplos) {
-  if (!bancoNuvem) {
-    bancoNuvem = window.claude && typeof window.claude.use === "function"
-      ? window.claude.use("db").catch(() => null)
-      : Promise.resolve(null);
-  }
-  const db = await bancoNuvem;
-  return db ? armazenamentoNuvem(db, nome) : armazenamentoLocal(nome, exemplos);
-}
 
 /* ---------- Cálculos ---------- */
 
@@ -109,44 +40,6 @@ function calcular(divida) {
 
 /* ---------- Interface ---------- */
 
-function capitalizar(texto) {
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
-
-function escapar(texto) {
-  const div = document.createElement("div");
-  div.textContent = texto;
-  return div.innerHTML;
-}
-
-function preencherBarra(barra, progresso) {
-  const pct = Math.round(progresso * 100);
-  barra.setAttribute("aria-valuenow", pct);
-  barra.setAttribute("aria-valuemin", 0);
-  barra.setAttribute("aria-valuemax", 100);
-  requestAnimationFrame(() => {
-    barra.querySelector(".preenchimento").style.width = pct + "%";
-  });
-}
-
-function listaDetalhes(itens) {
-  return itens.map(([rotulo, valor]) => `<dt>${rotulo}</dt><dd>${valor}</dd>`).join("");
-}
-
-const abertos = new Set();
-
-function alternar(botao, painel, chave) {
-  const definir = (aberto) => {
-    botao.setAttribute("aria-expanded", String(aberto));
-    painel.hidden = !aberto;
-  };
-  definir(abertos.has(chave));
-  botao.addEventListener("click", () => {
-    const aberto = !abertos.has(chave);
-    aberto ? abertos.add(chave) : abertos.delete(chave);
-    definir(aberto);
-  });
-}
 
 let armazenamento = null;
 let parcelasDoMes = 0; // lido também pela torre (torre.js)

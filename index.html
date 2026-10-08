@@ -3,18 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>V.I.T.A.L — Financeiro</title>
+  <title>V.I.T.A.L</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header class="topo">
     <h1>V.I.T.A.L</h1>
     <nav class="abas">
-      <span class="aba ativa">Financeiro</span>
+      <a class="aba" data-aba="financeiro" href="#financeiro">Financeiro</a>
+      <a class="aba" data-aba="faturas" href="#faturas">Faturas</a>
     </nav>
   </header>
 
-  <main>
+  <main class="vista-financeiro" data-vista="financeiro">
     <div class="coluna-dividas area-dividas">
     <section class="painel" aria-labelledby="titulo-dividas">
       <div class="painel-cabecalho">
@@ -70,7 +71,7 @@
       </div>
     </section>
 
-    <a class="botao botao-faturas" href="faturas.html">Faturas <span aria-hidden="true">→</span></a>
+    <a class="botao botao-faturas" href="#faturas">Faturas <span aria-hidden="true">→</span></a>
     </div>
 
     <section class="painel grafico" aria-labelledby="titulo-grafico">
@@ -147,9 +148,111 @@
     </section>
   </main>
 
+  <main class="vista-faturas" data-vista="faturas" hidden>
+    <section class="painel" aria-labelledby="titulo-cartoes">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-cartoes">Cartões</h2>
+        <span class="mes-atual" id="cartoes-contagem">0 cartões</span>
+      </div>
+      <div class="cartoes" id="cartoes"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-importar">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-importar">Importar fatura</h2>
+      </div>
+
+      <label class="soltar" id="soltar" for="pdf-arquivo">
+        <input id="pdf-arquivo" type="file" accept="application/pdf,.pdf">
+        <strong>Arraste o PDF da fatura aqui</strong>
+        <span>ou clique para escolher o arquivo</span>
+      </label>
+
+      <form class="senha-pdf" id="senha-pdf" hidden novalidate>
+        <label class="campo">Este PDF tem senha. Digite a senha para abrir:
+          <input id="pdf-senha" type="password" autocomplete="off">
+        </label>
+        <button type="submit" class="botao primario">Abrir PDF</button>
+      </form>
+
+      <p class="estado" id="leitura-estado" hidden></p>
+      <p class="aviso" id="leitura-aviso" role="alert" hidden></p>
+
+      <form class="formulario previa" id="previa" hidden novalidate>
+        <h3 id="previa-titulo">Confira antes de salvar</h3>
+        <label class="campo">Cartão
+          <select id="previa-cartao" name="cartao"></select>
+        </label>
+        <label class="campo" id="previa-novo-rotulo">Nome do novo cartão
+          <input id="previa-novo" name="novo" type="text" maxlength="40" placeholder="Ex.: Nubank">
+        </label>
+        <label class="campo">Final do cartão
+          <input id="previa-final" name="final" type="text" maxlength="4" inputmode="numeric" placeholder="1234">
+        </label>
+        <label class="campo">Mês da fatura
+          <input id="previa-mes" name="mes" type="month">
+        </label>
+        <div class="largo previa-resumo" id="previa-resumo"></div>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="previa-claude" hidden>Ler de novo com o Claude</button>
+          <button type="button" class="botao" id="previa-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar fatura</button>
+        </div>
+      </form>
+      <p class="dica">O PDF é lido aqui mesmo no navegador. Só os lançamentos encontrados são salvos.</p>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-planilha">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-planilha">Planilha da fatura</h2>
+        <div class="filtros">
+          <label class="sr" for="filtro-cartao">Cartão</label>
+          <select id="filtro-cartao"></select>
+          <label class="sr" for="filtro-mes">Mês</label>
+          <select id="filtro-mes"></select>
+        </div>
+      </div>
+      <p class="estado" id="planilha-vazia">Nenhuma fatura importada ainda. Importe o PDF de uma fatura acima.</p>
+      <div id="planilha-conteudo" hidden>
+        <div class="tabela-rolagem">
+          <table class="tabela planilha" id="planilha">
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Descrição</th>
+                <th scope="col">Categoria</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col"><span class="sr">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+        <div class="acoes">
+          <button type="button" class="botao" id="excluir-fatura">Excluir fatura</button>
+          <button type="button" class="botao primario" id="baixar-planilha">Baixar planilha (.csv)</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-relatorio">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-relatorio">Relatório de gastos por categoria</h2>
+        <span class="mes-atual" id="relatorio-periodo"></span>
+      </div>
+      <p class="estado" id="relatorio-vazio">O relatório aparece depois que você importar uma fatura.</p>
+      <ul class="relatorio" id="relatorio"></ul>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+  <script src="comum.js"></script>
   <script src="dividas.js"></script>
   <script src="app.js"></script>
   <script src="torre.js"></script>
   <script src="pagamentos.js"></script>
+  <script src="faturas.js"></script>
 </body>
 </html>

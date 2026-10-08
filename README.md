@@ -19,8 +19,21 @@ tem uma setinha com os detalhes e os botões para adicionar, editar e excluir.
 Ganhos e gastos marcados como "Todo mês" entram em todos os meses; os demais,
 só no mês em que foram lançados.
 
-Embaixo das dívidas há o botão **Faturas**, que leva para `faturas.html` (por enquanto
-só com o espaço da seção **Cartões**; as faturas ainda estão em construção) e, abaixo das dívidas e da pizza, o **Controle de pagamentos**: cadastre
-cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a data e a hora
-do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
+Embaixo das dívidas, abaixo das dívidas e da pizza, fica o **Controle de pagamentos**:
+cadastre cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a data e a
+hora do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
 aparecem como *Atrasada*.
+
+## Aba Faturas
+
+O botão **Faturas** (ou a aba no topo) abre:
+
+- **Cartões** — aparecem sozinhos quando você importa a fatura de um cartão.
+- **Importar fatura** — arraste o PDF da fatura. Ele é lido no próprio navegador
+  (pdf.js), inclusive PDFs com senha. O painel encontra banco, final do cartão,
+  vencimento e os lançamentos; você confere e salva.
+- **Planilha da fatura** — os lançamentos do cartão e mês escolhidos, com a categoria
+  de cada um (dá para trocar) e o botão *Baixar planilha (.csv)*, que abre no Excel.
+- **Relatório de gastos por categoria** — quanto foi gasto em cada categoria.
+
+As categorias são definidas por palavras-chave em `faturas.js` (`REGRAS_CATEGORIA`).
