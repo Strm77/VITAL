@@ -223,19 +223,25 @@ function renderizar(lista) {
 
 const GRUPOS_PIZZA = [
   { chave: "dividas", nome: "Dívidas", matiz: 0 },
-  { chave: "contas", nome: "Contas", matiz: 32 },
+  { chave: "contas", nome: "Contas", matiz: 40 },
   { chave: "cartoes", nome: "Cartões", matiz: 268 },
 ];
 
 function tons(matiz, qtd) {
-  if (qtd === 1) return [`hsl(${matiz} 70% 45%)`];
+  // No fundo preto, tons escuros somem e o âmbar escuro vira marrom: começa mais claro.
+  const escuro = typeof temaEscuro === "function" && temaEscuro();
+  const ambar = matiz > 20 && matiz < 60;
+  const min = escuro ? (ambar ? 55 : 48) : ambar ? 42 : 32;
+  const max = escuro ? 82 : 74;
+  if (qtd === 1) return [`hsl(${matiz} 75% ${min + 6}%)`];
   return Array.from({ length: qtd }, (_, i) => {
     const t = i / (qtd - 1);
-    const luz = 32 + t * 40; // 32% (escuro) → 72% (claro)
-    const sat = 75 - t * 15;
+    const luz = min + t * (max - min);
+    const sat = (ambar ? 92 : 78) - t * 18;
     return `hsl(${matiz} ${sat.toFixed(0)}% ${luz.toFixed(0)}%)`;
   });
 }
+document.addEventListener("tema-alterado", () => renderizarGrafico());
 
 function fatia(cx, cy, r, inicio, fim) {
   if (fim - inicio >= Math.PI * 2 - 1e-6) {

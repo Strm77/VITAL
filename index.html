@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>V.I.T.A.L</title>
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Aplica o tema salvo antes de desenhar a página (evita piscar em branco).
+    try { const t = localStorage.getItem("vital.tema"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch {}
+  </script>
 </head>
 <body>
   <div class="tela-login" id="tela-login" hidden>
@@ -28,9 +32,12 @@
     <nav class="abas" aria-label="Áreas">
       <span class="aba ativa" aria-current="page">Financeiro</span>
     </nav>
-    <div class="conta" id="conta" hidden>
-      <span id="usuario-email"></span>
-      <button type="button" class="botao mini" id="sair">Sair</button>
+    <div class="acoes-topo">
+      <button type="button" class="tema" id="botao-tema" aria-label="Tema"></button>
+      <div class="conta-usuario" id="conta" hidden>
+        <span id="usuario-email"></span>
+        <button type="button" class="botao mini" id="sair">Sair</button>
+      </div>
     </div>
   </header>
 

@@ -214,6 +214,41 @@ function mostrarVista() {
   });
   window.scrollTo(0, 0);
 }
+/* ---------- Tema (automático / escuro / claro) ---------- */
+
+const TEMAS = [
+  { valor: "", rotulo: "◐ Automático" },
+  { valor: "dark", rotulo: "● Escuro" },
+  { valor: "light", rotulo: "○ Claro" },
+];
+const sistemaEscuro = window.matchMedia("(prefers-color-scheme: dark)");
+
+function temaEscuro() {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === "dark" : sistemaEscuro.matches;
+}
+
+function aplicarTema(valor) {
+  if (valor) document.documentElement.dataset.theme = valor;
+  else delete document.documentElement.dataset.theme;
+  try { valor ? localStorage.setItem("vital.tema", valor) : localStorage.removeItem("vital.tema"); } catch {}
+  const atual = TEMAS.find((t) => t.valor === valor) || TEMAS[0];
+  const botao = document.getElementById("botao-tema");
+  if (botao) {
+    botao.textContent = atual.rotulo;
+    botao.title = "Trocar tema (automático segue o sistema)";
+  }
+  document.dispatchEvent(new Event("tema-alterado"));
+}
+
+document.getElementById("botao-tema")?.addEventListener("click", () => {
+  const atual = document.documentElement.dataset.theme || "";
+  const i = TEMAS.findIndex((t) => t.valor === atual);
+  aplicarTema(TEMAS[(i + 1) % TEMAS.length].valor);
+});
+sistemaEscuro.addEventListener("change", () => document.dispatchEvent(new Event("tema-alterado")));
+aplicarTema(document.documentElement.dataset.theme || "");
+
 window.addEventListener("hashchange", mostrarVista);
 mostrarVista();
 iniciarTimeline();

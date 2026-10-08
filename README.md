@@ -13,6 +13,7 @@ e `pagamentos` — veja `supabase/migrations/`).
 - **Segurança:** RLS em todas as tabelas — cada linha pertence a um usuário e só ele lê ou altera.
 - **Tempo real:** o painel escuta as mudanças das tabelas (Supabase Realtime), então o que muda
   num aparelho aparece nos outros.
+- **Tema:** claro, escuro (preto neutro) ou automático, seguindo o sistema; o botão no topo troca e o painel lembra a escolha.
 - `config.js` tem a URL do projeto e a chave publicável (pode ficar no navegador).
 - A Vercel publica a cada push: `vercel.json` copia os arquivos do site para `public/`.
 
@@ -93,6 +94,7 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/02-simulacao.test.mjs` — importa 5 faturas em PDF (Nubank, Itaú, Bradesco, Inter e C6,
   gerados em `tests/simulacao/gerar-pdfs.mjs`), cadastra 13 contas e confere totais, parcelas,
   previsão, timeline, atualização em tempo real (inclusive entre abas), recarga e celular.
+- `tests/04-tema.test.mjs` — modo escuro (preto neutro), botão de tema e cores da pizza no fundo preto.
 - `tests/03-site-publicado.test.mjs` — modo site publicado com um Supabase simulado
   (`tests/supabase-simulado.js`): login, e-mail não permitido, gravação nas tabelas, lançamentos
   da fatura, conta automática, recarga e sair.
