@@ -83,26 +83,29 @@ async function lerLinhasDoPdf(arquivo, senha) {
   for (let n = 1; n <= pdf.numPages; n++) {
     const pagina = await pdf.getPage(n);
     const { items } = await pagina.getTextContent();
-    const porY = new Map();
-    for (const it of items) {
-      if (!it.str || !it.str.trim()) continue;
-      const y = Math.round(it.transform[5] / 2) * 2; // tolera pequenas diferenças de altura
-      if (!porY.has(y)) porY.set(y, []);
-      porY.get(y).push({ x: it.transform[4], w: it.width || 0, t: it.str });
+    // Junta os pedaços de texto em linhas. A tolerância de altura evita separar a descrição
+    // do valor quando o banco imprime os dois com alturas levemente diferentes.
+    const partes = items
+      .filter((it) => it.str && it.str.trim())
+      .map((it) => ({ x: it.transform[4], y: it.transform[5], w: it.width || 0, t: it.str }))
+      .sort((a, b) => b.y - a.y || a.x - b.x);
+    const grupos = [];
+    for (const p of partes) {
+      const grupo = grupos[grupos.length - 1];
+      if (grupo && Math.abs(grupo.y - p.y) <= 3.5) grupo.itens.push(p);
+      else grupos.push({ y: p.y, itens: [p] });
     }
-    [...porY.entries()]
-      .sort((a, b) => b[0] - a[0])
-      .forEach(([, partes]) => {
-        partes.sort((a, b) => a.x - b.x);
-        let texto = "";
-        let fim = -Infinity;
-        for (const p of partes) {
-          const espaco = p.x - fim > 1.5 ? (p.x - fim > 40 ? "   " : " ") : "";
-          texto += (texto ? espaco : "") + p.t;
-          fim = p.x + p.w;
-        }
-        linhas.push(texto.replace(/\s+$/, ""));
-      });
+    for (const { itens } of grupos) {
+      itens.sort((a, b) => a.x - b.x);
+      let texto = "";
+      let fim = -Infinity;
+      for (const p of itens) {
+        const espaco = p.x - fim > 1.5 ? (p.x - fim > 40 ? "   " : " ") : "";
+        texto += (texto ? espaco : "") + p.t;
+        fim = p.x + p.w;
+      }
+      linhas.push(texto.replace(/\s+$/, ""));
+    }
   }
   return linhas;
 }
@@ -151,9 +154,11 @@ function extrairDaFatura(linhas) {
   const re = new RegExp(`(?:^|\\s)${DATA}\\s+(.+?)\\s+${VALOR}(?=\\s+\\d{1,2}\\s?[\\/\\-.\\s]\\s?(?:\\d{1,2}|${NOMES_MES})\\b|\\s*$)`, "gi");
 
   const lancamentos = [];
+  const naoReconhecidas = [];
   for (const linha of linhas) {
     re.lastIndex = 0;
     let r;
+    const antes = lancamentos.length;
     while ((r = re.exec(linha))) {
       const [, dia, mes, ano, descBruta, sinal1, sinal2, valorTexto, sufixo] = r;
       let descricao = descBruta.replace(/\s{2,}/g, " ").trim();
@@ -170,11 +175,21 @@ function extrairDaFatura(linhas) {
       if (prefixo) lanc.finalCartao = prefixo[1];
       lancamentos.push(lanc);
     }
+    // Linha com valor em dinheiro que não virou lançamento: mostrada na prévia para conferência.
+    if (lancamentos.length === antes && /\d{1,3}(?:\.\d{3})*,\d{2}/.test(linha) && naoReconhecidas.length < 60) naoReconhecidas.push(linha.trim());
+  }
+
+  // Total oficial da fatura impresso no PDF ("Total a pagar", "Total da fatura"...).
+  const PADRAO_TOTAL = /(total a pagar|total da (?:sua )?fatura(?: atual)?|total desta fatura|valor total (?:da|desta) fatura|valor da fatura|o total da sua fatura (?:e|é))\s*:?\s*(?:de\s*)?(?:r\$)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/i;
+  let totalInformado = null;
+  for (const linha of linhas) {
+    const m = semAcento(linha).match(PADRAO_TOTAL);
+    if (m && numeroBR(m[2]) > 0) { totalInformado = numeroBR(m[2]); break; }
   }
 
   const mes = venc ? `${venc.a}-${doisDigitos(venc.m)}` : `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}`;
   const vencimento = venc ? `${venc.a}-${doisDigitos(venc.m)}-${doisDigitos(venc.d)}` : "";
-  return { banco, final, mes, vencimento, lancamentos };
+  return { banco, final, mes, vencimento, totalInformado, naoReconhecidas, lancamentos };
 }
 
 /* Leitura com o Claude (só no claude.ai, quando o leitor automático não basta). */
@@ -190,7 +205,7 @@ async function extrairComClaude(linhas) {
   const resposta = await sample.json(
     `Você recebe o texto extraído do PDF de uma fatura de cartão de crédito brasileira.
 Devolva APENAS um JSON neste formato:
-{"banco": string, "final": string (4 últimos dígitos do cartão ou ""), "vencimento": "AAAA-MM-DD" ou "",
+{"banco": string, "final": string (4 últimos dígitos do cartão ou ""), "vencimento": "AAAA-MM-DD" ou "", "total": number (valor total a pagar da fatura) ou null,
  "lancamentos": [{"data": "AAAA-MM-DD", "descricao": string, "valor": number, "categoria": string}]}
 Regras:
 - Inclua cada compra, parcela, tarifa, juros, IOF e estorno da fatura.
@@ -221,6 +236,8 @@ ${texto}
     final: String(resposta.final || "").replace(/\D/g, "").slice(-4),
     mes: venc || `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}`,
     vencimento,
+    totalInformado: Number(resposta.total) > 0 ? Number(resposta.total) : null,
+    naoReconhecidas: [],
     lancamentos,
   };
 }
@@ -308,7 +325,7 @@ function parcelamentosNoMes(cartaoId, mes) {
 /* Valor da fatura de um cartão num mês: real se já foi importada; senão, previsto pelas parcelas. */
 function faturaDoMes(cartaoId, mes) {
   const real = fat.faturas.find((f) => f.cartaoId === cartaoId && f.mes === mes);
-  if (real) return { valor: totalFatura(real.lancamentos || []), prevista: false };
+  if (real) return { valor: valorDaFatura(real), prevista: false };
   const base = faturaBase(cartaoId, mes);
   if (!base) return null;
   const valor = parcelamentosNoMes(cartaoId, mes).reduce((t, p) => t + p.valor, 0);
@@ -341,6 +358,8 @@ const fat = {
 
 const totalGastos = (lancs) => lancs.reduce((t, l) => t + (l.valor > 0 ? l.valor : 0), 0);
 const totalFatura = (lancs) => lancs.reduce((t, l) => t + l.valor, 0);
+// Valor da fatura: o total oficial (do PDF ou digitado); sem ele, a soma dos lançamentos.
+const valorDaFatura = (f) => (Number(f.totalInformado) > 0 ? Number(f.totalInformado) : totalFatura(f.lancamentos || []));
 
 function avisoLeitura(texto) {
   const el = document.getElementById("leitura-aviso");
@@ -386,7 +405,7 @@ function renderizarCartoes() {
         </div>
         <span class="cartao-final">•••• ${escapar(c.final || "····")}</span>
         <span class="cartao-total">${ultima
-          ? `${nomeDoMes(ultima.mes)}: ${moeda.format(totalFatura(ultima.lancamentos || []))}`
+          ? `${nomeDoMes(ultima.mes)}: ${moeda.format(valorDaFatura(ultima))}`
           : prevista
             ? `Previsto em ${nomeMesRef()}: ${moeda.format(prevista.valor)}`
             : `Sem fatura em ${nomeMesRef()}`} · ${faturas.length} fatura${faturas.length === 1 ? "" : "s"}</span>`;
@@ -455,6 +474,13 @@ function mostrarPrevia(leitura, metodo) {
   form.elements.final.value = leitura.final || existente?.final || "";
   form.elements.mes.value = leitura.mes;
   form.elements.vencimento.value = leitura.vencimento || "";
+  form.elements.total.value = leitura.totalInformado ?? "";
+  const naoLidas = document.getElementById("previa-nao-lidas");
+  const lista = leitura.naoReconhecidas || [];
+  naoLidas.hidden = !lista.length;
+  naoLidas.open = false;
+  naoLidas.querySelector("summary").textContent = `${lista.length} linha${lista.length === 1 ? "" : "s"} com valor que não ${lista.length === 1 ? "virou" : "viraram"} lançamento (totais, pagamentos, resumos…)`;
+  naoLidas.querySelector("ul").innerHTML = lista.map((t) => `<li>${escapar(t)}</li>`).join("");
   atualizarPrevia();
 
   const n = leitura.lancamentos.length;
@@ -483,7 +509,15 @@ function atualizarPrevia() {
     ${l.banco ? `<span>Banco <strong>${escapar(l.banco)}</strong></span>` : ""}
     <span>Gastos <strong>${moeda.format(gastos)}</strong></span>
     ${creditos ? `<span>Estornos e créditos <strong>${moeda.format(creditos)}</strong></span>` : ""}
-    <span>Total <strong>${moeda.format(gastos + creditos)}</strong></span>
+    <span>Soma dos lançamentos <strong>${moeda.format(gastos + creditos)}</strong></span>
+    ${(() => {
+      const total = Number(String(form.elements.total.value).replace(",", "."));
+      if (!(total > 0)) return `<span class="status pendente">Sem o valor total, a fatura vai usar a soma dos lançamentos.</span>`;
+      const diferenca = Math.round((total - gastos - creditos) * 100) / 100;
+      return `<span>Total da fatura <strong>${moeda.format(total)}</strong></span>` + (Math.abs(diferenca) >= 0.01
+        ? `<span class="status atrasada">${moeda.format(diferenca)} da fatura não ${Math.abs(diferenca) === 1 ? "foi" : "foram"} detalhados em lançamentos</span>`
+        : `<span class="status pago">Lançamentos batem com o total</span>`);
+    })()}
     ${repetida ? `<span class="status atrasada">Já existe a fatura de ${nomeDoMes(repetida.mes)} deste cartão; salvar vai substituí-la.</span>` : ""}`;
 }
 
@@ -513,6 +547,7 @@ async function salvarImportacao(evento) {
       cartaoId,
       mes,
       vencimento: form.elements.vencimento.value || `${mes}-10`,
+      totalInformado: Number(String(form.elements.total.value).replace(",", ".")) > 0 ? Number(String(form.elements.total.value).replace(",", ".")) : null,
       arquivo: fat.arquivo ? fat.arquivo.name : "",
       importadoEm: new Date().toISOString(),
       lancamentos: l.lancamentos,
@@ -650,16 +685,24 @@ function renderizarPlanilha() {
   const parceladas = todas.filter((l) => l.parcela);
   const avista = todas.filter((l) => !l.parcela);
   const soma = (lista) => lista.reduce((t, l) => t + l.valor, 0);
+  // Total oficial da fatura e o que não apareceu como lançamento (juros, saldo anterior, linhas não lidas…).
+  const totalOficial = faturas.length ? faturas.reduce((t, f) => t + valorDaFatura(f), 0) : soma(todas);
+  const naoDetalhado = Math.round((totalOficial - soma(todas)) * 100) / 100;
+  const umaFatura = faturas.length === 1 ? faturas[0] : null;
   const faltaParceladas = parceladas.reduce((t, l) => t + l.valor * l.parcela.restantes, 0);
   const acabando = parceladas.filter((l) => l.parcela.restantes <= 2).length;
   document.getElementById("planilha-resumo").innerHTML = `
     ${prevista.length ? `<span class="status pendente">Fatura prevista: só as parcelas já programadas</span>` : ""}
-    <span>Total <strong>${moeda.format(soma(todas))}</strong></span>
+    <span class="total-fatura">Total da fatura <strong>${moeda.format(totalOficial)}</strong>
+      ${umaFatura ? `<button type="button" class="botao mini" id="editar-total">${Number(umaFatura.totalInformado) > 0 ? "Corrigir total" : "Informar total"}</button>` : ""}</span>
     <span>À vista <strong>${moeda.format(soma(avista))}</strong> (${avista.length})</span>
     <span>Parceladas <strong>${moeda.format(soma(parceladas))}</strong> (${parceladas.length})</span>
+    ${Math.abs(naoDetalhado) >= 0.01 ? `<span>Não detalhado <strong>${moeda.format(naoDetalhado)}</strong></span>` : ""}
     ${parceladas.length ? `<span>Ainda falta das parceladas <strong>${moeda.format(faltaParceladas)}</strong></span>` : ""}
     ${acabando ? `<span class="status pago">${acabando} terminando em até 2 meses</span>` : ""}`;
 
+  const editar = document.getElementById("editar-total");
+  if (editar) editar.addEventListener("click", () => editarTotal(umaFatura, editar.parentElement));
   document.querySelectorAll(".segmentado .seg").forEach((b) => {
     const ativo = b.dataset.tipo === fat.filtroTipo;
     b.classList.toggle("ativo", ativo);
@@ -701,9 +744,46 @@ function renderizarPlanilha() {
   });
 
   const filtrado = fat.filtroTipo !== "todos";
+  if (!filtrado && Math.abs(naoDetalhado) >= 0.01) {
+    const tr = document.createElement("tr");
+    tr.className = "nao-detalhado";
+    tr.innerHTML = `
+      <td class="data">—</td>
+      <td class="conta">Outros valores da fatura<span class="sub">Diferença entre o total da fatura e os lançamentos lidos do PDF (juros, encargos, saldo anterior ou linhas que o leitor não reconheceu).</span></td>
+      <td class="celula-parcelas"><span class="tag-vista">não detalhado</span></td>
+      <td><span class="sub">—</span></td>
+      <td class="num${naoDetalhado < 0 ? " credito" : ""}">${moeda.format(naoDetalhado)}</td>
+      <td></td>`;
+    corpo.appendChild(tr);
+  }
   document.querySelector("#planilha tfoot").innerHTML = `
     <tr><td></td><td>${linhas.length} lançamento${linhas.length === 1 ? "" : "s"}${filtrado ? ` de ${todas.length}` : ""}</td><td></td>
-    <td>${filtrado ? "Subtotal" : "Total"}</td><td class="num">${moeda.format(soma(linhas))}</td><td></td></tr>`;
+    <td>${filtrado ? "Subtotal" : "Total da fatura"}</td><td class="num">${moeda.format(filtrado ? soma(linhas) : totalOficial)}</td><td></td></tr>`;
+}
+
+/* Corrigir o total oficial da fatura direto na tabela. */
+function editarTotal(fatura, alvo) {
+  alvo.innerHTML = `
+    <label class="sr" for="campo-total-fatura">Total da fatura</label>
+    Total da fatura R$ <input id="campo-total-fatura" type="number" min="0" step="0.01" inputmode="decimal" value="${valorDaFatura(fatura).toFixed(2)}">
+    <button type="button" class="botao mini primario" id="salvar-total">Salvar</button>
+    <button type="button" class="botao mini" id="cancelar-total">Cancelar</button>`;
+  const campo = alvo.querySelector("input");
+  campo.focus();
+  campo.select();
+  alvo.querySelector("#cancelar-total").addEventListener("click", renderizarPlanilha);
+  const salvar = async () => {
+    const valor = Number(String(campo.value).replace(",", "."));
+    if (!(valor > 0)) return campo.focus();
+    const { id, ...dados } = fatura;
+    try {
+      await fat.armFaturas.salvar(id, { ...dados, totalInformado: Math.round(valor * 100) / 100 });
+    } catch {
+      avisoLeitura("Não foi possível salvar o total. Tente de novo.");
+    }
+  };
+  alvo.querySelector("#salvar-total").addEventListener("click", salvar);
+  campo.addEventListener("keydown", (e) => { if (e.key === "Enter") salvar(); if (e.key === "Escape") renderizarPlanilha(); });
 }
 
 function renderizarRelatorio() {
@@ -727,14 +807,16 @@ function renderizarRelatorio() {
     const atual = porCategoria.get(l.categoria) || { valor: 0, qtd: 0 };
     porCategoria.set(l.categoria, { valor: atual.valor + l.valor, qtd: atual.qtd + 1 });
   });
-  const total = totalGastos(lancs);
+  const naoDetalhado = Math.round(faturas.reduce((t, f) => t + valorDaFatura(f) - totalFatura(f.lancamentos || []), 0) * 100) / 100;
+  if (naoDetalhado > 0) porCategoria.set("Não detalhado na fatura", { valor: naoDetalhado, qtd: 0 });
+  const total = totalGastos(lancs) + Math.max(naoDetalhado, 0);
   const ordenadas = [...porCategoria.entries()].sort((a, b) => b[1].valor - a[1].valor);
   const maior = ordenadas[0][1].valor;
 
   ordenadas.forEach(([categoria, { valor, qtd }]) => {
     const li = document.createElement("li");
     li.innerHTML = `
-      <span class="cat-nome">${categoria} <span class="cat-qtd">· ${qtd} lançamento${qtd === 1 ? "" : "s"}</span></span>
+      <span class="cat-nome">${categoria}${qtd ? ` <span class="cat-qtd">· ${qtd} lançamento${qtd === 1 ? "" : "s"}</span>` : ""}</span>
       <span class="cat-valor">${moeda.format(valor)}</span>
       <span class="cat-pct">${Math.round((valor / total) * 100)}%</span>
       <div class="barra" role="progressbar" aria-label="${categoria}"><div class="preenchimento"></div></div>`;
@@ -813,7 +895,9 @@ async function baixarPlanilha() {
       const p = l.valor > 0 && lerParcela(l.descricao);
       return [dataBR(l.data), p ? semParcela(l.descricao) : l.descricao, p ? `${p.atual}/${p.total}` : "à vista", l.categoria, valorBR(l.valor), nomeDoMes(l.mes)].map(celula).join(";");
     }),
-    ["", "", "", "Total", valorBR(totalFatura(linhas)), ""].map(celula).join(";"),
+    ...faturas.filter((f) => Math.abs(valorDaFatura(f) - totalFatura(f.lancamentos || [])) >= 0.01).map((f) =>
+      ["", "Outros valores da fatura (não detalhados)", "", "", valorBR(valorDaFatura(f) - totalFatura(f.lancamentos || [])), nomeDoMes(f.mes)].map(celula).join(";")),
+    ["", "", "", "Total da fatura", valorBR(faturas.reduce((t, f) => t + valorDaFatura(f), 0)), ""].map(celula).join(";"),
   ].join("\r\n");
   const nome = `fatura-${semAcento(cartao?.nome || "cartao").replace(/[^a-z0-9]+/g, "-")}-${fat.filtroMes || "todos"}.csv`;
 
@@ -850,7 +934,7 @@ async function sincronizarContasDasFaturas() {
     const id = idContaDaFatura(f.id);
     if (f.semConta || sincronizando.has(id)) continue;
     const cartao = fat.cartoes.find((c) => c.id === f.cartaoId);
-    const total = Math.round(totalFatura(f.lancamentos || []) * 100) / 100;
+    const total = Math.round(valorDaFatura(f) * 100) / 100;
     const existente = pag.contas.find((c) => c.id === id);
     let nova = null;
     if (!existente) {
@@ -910,6 +994,7 @@ async function iniciarFaturas() {
   previa.addEventListener("submit", salvarImportacao);
   previa.elements.cartao.addEventListener("change", atualizarPrevia);
   previa.elements.mes.addEventListener("change", atualizarPrevia);
+  previa.elements.total.addEventListener("input", atualizarPrevia);
   previa.elements.vencimento.addEventListener("change", () => {
     if (previa.elements.vencimento.value) previa.elements.mes.value = previa.elements.vencimento.value.slice(0, 7);
     atualizarPrevia();

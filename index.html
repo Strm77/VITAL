@@ -225,7 +225,7 @@
       <div id="planilha-conteudo" hidden>
         <div class="pag-resumo" id="planilha-resumo"></div>
         <div class="segmentado" role="group" aria-label="Mostrar">
-          <button type="button" class="seg ativo" data-tipo="todos" aria-pressed="true">Todas</button>
+          <button type="button" class="seg ativo" data-tipo="todos" aria-pressed="true">Tudo junto</button>
           <button type="button" class="seg" data-tipo="parceladas" aria-pressed="false">Parceladas</button>
           <button type="button" class="seg" data-tipo="avista" aria-pressed="false">À vista</button>
         </div>
@@ -302,7 +302,15 @@
         <label class="campo">Mês da fatura
           <input id="previa-mes" name="mes" type="month">
         </label>
+        <label class="campo largo">Valor total da fatura (R$)
+          <input id="previa-total" name="total" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Como está no PDF">
+          <span class="dica">Lido do PDF quando ele informa o total. Confira com o valor da sua fatura.</span>
+        </label>
         <div class="largo previa-resumo" id="previa-resumo"></div>
+        <details class="largo nao-lidas" id="previa-nao-lidas" hidden>
+          <summary></summary>
+          <ul></ul>
+        </details>
         <div class="acoes largo">
           <button type="button" class="botao" id="previa-claude" hidden>Ler de novo com o Claude</button>
           <button type="button" class="botao" id="previa-cancelar">Cancelar</button>

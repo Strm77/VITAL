@@ -75,8 +75,9 @@ As categorias são definidas por palavras-chave em `faturas.js` (`REGRAS_CATEGOR
 
 Na aba Faturas, a tabela **Fatura do cartão** mostra as compras à vista e as parceladas juntas.
 As parceladas aparecem com a parcela atual (ex.: 3/10), um bloco por parcela, até quando vão
-e o valor total da compra; as que terminam em até 2 meses ficam destacadas. Dá para filtrar
-Todas / Parceladas / À vista. Num mês sem fatura importada, a tabela mostra a fatura prevista. **Previsão das faturas** mostra os próximos 12 meses: meses sem
+e o valor total da compra; as que terminam em até 2 meses ficam destacadas. O **total da fatura** é o valor oficial lido do PDF (ou digitado em "Corrigir total"); o que
+não aparecer como lançamento entra na linha **Outros valores da fatura**, então a tabela sempre
+fecha no valor cobrado pelo banco. Dá para filtrar Tudo junto / Parceladas / À vista. Num mês sem fatura importada, a tabela mostra a fatura prevista. **Previsão das faturas** mostra os próximos 12 meses: meses sem
 fatura importada aparecem listrados, somando só as parcelas já programadas. Nos meses
 futuros, o gráfico de pizza também mostra as faturas previstas de cada cartão.
 

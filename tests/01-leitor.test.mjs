@@ -94,6 +94,21 @@ test("Parcelas em todos os formatos de banco", async () => {
   ]);
 });
 
+test("Total oficial da fatura e linhas com valor que não viraram lançamento", async () => {
+  const r = await extrair([
+    "Nubank", "Data de vencimento: 08 OUT 2026",
+    "Total a pagar R$ 3.572,42",
+    "Saldo anterior R$ 3.556,30",
+    "01 SET Loja - Parcela 2/3 R$ 36,00",
+  ]);
+  assert.equal(r.totalInformado, 3572.42);
+  assert.deepEqual(r.naoReconhecidas, ["Total a pagar R$ 3.572,42", "Saldo anterior R$ 3.556,30"]);
+  for (const [linha, valor] of [["Total da fatura R$ 621,00", 621], ["Valor total desta fatura: 1.298,80", 1298.8], ["O total da sua fatura é R$ 99,90", 99.9]]) {
+    assert.equal((await extrair([linha])).totalInformado, valor, linha);
+  }
+  assert.equal((await extrair(["Total dos lançamentos atuais 782,57"])).totalInformado, null);
+});
+
 test("Categorias por palavra-chave", async () => {
   const r = await pagina.evaluate(() =>
     ["IFOOD *LANCHE", "UBER *TRIP", "DROGASIL", "NETFLIX.COM", "AMAZON BR", "IOF COMPRA", "CINEMARK", "LOJA DESCONHECIDA"].map((d) => categorizar(d, 10)));

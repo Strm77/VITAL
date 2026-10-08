@@ -45,6 +45,8 @@ export const CARTOES = [
     final: "3333",
     banco: "bradesco",
     vencimento: "2026-10-12",
+    // O PDF informa um total maior que a soma dos lançamentos (ex.: juros não detalhados).
+    naoDetalhado: 35,
     lancamentos: [
       { data: "2026-09-01", desc: "ANUIDADE DIFERENCIADA", valor: 29.1, p: [5, 12] },
       { data: "2026-09-03", desc: "RENNER", valor: 89.9, p: [2, 5] },
@@ -102,7 +104,9 @@ export const CONTAS = [
 
 /* ---- Valores esperados, calculados aqui de forma independente do painel ---- */
 
-export const totalFatura = (c) => c.lancamentos.reduce((t, l) => t + l.valor, 0);
+export const somaLancamentos = (c) => c.lancamentos.reduce((t, l) => t + l.valor, 0);
+// Valor oficial da fatura (o que o banco cobra).
+export const totalFatura = (c) => somaLancamentos(c) + (c.naoDetalhado || 0);
 export const parcelados = (c) => c.lancamentos.filter((l) => l.p);
 // Fatura prevista do cartão daqui a n meses (só parcelas que ainda existem).
 export const previsto = (c, n) => parcelados(c).filter((l) => l.p[0] + n <= l.p[1]).reduce((t, l) => t + l.valor, 0);

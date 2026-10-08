@@ -3,7 +3,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { abrirNavegador, abrirPainel, SAIDA, brl, texto, centavos } from "./ajuda.mjs";
-import { CARTOES, CONTAS, totalFatura, parcelados, previsto } from "./simulacao/dados.mjs";
+import { CARTOES, CONTAS, totalFatura, somaLancamentos, parcelados, previsto } from "./simulacao/dados.mjs";
 import { gerarPdfs } from "./simulacao/gerar-pdfs.mjs";
 
 let navegador, contexto, pagina, pdfs;
@@ -42,6 +42,10 @@ test("1. Importa as 5 faturas em PDF (um layout por banco)", async () => {
     assert.match(titulo, new RegExp(`Encontrei ${cartao.lancamentos.length} lançamentos`), `${cartao.nome}: ${titulo}`);
     assert.equal(await pagina.inputValue("#previa-final"), cartao.final, `${cartao.nome}: final do cartão`);
     assert.equal(await pagina.inputValue("#previa-vencimento"), cartao.vencimento, `${cartao.nome}: vencimento`);
+    if (cartao.naoDetalhado) {
+      assert.equal(Number(await pagina.inputValue("#previa-total")), centavos(totalFatura(cartao)), `${cartao.nome}: total lido do PDF`);
+      assert.match(await texto(pagina, "#previa-resumo"), /não foram detalhados|não foi detalhado/);
+    }
     await pagina.selectOption("#previa-cartao", "");
     await pagina.fill("#previa-novo", cartao.nome);
     await pagina.click("#previa [type=submit]");
@@ -63,7 +67,7 @@ test("3. Fatura do cartão: parceladas e à vista na mesma tabela, com as que es
   for (const c of CARTOES) {
     await pagina.locator(".cartao", { hasText: c.nome }).click();
     await pagina.waitForTimeout(80);
-    const linhas = await pagina.$$eval("#planilha tbody tr", (trs) => trs.map((tr) => ({
+    const linhas = await pagina.$$eval("#planilha tbody tr:not(.nao-detalhado)", (trs) => trs.map((tr) => ({
       tipo: tr.className,
       nome: tr.cells[1].textContent.trim(),
       chip: tr.querySelector(".chip-parcela")?.textContent ?? null,
@@ -83,7 +87,11 @@ test("3. Fatura do cartão: parceladas e à vista na mesma tabela, com as que es
       else if (faltam <= 2) assert.match(linha.estado, /acabando/, l.desc);
     }
     const resumo = await texto(pagina, "#planilha-resumo");
-    assert.ok(resumo.includes(`Total ${brl(centavos(totalFatura(c)))}`), resumo);
+    assert.ok(resumo.includes(`Total da fatura ${brl(centavos(totalFatura(c)))}`), resumo);
+    assert.ok((await texto(pagina, "#planilha tfoot")).includes(brl(centavos(totalFatura(c)))), "rodapé com o total da fatura");
+    const naoDet = await pagina.$$eval("#planilha tbody tr.nao-detalhado .num", (t) => t.map((x) => x.textContent.replace(/\u00a0/g, " ")));
+    if (c.naoDetalhado) assert.deepEqual(naoDet, [brl(c.naoDetalhado)], `${c.nome}: linha de valores não detalhados`);
+    else assert.deepEqual(naoDet, [], `${c.nome}: sem linha de não detalhado`);
     const parcelado = parcelados(c).reduce((t, l) => t + l.valor, 0);
     assert.ok(resumo.includes(`Parceladas ${brl(centavos(parcelado))} (${parcelados(c).length})`), resumo);
   }
@@ -94,6 +102,22 @@ test("3. Fatura do cartão: parceladas e à vista na mesma tabela, com as que es
   assert.equal(await pagina.$$eval("#planilha tbody tr", (t) => t.every((x) => x.classList.contains("avista"))), true);
   await pagina.click(".seg[data-tipo=todos]");
   await foto("01b-fatura-unificada.png");
+});
+
+test("3b. Corrigir o total da fatura direto na tabela", async () => {
+  const c = CARTOES[3]; // Inter: PDF sem total → usa a soma
+  await pagina.locator(".cartao", { hasText: c.nome }).click();
+  await pagina.click("#editar-total");
+  await pagina.fill("#campo-total-fatura", String(centavos(totalFatura(c) + 12.5)));
+  await pagina.click("#salvar-total");
+  await pagina.waitForSelector("#planilha tbody tr.nao-detalhado");
+  assert.ok((await texto(pagina, "#planilha-resumo")).includes(`Total da fatura ${brl(centavos(totalFatura(c) + 12.5))}`));
+  assert.ok((await texto(pagina, "#planilha tbody tr.nao-detalhado")).includes(brl(12.5)));
+  // volta ao valor original para os próximos testes
+  await pagina.click("#editar-total");
+  await pagina.fill("#campo-total-fatura", String(centavos(totalFatura(c))));
+  await pagina.click("#salvar-total");
+  await pagina.waitForSelector("#planilha tbody tr.nao-detalhado", { state: "detached" });
 });
 
 test("4. Previsão: novembro e dezembro só com as parcelas que continuam", async () => {
@@ -197,7 +221,7 @@ test("10. Tempo real: remover um lançamento parcelado atualiza parcelas, previs
   assert.ok(nov.includes(brl(centavos(esperado))), nov);
   await irPara("painel");
   const linha = await texto(pagina, `#pag-tabela tbody tr:has-text("Fatura ${c.nome}")`);
-  assert.ok(linha.includes(brl(centavos(totalFatura(c) - alvo.valor))), linha);
+  assert.ok(linha.includes(brl(centavos(somaLancamentos(c) - alvo.valor))), linha);
 });
 
 test("11. Timeline: novembro mostra faturas previstas, a conta de novembro e as parcelas que seguem", async () => {

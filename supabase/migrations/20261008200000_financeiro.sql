@@ -165,3 +165,6 @@ create trigger somente_emails_permitidos
 -- Expõe o schema na API (equivale a Settings → API → Exposed schemas no painel do Supabase)
 alter role authenticator set pgrst.db_schemas = 'public, graphql_public, financeiro';
 notify pgrst, 'reload config';
+
+-- Total oficial da fatura (lido do PDF ou digitado). Quando vazio, o painel soma os lançamentos.
+alter table financeiro.faturas add column if not exists total_informado numeric(12, 2);
