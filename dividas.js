@@ -1,7 +1,9 @@
 /*
  * V.I.T.A.L — Financeiro
  * ----------------------
- * Edite esta lista com as suas dívidas. Tudo no painel é calculado a partir daqui.
+ * Dívidas iniciais, usadas só na primeira vez que o painel é aberto.
+ * Depois disso, adicione, edite e exclua pelo próprio painel: os dados ficam
+ * salvos no navegador (localStorage).
  *
  *   nome            Nome da dívida
  *   valorParcela    Valor de cada parcela (em reais)
@@ -15,21 +17,21 @@
  */
 const DIVIDAS = [
   {
-    nome: "Cartão de crédito",
+    nome: "Cartão de crédito (exemplo)",
     valorParcela: 450.0,
     totalParcelas: 10,
     primeiraParcela: "2026-05",
     diaVencimento: 10,
   },
   {
-    nome: "Financiamento do carro",
+    nome: "Financiamento do carro (exemplo)",
     valorParcela: 1280.5,
     totalParcelas: 48,
     primeiraParcela: "2024-02",
     diaVencimento: 5,
   },
   {
-    nome: "Empréstimo pessoal",
+    nome: "Empréstimo pessoal (exemplo)",
     valorParcela: 320.0,
     totalParcelas: 24,
     primeiraParcela: "2025-11",

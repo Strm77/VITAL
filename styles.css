@@ -6,6 +6,7 @@
   --trilho: #f0f0f3;
   --progresso: #2f7d5b;
   --superficie: #fafafa;
+  --perigo: #c0392b;
 }
 
 * { box-sizing: border-box; }
@@ -159,4 +160,67 @@ main {
   .topo { padding: 16px 16px 0; }
   main { padding: 16px; }
   .painel { padding: 16px; }
+}
+
+.estado { margin: 12px 0; font-size: 14px; color: var(--texto-suave); }
+
+.detalhes-grupo { margin-top: 12px; display: grid; gap: 10px; }
+.detalhes-grupo .detalhes { margin-top: 0; }
+
+.acoes { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+
+.botao {
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--borda);
+  background: var(--fundo);
+  color: var(--texto);
+  cursor: pointer;
+}
+.botao:hover { background: var(--superficie); }
+.botao:focus-visible { outline: 2px solid var(--progresso); outline-offset: 2px; }
+.botao:disabled { opacity: 0.5; cursor: default; }
+.botao.primario { background: var(--progresso); border-color: var(--progresso); color: var(--fundo); }
+.botao.perigo { border-color: var(--perigo); color: var(--perigo); }
+
+.botao.adicionar {
+  width: 100%;
+  margin: 8px 0 12px;
+  border-style: dashed;
+  color: var(--texto-suave);
+}
+
+.aviso { margin: 8px 0; font-size: 13px; color: var(--perigo); }
+
+.formulario {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 8px 0 12px;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  background: var(--superficie);
+}
+.formulario h3 { grid-column: 1 / -1; margin: 0; font-size: 15px; font-weight: 600; }
+.campo { display: grid; gap: 6px; font-size: 13px; color: var(--texto-suave); min-width: 0; }
+.largo { grid-column: 1 / -1; }
+.dica { font-size: 12px; }
+.campo input {
+  font: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--fundo);
+  color: var(--texto);
+  min-width: 0;
+  width: 100%;
+}
+.campo input:focus { outline: 2px solid var(--progresso); outline-offset: 0; border-color: transparent; }
+
+@media (max-width: 480px) {
+  .formulario { grid-template-columns: 1fr; }
 }

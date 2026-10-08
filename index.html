@@ -21,9 +21,42 @@
         <span class="mes-atual" id="mes-atual"></span>
       </div>
 
+      <p class="estado" id="carregando">Carregando dívidas…</p>
+      <p class="estado" id="vazio" hidden>Nenhuma dívida cadastrada. Use “Adicionar dívida” para registrar a primeira.</p>
+
       <ul class="lista" id="lista-dividas"></ul>
 
-      <div class="resumo">
+      <p class="aviso" id="aviso" role="alert" hidden></p>
+
+      <form class="formulario" id="formulario" hidden novalidate>
+        <h3 id="titulo-formulario">Nova dívida</h3>
+        <label class="campo largo">Nome
+          <input id="campo-nome" name="nome" type="text" required maxlength="60" placeholder="Ex.: Cartão Nubank">
+        </label>
+        <label class="campo">Valor da parcela (R$)
+          <input id="campo-valor" name="valorParcela" type="number" required min="0.01" step="0.01" inputmode="decimal">
+        </label>
+        <label class="campo">Total de parcelas
+          <input id="campo-total" name="totalParcelas" type="number" required min="1" step="1" inputmode="numeric">
+        </label>
+        <label class="campo">Mês da 1ª parcela
+          <input id="campo-inicio" name="primeiraParcela" type="month" required>
+        </label>
+        <label class="campo">Dia do vencimento
+          <input id="campo-dia" name="diaVencimento" type="number" min="1" max="31" step="1" inputmode="numeric">
+        </label>
+        <label class="campo largo">Parcelas já pagas <span class="dica">(opcional — deixe vazio para calcular pela data)</span>
+          <input id="campo-pagas" name="parcelasPagas" type="number" min="0" step="1" inputmode="numeric">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="botao-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar</button>
+        </div>
+      </form>
+
+      <button type="button" class="botao adicionar" id="botao-adicionar">+ Adicionar dívida</button>
+
+      <div class="resumo" id="resumo" hidden>
         <button class="linha-resumo" id="botao-resumo" aria-expanded="false" aria-controls="detalhes-resumo">
           <span class="rotulo">Total das parcelas do mês</span>
           <span class="valor" id="total-mensal"></span>
