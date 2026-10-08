@@ -153,6 +153,15 @@
   </main>
 
   <main class="vista-faturas" data-vista="faturas" hidden>
+    <section class="painel" aria-labelledby="titulo-relatorio">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-relatorio">Relatório de gastos por categoria</h2>
+        <span class="mes-atual" id="relatorio-periodo"></span>
+      </div>
+      <p class="estado" id="relatorio-vazio">O relatório aparece aqui depois que você importar uma fatura em “Importar fatura”, logo abaixo.</p>
+      <ul class="relatorio" id="relatorio"></ul>
+    </section>
+
     <section class="painel" aria-labelledby="titulo-cartoes">
       <div class="painel-cabecalho">
         <h2 id="titulo-cartoes">Cartões</h2>
@@ -241,15 +250,6 @@
           <button type="button" class="botao primario" id="baixar-planilha">Baixar planilha (.csv)</button>
         </div>
       </div>
-    </section>
-
-    <section class="painel" aria-labelledby="titulo-relatorio">
-      <div class="painel-cabecalho">
-        <h2 id="titulo-relatorio">Relatório de gastos por categoria</h2>
-        <span class="mes-atual" id="relatorio-periodo"></span>
-      </div>
-      <p class="estado" id="relatorio-vazio">O relatório aparece depois que você importar uma fatura.</p>
-      <ul class="relatorio" id="relatorio"></ul>
     </section>
   </main>
 
