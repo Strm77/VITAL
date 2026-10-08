@@ -165,7 +165,8 @@ function extrairDaFatura(linhas) {
   }
 
   const mes = venc ? `${venc.a}-${doisDigitos(venc.m)}` : `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}`;
-  return { banco, final, mes, lancamentos };
+  const vencimento = venc ? `${venc.a}-${doisDigitos(venc.m)}-${doisDigitos(venc.d)}` : "";
+  return { banco, final, mes, vencimento, lancamentos };
 }
 
 /* Leitura com o Claude (só no claude.ai, quando o leitor automático não basta). */
@@ -204,11 +205,13 @@ ${texto}
       valor: Number(l.valor),
       categoria: CATEGORIAS.includes(l.categoria) ? l.categoria : categorizar(String(l.descricao), Number(l.valor)),
     }));
-  const venc = /^\d{4}-\d{2}/.test(resposta.vencimento || "") ? resposta.vencimento.slice(0, 7) : null;
+  const vencimento = /^\d{4}-\d{2}-\d{2}$/.test(resposta.vencimento || "") ? resposta.vencimento : "";
+  const venc = vencimento ? vencimento.slice(0, 7) : null;
   return {
     banco: resposta.banco || "",
     final: String(resposta.final || "").replace(/\D/g, "").slice(-4),
     mes: venc || `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}`,
+    vencimento,
     lancamentos,
   };
 }
@@ -340,6 +343,7 @@ function mostrarPrevia(leitura, metodo) {
   form.elements.novo.value = leitura.banco || "";
   form.elements.final.value = leitura.final || existente?.final || "";
   form.elements.mes.value = leitura.mes;
+  form.elements.vencimento.value = leitura.vencimento || "";
   atualizarPrevia();
 
   const n = leitura.lancamentos.length;
@@ -397,6 +401,7 @@ async function salvarImportacao(evento) {
     await fat.armFaturas.salvar(repetida ? repetida.id : null, {
       cartaoId,
       mes,
+      vencimento: form.elements.vencimento.value || `${mes}-10`,
       arquivo: fat.arquivo ? fat.arquivo.name : "",
       importadoEm: new Date().toISOString(),
       lancamentos: l.lancamentos,
@@ -605,6 +610,65 @@ async function baixarPlanilha() {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+/* ---------- Ligação com o controle de pagamentos ----------
+ * Cada fatura importada vira uma conta "Fatura <cartão>" no controle de pagamentos,
+ * com o valor total da fatura e o vencimento dela. Se você editar o valor da conta,
+ * o seu valor é mantido; se a fatura mudar (reimportação, lançamento removido),
+ * o valor importado é atualizado e passa para a conta apenas se ela não foi editada.
+ */
+
+const idContaDaFatura = (faturaId) => "fatura-" + faturaId;
+const sincronizando = new Set();
+
+async function sincronizarContasDasFaturas() {
+  if (!fat.faturasCarregadas || !fat.cartoesCarregados || typeof pag === "undefined" || !pag.carregado || !pag.armazenamento) return;
+
+  for (const f of fat.faturas) {
+    const id = idContaDaFatura(f.id);
+    if (f.semConta || sincronizando.has(id)) continue;
+    const cartao = fat.cartoes.find((c) => c.id === f.cartaoId);
+    const total = Math.round(totalFatura(f.lancamentos || []) * 100) / 100;
+    const existente = pag.contas.find((c) => c.id === id);
+    let nova = null;
+    if (!existente) {
+      nova = {
+        nome: `Fatura ${cartao ? cartao.nome : "cartão"}`,
+        valor: total,
+        vencimento: f.vencimento || `${f.mes}-10`,
+        status: "pendente",
+        pagoEm: null,
+        origem: "fatura",
+        faturaId: f.id,
+        valorFatura: total,
+        valorEditado: false,
+      };
+    } else if (Math.abs((Number(existente.valorFatura) || 0) - total) > 0.004) {
+      const { id: _id, ...dados } = existente;
+      nova = { ...dados, valorFatura: total, valor: existente.valorEditado ? existente.valor : total };
+    }
+    if (!nova) continue;
+    sincronizando.add(id);
+    try { await pag.armazenamento.salvar(id, nova); } catch {}
+    finally { sincronizando.delete(id); }
+  }
+
+  // Fatura excluída: some a conta dela, a não ser que já tenha sido paga (fica no histórico).
+  for (const c of pag.contas) {
+    if (c.origem !== "fatura" || c.status === "pago" || sincronizando.has(c.id)) continue;
+    if (fat.faturas.some((f) => f.id === c.faturaId)) continue;
+    sincronizando.add(c.id);
+    try { await pag.armazenamento.excluir(c.id); } catch {}
+    finally { sincronizando.delete(c.id); }
+  }
+}
+
+async function marcarFaturaSemConta(faturaId) {
+  const f = fat.faturas.find((x) => x.id === faturaId);
+  if (!f || !fat.armFaturas) return;
+  const { id, ...dados } = f;
+  try { await fat.armFaturas.salvar(id, { ...dados, semConta: true }); } catch {}
+}
+
 /* ---------- Início ---------- */
 
 async function iniciarFaturas() {
@@ -623,6 +687,10 @@ async function iniciarFaturas() {
   previa.addEventListener("submit", salvarImportacao);
   previa.elements.cartao.addEventListener("change", atualizarPrevia);
   previa.elements.mes.addEventListener("change", atualizarPrevia);
+  previa.elements.vencimento.addEventListener("change", () => {
+    if (previa.elements.vencimento.value) previa.elements.mes.value = previa.elements.vencimento.value.slice(0, 7);
+    atualizarPrevia();
+  });
   document.getElementById("previa-cancelar").addEventListener("click", cancelarImportacao);
   document.getElementById("previa-claude").addEventListener("click", lerComClaude);
 
@@ -662,9 +730,9 @@ async function iniciarFaturas() {
   renderizarFaturas();
   fat.armCartoes = await abrirArmazenamento("cartoes", []);
   fat.armFaturas = await abrirArmazenamento("faturas", []);
-  fat.armCartoes.observar((lista) => { fat.cartoes = lista; renderizarFaturas(); },
+  fat.armCartoes.observar((lista) => { fat.cartoes = lista; fat.cartoesCarregados = true; renderizarFaturas(); sincronizarContasDasFaturas(); },
     () => avisoLeitura("Não foi possível carregar os cartões. Recarregue a página."));
-  fat.armFaturas.observar((lista) => { fat.faturas = lista; renderizarFaturas(); },
+  fat.armFaturas.observar((lista) => { fat.faturas = lista; fat.faturasCarregadas = true; renderizarFaturas(); sincronizarContasDasFaturas(); },
     () => avisoLeitura("Não foi possível carregar as faturas. Recarregue a página."));
 }
 

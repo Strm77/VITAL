@@ -37,3 +37,12 @@ O botão **Faturas** (ou a aba no topo) abre:
 - **Relatório de gastos por categoria** — quanto foi gasto em cada categoria.
 
 As categorias são definidas por palavras-chave em `faturas.js` (`REGRAS_CATEGORIA`).
+
+## Conexões entre as partes
+
+- **Compromissos do mês (pizza):** junta as parcelas das dívidas (vermelhos), as contas
+  do controle de pagamentos que vencem no mês (âmbar) e as faturas de cartão (roxos).
+- **Fatura → controle de pagamentos:** cada fatura importada vira a conta
+  "Fatura <cartão>" com o valor e o vencimento da fatura. Você pode editar o valor;
+  o valor editado é mantido mesmo que a fatura mude. Excluir a fatura remove a conta
+  (se ainda não estiver paga); excluir a conta à mão não a recria.

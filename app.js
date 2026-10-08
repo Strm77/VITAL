@@ -43,6 +43,7 @@ function calcular(divida) {
 
 let armazenamento = null;
 let parcelasDoMes = 0; // lido também pela torre (torre.js)
+let dividasCalculadas = []; // lido pelo gráfico de pizza
 let dividasAtuais = [];
 let editandoId = null; // null = fechado, "" = nova dívida, outro = id em edição
 
@@ -188,7 +189,8 @@ function renderizar(lista) {
   const pago = soma("valorPago");
   const ultimoTermino = dividas.reduce((max, d) => (d.termino > max ? d.termino : max), new Date(0));
 
-  renderizarGrafico(dividas);
+  dividasCalculadas = dividas;
+  renderizarGrafico();
   parcelasDoMes = dividas.filter((d) => !d.quitada).reduce((t, d) => t + d.valorParcela, 0);
   document.dispatchEvent(new CustomEvent("dividas-atualizadas", { detail: { parcelasMes: parcelasDoMes } }));
 
@@ -205,18 +207,27 @@ function renderizar(lista) {
   ])}</dl>`;
 }
 
-/* ---------- Gráfico de pizza ----------
- * Cada fatia é o quanto falta pagar de uma dívida. Todas em vermelho:
- * a maior fica com o tom mais escuro e as demais vão clareando.
+/* ---------- Gráfico de pizza: compromissos do mês ----------
+ * Junta três fontes, cada uma com sua família de cor:
+ *   Dívidas  → parcela do mês de cada dívida em aberto (vermelhos)
+ *   Contas   → contas do controle de pagamentos que vencem neste mês (âmbar)
+ *   Cartões  → faturas de cartão que vencem neste mês, já com o valor editado (roxos)
+ * Dentro de cada grupo, o maior valor fica com o tom mais escuro.
  */
 
-function tonsDeVermelho(qtd) {
-  if (qtd === 1) return ["hsl(0 72% 45%)"];
+const GRUPOS_PIZZA = [
+  { chave: "dividas", nome: "Dívidas", matiz: 0 },
+  { chave: "contas", nome: "Contas", matiz: 32 },
+  { chave: "cartoes", nome: "Cartões", matiz: 268 },
+];
+
+function tons(matiz, qtd) {
+  if (qtd === 1) return [`hsl(${matiz} 70% 45%)`];
   return Array.from({ length: qtd }, (_, i) => {
     const t = i / (qtd - 1);
-    const luz = 30 + t * 46; // 30% (escuro) → 76% (claro)
-    const sat = 78 - t * 18;
-    return `hsl(0 ${sat.toFixed(0)}% ${luz.toFixed(0)}%)`;
+    const luz = 32 + t * 40; // 32% (escuro) → 72% (claro)
+    const sat = 75 - t * 15;
+    return `hsl(${matiz} ${sat.toFixed(0)}% ${luz.toFixed(0)}%)`;
   });
 }
 
@@ -230,19 +241,38 @@ function fatia(cx, cy, r, inicio, fim) {
   return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${grande} 1 ${x2} ${y2} Z`;
 }
 
-function renderizarGrafico(dividas) {
+function compromissosDoMes() {
+  let contas = [];
+  try { contas = typeof pag !== "undefined" ? pag.contas : []; } catch {}
+  const doMes = contas.filter((c) => String(c.vencimento || "").startsWith(mesHoje) && Number(c.valor) > 0);
+  const item = (nome, valor, pago) => ({ nome, valor: Number(valor), pago });
+  return {
+    dividas: dividasCalculadas.filter((d) => !d.quitada && d.valorParcela > 0).map((d) => item(d.nome, d.valorParcela, false)),
+    contas: doMes.filter((c) => c.origem !== "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
+    cartoes: doMes.filter((c) => c.origem === "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
+  };
+}
+
+function renderizarGrafico() {
   const svg = document.getElementById("pizza");
   const legenda = document.getElementById("legenda");
   const dica = document.getElementById("dica-grafico");
-  const abertas = dividas.filter((d) => d.valorRestante > 0).sort((a, b) => b.valorRestante - a.valorRestante);
-  const total = abertas.reduce((t, d) => t + d.valorRestante, 0);
-  const cores = tonsDeVermelho(abertas.length);
+  const dados = compromissosDoMes();
+  const fatias = [];
+  GRUPOS_PIZZA.forEach((g) => {
+    const lista = dados[g.chave].sort((a, b) => b.valor - a.valor);
+    const cores = tons(g.matiz, lista.length);
+    lista.forEach((it, i) => fatias.push({ ...it, grupo: g, cor: cores[i] }));
+  });
+  const total = fatias.reduce((t, f) => t + f.valor, 0);
 
+  document.getElementById("grafico-mes").textContent = capitalizar(mesAno.format(hoje));
   svg.innerHTML = "";
   legenda.innerHTML = "";
   dica.hidden = true;
-  document.getElementById("grafico-vazio").hidden = abertas.length > 0;
-  svg.parentElement.hidden = abertas.length === 0;
+  document.getElementById("grafico-vazio").hidden = fatias.length > 0;
+  svg.parentElement.hidden = fatias.length === 0;
+  if (!fatias.length) return;
 
   const ns = "http://www.w3.org/2000/svg";
   const itens = [];
@@ -254,16 +284,18 @@ function renderizarGrafico(dividas) {
     });
     if (i == null) dica.hidden = true;
   };
+  const pct = (v) => `${Math.round((v / total) * 100)}%`;
 
   let angulo = 0;
-  abertas.forEach((d, i) => {
-    const parte = d.valorRestante / total;
+  let grupoAtual = null;
+  fatias.forEach((f, i) => {
+    const parte = f.valor / total;
     const fim = angulo + parte * Math.PI * 2;
     const caminho = document.createElementNS(ns, "path");
     caminho.setAttribute("d", fatia(100, 100, 96, angulo, fim));
-    caminho.setAttribute("fill", cores[i]);
+    caminho.setAttribute("fill", f.cor);
     const meio = (angulo + fim) / 2;
-    const texto = `${d.nome}: ${moeda.format(d.valorRestante)} (${Math.round(parte * 100)}%)`;
+    const texto = `${f.grupo.nome} · ${f.nome}: ${moeda.format(f.valor)} (${pct(f.valor)})${f.pago ? " · pago" : ""}`;
     caminho.setAttribute("aria-label", texto);
     caminho.addEventListener("mouseenter", () => {
       focar(i);
@@ -277,24 +309,30 @@ function renderizarGrafico(dividas) {
     svg.appendChild(caminho);
     angulo = fim;
 
+    if (grupoAtual !== f.grupo) {
+      grupoAtual = f.grupo;
+      const subtotal = fatias.filter((x) => x.grupo === f.grupo).reduce((t, x) => t + x.valor, 0);
+      const cab = document.createElement("li");
+      cab.className = "grupo-legenda";
+      cab.innerHTML = `<span></span><span class="nome">${f.grupo.nome}</span><span class="num">${moeda.format(subtotal)}</span><span class="pct">${pct(subtotal)}</span>`;
+      legenda.appendChild(cab);
+    }
     const linha = document.createElement("li");
     linha.innerHTML = `
-      <span class="cor" style="background:${cores[i]}"></span>
-      <span class="nome">${escapar(d.nome)}</span>
-      <span class="num">${moeda.format(d.valorRestante)}</span>
-      <span class="pct">${Math.round(parte * 100)}%</span>`;
+      <span class="cor" style="background:${f.cor}"></span>
+      <span class="nome">${escapar(f.nome)}${f.pago ? ' <span class="pago-tag">pago</span>' : ""}</span>
+      <span class="num">${moeda.format(f.valor)}</span>
+      <span class="pct">${pct(f.valor)}</span>`;
     linha.addEventListener("mouseenter", () => focar(i));
     linha.addEventListener("mouseleave", () => focar(null));
     legenda.appendChild(linha);
     itens.push({ caminho, linha });
   });
 
-  if (abertas.length) {
-    const linhaTotal = document.createElement("li");
-    linhaTotal.className = "total-legenda";
-    linhaTotal.innerHTML = `<span></span><span class="nome"><strong>Total</strong></span><span class="num"><strong>${moeda.format(total)}</strong></span><span class="pct">100%</span>`;
-    legenda.appendChild(linhaTotal);
-  }
+  const linhaTotal = document.createElement("li");
+  linhaTotal.className = "total-legenda";
+  linhaTotal.innerHTML = `<span></span><span class="nome"><strong>Total do mês</strong></span><span class="num"><strong>${moeda.format(total)}</strong></span><span class="pct">100%</span>`;
+  legenda.appendChild(linhaTotal);
 }
 
 async function iniciar() {

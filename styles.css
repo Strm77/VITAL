@@ -491,3 +491,21 @@ a.aba { text-decoration: none; }
 .relatorio .barra { grid-column: 1 / -1; margin-top: 0; height: 10px; }
 .relatorio .barra .preenchimento { background: var(--cat-cor); }
 .relatorio .total-relatorio { border-top: 1px solid var(--borda); padding-top: 10px; font-weight: 600; }
+
+/* Pizza: cabeçalho de cada grupo na legenda */
+.legenda .grupo-legenda { margin-top: 6px; font-size: 12px; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.06em; }
+.legenda .grupo-legenda:first-child { margin-top: 0; }
+.legenda .grupo-legenda .num { color: var(--texto); }
+.pago-tag, .origem-tag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 16px;
+  vertical-align: 1px;
+  border: 1px solid var(--borda);
+  color: var(--texto-suave);
+}
+.pago-tag { color: var(--progresso); }
+.tabela .sub { display: block; font-size: 11px; color: var(--texto-suave); }

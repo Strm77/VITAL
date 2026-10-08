@@ -7,7 +7,7 @@
 const dataCurta = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const horaCurta = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-const pag = { contas: [], armazenamento: null, editandoId: null };
+const pag = { contas: [], armazenamento: null, editandoId: null, carregado: false };
 
 function dataDoVencimento(texto) {
   const [a, m, d] = (texto || "").split("-").map(Number);
@@ -58,7 +58,8 @@ function renderizarPagamentos() {
     const pagoEm = c.pagoEm ? new Date(c.pagoEm) : null;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="conta">${escapar(c.nome)}</td>
+      <td class="conta">${escapar(c.nome)}${c.origem === "fatura" ? ' <span class="origem-tag">cartão</span>' : ""}
+        ${c.origem === "fatura" && c.valorEditado ? `<span class="sub">Fatura importada: ${moeda.format(Number(c.valorFatura) || 0)}</span>` : ""}</td>
       <td class="data">${venc ? dataCurta.format(venc) : "—"}</td>
       <td class="num">${moeda.format(Number(c.valor) || 0)}</td>
       <td><span class="status ${st.chave}">${st.rotulo}</span></td>
@@ -92,7 +93,11 @@ function renderizarPagamentos() {
         return;
       }
       ex.disabled = true;
-      try { await pag.armazenamento.excluir(c.id); }
+      try {
+        await pag.armazenamento.excluir(c.id);
+        // Conta de fatura excluída à mão: não recriar automaticamente.
+        if (c.origem === "fatura" && typeof marcarFaturaSemConta === "function") await marcarFaturaSemConta(c.faturaId);
+      }
       catch { ex.disabled = false; avisoPag("Não foi possível excluir. Tente de novo."); }
     });
     corpo.appendChild(tr);
@@ -109,6 +114,12 @@ function abrirFormularioPag(id) {
   form.elements.valor.value = conta?.valor ?? "";
   form.elements.vencimento.value = conta?.vencimento ?? "";
   form.elements.status.value = conta?.status ?? "pendente";
+  const origem = document.getElementById("pag-origem");
+  origem.hidden = conta?.origem !== "fatura";
+  if (!origem.hidden) {
+    origem.textContent = `Criada a partir da fatura do cartão (valor importado: ${moeda.format(Number(conta.valorFatura) || 0)}). ` +
+      "Se você mudar o valor, o seu valor é mantido mesmo que a fatura seja importada de novo.";
+  }
   form.hidden = false;
   document.getElementById("pag-adicionar").hidden = true;
   form.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -126,7 +137,9 @@ async function salvarPag(evento) {
   evento.preventDefault();
   const form = evento.target;
   const anterior = pag.contas.find((c) => c.id === pag.editandoId);
+  const { id: _id, ...extras } = anterior || {}; // mantém a ligação com a fatura (origem, faturaId…)
   const conta = {
+    ...extras,
     nome: form.elements.nome.value.trim(),
     valor: Number(form.elements.valor.value.trim().replace(",", ".")),
     vencimento: form.elements.vencimento.value,
@@ -136,6 +149,7 @@ async function salvarPag(evento) {
     avisoPag("Preencha conta, valor e vencimento.");
     return;
   }
+  if (conta.origem === "fatura") conta.valorEditado = Math.abs(conta.valor - (Number(conta.valorFatura) || 0)) > 0.004;
   // Data do pagamento automática: registra ao virar "pago", mantém se já era, limpa se voltou a pendente.
   conta.pagoEm = conta.status === "pago"
     ? (anterior?.status === "pago" && anterior.pagoEm) || new Date().toISOString()
@@ -162,7 +176,13 @@ async function iniciarPagamentos() {
 
   pag.armazenamento = await abrirArmazenamento("pagamentos", typeof PAGAMENTOS !== "undefined" ? PAGAMENTOS : []);
   pag.armazenamento.observar(
-    (lista) => { pag.contas = lista; renderizarPagamentos(); },
+    (lista) => {
+      pag.contas = lista;
+      pag.carregado = true;
+      renderizarPagamentos();
+      renderizarGrafico();
+      if (typeof sincronizarContasDasFaturas === "function") sincronizarContasDasFaturas();
+    },
     () => avisoPag("Não foi possível carregar as contas. Recarregue a página.")
   );
 }

@@ -5,6 +5,7 @@ const mesAno = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric"
 
 const hoje = new Date();
 hoje.setHours(0, 0, 0, 0);
+const mesHoje = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`; // "AAAA-MM"
 
 /* ---------- Armazenamento ----------
  * Publicado no claude.ai: banco de dados do artifact (uma coleção por tipo).
@@ -29,8 +30,8 @@ function armazenamentoLocal(nome, exemplos) {
   return {
     observar(fn) { ouvinte = fn; fn(dados); },
     async salvar(id, item) {
-      if (id) dados = dados.map((d) => (d.id === id ? { id, ...item } : d));
-      else dados = [...dados, { id: (id = nome + Date.now()), ...item }];
+      if (id && dados.some((d) => d.id === id)) dados = dados.map((d) => (d.id === id ? { id, ...item } : d));
+      else dados = [...dados, { id: (id = id || nome + Date.now()), ...item }];
       gravar();
       return id;
     },

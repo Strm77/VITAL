@@ -76,13 +76,14 @@
 
     <section class="painel grafico" aria-labelledby="titulo-grafico">
       <div class="painel-cabecalho">
-        <h2 id="titulo-grafico">Para onde vai o que falta pagar</h2>
+        <h2 id="titulo-grafico">Compromissos do mês</h2>
+        <span class="mes-atual" id="grafico-mes"></span>
       </div>
       <div class="pizza-area">
         <svg class="pizza" id="pizza" viewBox="0 0 200 200" role="img" aria-labelledby="titulo-grafico"></svg>
         <div class="dica-grafico" id="dica-grafico" hidden></div>
       </div>
-      <p class="estado" id="grafico-vazio" hidden>Nenhuma dívida em aberto.</p>
+      <p class="estado" id="grafico-vazio" hidden>Nada para pagar neste mês: sem parcelas de dívidas, contas ou faturas de cartão vencendo.</p>
       <ul class="legenda" id="legenda"></ul>
     </section>
 
@@ -137,6 +138,7 @@
             <option value="pago">Pago</option>
           </select>
         </label>
+        <p class="dica largo" id="pag-origem" hidden></p>
         <p class="dica largo">A data e a hora do pagamento são registradas sozinhas quando a conta passa para “Pago”.</p>
         <div class="acoes largo">
           <button type="button" class="botao" id="pag-cancelar">Cancelar</button>
@@ -188,6 +190,9 @@
         </label>
         <label class="campo">Final do cartão
           <input id="previa-final" name="final" type="text" maxlength="4" inputmode="numeric" placeholder="1234">
+        </label>
+        <label class="campo">Vencimento
+          <input id="previa-vencimento" name="vencimento" type="date">
         </label>
         <label class="campo">Mês da fatura
           <input id="previa-mes" name="mes" type="month">
