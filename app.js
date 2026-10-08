@@ -269,6 +269,7 @@ function renderizarGrafico() {
   document.getElementById("grafico-mes").textContent = capitalizar(mesAno.format(hoje));
   svg.innerHTML = "";
   legenda.innerHTML = "";
+  document.getElementById("pizza-total").textContent = "";
   dica.hidden = true;
   document.getElementById("grafico-vazio").hidden = fatias.length > 0;
   svg.parentElement.hidden = fatias.length === 0;
@@ -297,14 +298,16 @@ function renderizarGrafico() {
     const meio = (angulo + fim) / 2;
     const texto = `${f.grupo.nome} · ${f.nome}: ${moeda.format(f.valor)} (${pct(f.valor)})${f.pago ? " · pago" : ""}`;
     caminho.setAttribute("aria-label", texto);
-    caminho.addEventListener("mouseenter", () => {
+    const mostrar = () => {
       focar(i);
       dica.textContent = texto;
       const r = svg.getBoundingClientRect().width / 200;
       dica.style.left = "50%";
       dica.style.top = (100 - 60 * Math.cos(meio)) * r + "px";
       dica.hidden = false;
-    });
+    };
+    caminho.addEventListener("mouseenter", mostrar);
+    caminho.addEventListener("click", mostrar); // toque no celular
     caminho.addEventListener("mouseleave", () => focar(null));
     svg.appendChild(caminho);
     angulo = fim;
@@ -329,6 +332,7 @@ function renderizarGrafico() {
     itens.push({ caminho, linha });
   });
 
+  document.getElementById("pizza-total").innerHTML = `Total do mês <strong>${moeda.format(total)}</strong>`;
   const linhaTotal = document.createElement("li");
   linhaTotal.className = "total-legenda";
   linhaTotal.innerHTML = `<span></span><span class="nome"><strong>Total do mês</strong></span><span class="num"><strong>${moeda.format(total)}</strong></span><span class="pct">100%</span>`;

@@ -509,3 +509,7 @@ a.aba { text-decoration: none; }
 }
 .pago-tag { color: var(--progresso); }
 .tabela .sub { display: block; font-size: 11px; color: var(--texto-suave); }
+
+.total-pizza { margin: 0; text-align: center; font-size: 13px; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.total-pizza strong { color: var(--texto); font-weight: 600; }
+.grafico { position: relative; }
