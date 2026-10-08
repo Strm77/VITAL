@@ -109,6 +109,44 @@ test("Total oficial da fatura e linhas com valor que não viraram lançamento", 
   assert.equal((await extrair(["Total dos lançamentos atuais 782,57"])).totalInformado, null);
 });
 
+test("Fatura do Nubank completa: total certo entre simulações e crédito da fatura anterior", async () => {
+  // Estrutura igual à de uma fatura real do Nubank (nomes e valores fictícios).
+  const r = await extrair([
+    "Esta é a sua fatura de", "outubro, no valor de", "R$ 1.000,00", "Data de vencimento: 08 OUT 2026",
+    "fatura no valor de R$ 1.000,00",
+    "Pagamento total da fatura",
+    "Valido até a data de   Parcelar em 3   Parcelar em 6",
+    "Total a pagar   R$ 1.300,00   R$ 1.500,00",
+    "Valor de entrada   R$ 200,00   R$ 200,00",
+    "O saldo restante (R$ 800,00) entrará nos juros rotativos de",
+    "Fatura anterior   R$ 900,00",
+    "Pagamento recebido   −R$ 1.100,00",
+    "Total de compras de todos os cartões, 01 SET a 01 OUT   R$ 1.150,00",
+    "Total a pagar   R$ 1.000,00",
+    "TRANSAÇÕES   DE 01 SET A 01 OUT",
+    "Fulano de Tal   R$ 1.150,00",
+    "01 SET   •••• 1234   Loja X - Parcela 2/3   R$ 300,00",
+    "10 SET   •••• 1234   Mercado Y   R$ 600,00",
+    "10 SET   IOF de \"Loja Z\"   R$ 4,00",
+    "Pagamentos e Financiamentos   -R$ 1.000,00",
+    "07 SET   Pagamento em 07 SET   −R$ 900,00",
+    "07 SET   Pagamento em 07 SET   −R$ 200,00",
+    "01 SET   PIX PARCELADO - Parcela 3/5   R$ 246,00",
+    "Total a pagar: R$ 1.230,00 (valor da transação de R$ 1.000,00 + R$ 10,00 de IOF +",
+    "R$ 220,00 de juros) divididos em 5 parcelas de R$ 246,00.",
+  ]);
+  assert.equal(r.totalInformado, 1000, "ignora a simulação de parcelamento e o detalhe do Pix");
+  assert.deepEqual(r.lancamentos.map((l) => [l.descricao, l.valor]), [
+    ["Loja X - Parcela 2/3", 300],
+    ["Mercado Y", 600],
+    ["IOF de \"Loja Z\"", 4],
+    ["PIX PARCELADO - Parcela 3/5", 246],
+    ["Crédito: pagamento a mais na fatura anterior", -200],
+  ]);
+  const soma = r.lancamentos.reduce((t, l) => t + l.valor, 0);
+  assert.equal(Math.round(soma * 100) / 100, 950);
+});
+
 test("Categorias por palavra-chave", async () => {
   const r = await pagina.evaluate(() =>
     ["IFOOD *LANCHE", "UBER *TRIP", "DROGASIL", "NETFLIX.COM", "AMAZON BR", "IOF COMPRA", "CINEMARK", "LOJA DESCONHECIDA"].map((d) => categorizar(d, 10)));

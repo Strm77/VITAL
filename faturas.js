@@ -158,6 +158,7 @@ function extrairDaFatura(linhas) {
 
   const lancamentos = [];
   const naoReconhecidas = [];
+  const pagamentos = [];
   for (const linha of linhas) {
     re.lastIndex = 0;
     let r;
@@ -168,6 +169,11 @@ function extrairDaFatura(linhas) {
       const prefixo = descricao.match(PREFIXO_CARTAO);
       if (prefixo) descricao = descricao.slice(prefixo[0].length);
       const dsa = semAcento(descricao);
+      // Pagamento da fatura anterior: não é compra, mas entra no acerto com a fatura anterior.
+      if (/^pagamento (em|recebido|efetuado)\b|^pagto\b/.test(dsa) && (sinal1 || sinal2 || (sufixo && /-|c/i.test(sufixo.trim())))) {
+        pagamentos.push({ data: dataISO(dia, mes, ano), valor: numeroBR(valorTexto) });
+        continue;
+      }
       if (!/[a-z]{2}/.test(dsa.replace(/r\$/g, "")) || IGNORAR.test(dsa) || NAO_E_COMPRA.test(dsa)) continue;
       const data = dataISO(dia, mes, ano);
       if (!data) continue;
@@ -182,12 +188,40 @@ function extrairDaFatura(linhas) {
     if (lancamentos.length === antes && /\d{1,3}(?:\.\d{3})*,\d{2}/.test(linha) && naoReconhecidas.length < 60) naoReconhecidas.push(linha.trim());
   }
 
-  // Total oficial da fatura impresso no PDF ("Total a pagar", "Total da fatura"...).
-  const PADRAO_TOTAL = /(total a pagar|total da (?:sua )?fatura(?: atual)?|total desta fatura|valor total (?:da|desta) fatura|valor da fatura|o total da sua fatura (?:e|é))\s*:?\s*(?:de\s*)?(?:r\$)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/i;
-  let totalInformado = null;
-  for (const linha of linhas) {
-    const m = semAcento(linha).match(PADRAO_TOTAL);
-    if (m && numeroBR(m[2]) > 0) { totalInformado = numeroBR(m[2]); break; }
+  // Total oficial da fatura. O PDF pode ter vários "Total a pagar" (ex.: simulações de
+  // parcelamento, detalhes do Pix parcelado); fica o valor que mais se repete entre as
+  // frases de total, ignorando linhas com mais de um valor ou de detalhe de transação.
+  const DINHEIRO = /\d{1,3}(?:\.\d{3})*,\d{2}/g;
+  const PADRAO_TOTAL = /(total a pagar|total da (?:sua )?fatura(?: atual)?|total desta fatura|valor total (?:da|desta) fatura|valor da fatura|fatura (?:de [a-z]+, )?no valor de|o total da sua fatura (?:e|é)|pagamento total da fatura)\s*:?\s*(?:de\s*)?(?:r\$)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
+  const candidatos = new Map();
+  linhas.forEach((linha, i) => {
+    const t = semAcento(linha);
+    if ((t.match(DINHEIRO) || []).length > 1 || /valor da transacao|divididos|parcelar em|entrada/.test(t)) return;
+    let m = t.match(PADRAO_TOTAL);
+    // Frase quebrada em duas linhas ("...no valor de" / "R$ 3.572,42").
+    if (!m && /(no valor de|total da fatura)\s*$/.test(t)) {
+      const seguinte = semAcento(linhas[i + 1] || "").match(/^r\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})$/);
+      if (seguinte) m = [null, null, seguinte[1]];
+    }
+    if (!m || !(numeroBR(m[2]) > 0)) return;
+    const v = numeroBR(m[2]);
+    candidatos.set(v, (candidatos.get(v) || 0) + 1);
+  });
+  const totalInformado = [...candidatos.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  // Acerto com a fatura anterior: saldo anterior − pagamentos feitos. Se você pagou a mais,
+  // vira crédito nesta fatura; se ficou faltando, vira saldo a pagar.
+  const anterior = linhas.map((l) => semAcento(l).match(/^(?:total da )?(?:fatura|saldo) anterior\s*:?\s*(?:r\$)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})$/)).find(Boolean);
+  if (anterior && pagamentos.length) {
+    const acerto = Math.round((numeroBR(anterior[1]) - pagamentos.reduce((t, p) => t + p.valor, 0)) * 100) / 100;
+    if (Math.abs(acerto) >= 0.01) {
+      lancamentos.push({
+        data: pagamentos[pagamentos.length - 1].data,
+        descricao: acerto < 0 ? "Crédito: pagamento a mais na fatura anterior" : "Saldo restante da fatura anterior",
+        valor: acerto,
+        categoria: acerto < 0 ? CREDITO : "Outros",
+      });
+    }
   }
 
   const mes = venc ? `${venc.a}-${doisDigitos(venc.m)}` : `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}`;
