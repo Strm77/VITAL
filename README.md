@@ -19,8 +19,8 @@ tem uma setinha com os detalhes e os botões para adicionar, editar e excluir.
 Ganhos e gastos marcados como "Todo mês" entram em todos os meses; os demais,
 só no mês em que foram lançados.
 
-Embaixo das dívidas há o botão **Faturas** (a página `faturas.html` ainda está em
-construção) e, abaixo das dívidas e da pizza, o **Controle de pagamentos**: cadastre
+Embaixo das dívidas há o botão **Faturas**, que leva para `faturas.html` (por enquanto
+só com o espaço da seção **Cartões**; as faturas ainda estão em construção) e, abaixo das dívidas e da pizza, o **Controle de pagamentos**: cadastre
 cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a data e a hora
 do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
 aparecem como *Atrasada*.

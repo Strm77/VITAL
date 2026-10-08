@@ -384,6 +384,42 @@ main {
 }
 .formulario .dica { margin: 0; color: var(--texto-suave); }
 
-.em-breve { display: flex; justify-content: center; padding: 32px 16px; }
-.em-breve .painel { width: 100%; max-width: 520px; }
-.em-breve h2 { margin: 0; font-size: 16px; }
+/* Página de faturas */
+.pagina-faturas { display: grid; gap: 24px; grid-template-columns: minmax(0, 900px); grid-template-areas: none; }
+.pagina-faturas h2 { margin: 0; font-size: 16px; font-weight: 600; }
+a.aba { text-decoration: none; }
+.voltar { justify-self: start; font-size: 13px; color: var(--texto-suave); text-decoration: none; }
+.voltar:hover { color: var(--texto); }
+
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+/* Proporção de um cartão de verdade: 85,6 × 54 mm */
+.cartao-vazio {
+  aspect-ratio: 85.6 / 54;
+  max-width: 100%;
+  border: 1.5px dashed var(--borda);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  color: var(--texto-suave);
+  font-size: 13px;
+  position: relative;
+}
+.cartao-vazio p { margin: 0; }
+.cartao-vazio .dica { font-size: 12px; }
+.cartao-vazio .chip {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 34px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1.5px dashed var(--borda);
+}
