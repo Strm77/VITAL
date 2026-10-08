@@ -12,3 +12,9 @@ Painel reflexo da minha vida. Começando pela aba **Financeiro**.
 O painel calcula sozinho a parcela atual, quantas faltam, a previsão de término,
 quanto já foi pago e quanto falta. Clique na setinha de cada dívida (ou do total)
 para ver os detalhes.
+
+Ao lado das dívidas ficam o **gráfico de pizza** (quanto falta pagar de cada dívida)
+e a **torre** com *Quanto eu ganho*, *Quanto eu gastei* e *Investimentos*. Cada bloco
+tem uma setinha com os detalhes e os botões para adicionar, editar e excluir.
+Ganhos e gastos marcados como "Todo mês" entram em todos os meses; os demais,
+só no mês em que foram lançados.

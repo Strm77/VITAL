@@ -7,19 +7,19 @@ hoje.setHours(0, 0, 0, 0);
 const CAMPOS = ["nome", "valorParcela", "totalParcelas", "primeiraParcela", "diaVencimento", "parcelasPagas"];
 
 /* ---------- Armazenamento ----------
- * Publicado no claude.ai: banco de dados do artifact (coleção "dividas").
+ * Publicado no claude.ai: banco de dados do artifact (uma coleção por tipo).
  * Aberto como arquivo local: localStorage do navegador.
  */
 
-function armazenamentoLocal() {
-  const CHAVE = "vital.dividas";
+function armazenamentoLocal(nome, exemplos) {
+  const CHAVE = "vital." + nome;
   let ouvinte = () => {};
   const ler = () => {
     try {
       const salvo = localStorage.getItem(CHAVE);
       if (salvo) return JSON.parse(salvo);
     } catch {}
-    return (typeof DIVIDAS !== "undefined" ? DIVIDAS : []).map((d, i) => ({ id: "d" + i, ...d }));
+    return (exemplos || []).map((d, i) => ({ id: nome + i, ...d }));
   };
   let dados = ler();
   const gravar = () => {
@@ -28,9 +28,9 @@ function armazenamentoLocal() {
   };
   return {
     observar(fn) { ouvinte = fn; fn(dados); },
-    async salvar(id, divida) {
-      if (id) dados = dados.map((d) => (d.id === id ? { id, ...divida } : d));
-      else dados = [...dados, { id: "d" + Date.now(), ...divida }];
+    async salvar(id, item) {
+      if (id) dados = dados.map((d) => (d.id === id ? { id, ...item } : d));
+      else dados = [...dados, { id: nome + Date.now(), ...item }];
       gravar();
     },
     async excluir(id) {
@@ -40,8 +40,8 @@ function armazenamentoLocal() {
   };
 }
 
-function armazenamentoNuvem(db) {
-  const colecao = db.collection("dividas");
+function armazenamentoNuvem(db, nome) {
+  const colecao = db.collection(nome);
   return {
     observar(fn, erro) {
       colecao.onSnapshot(
@@ -49,8 +49,8 @@ function armazenamentoNuvem(db) {
         erro
       );
     },
-    salvar(id, divida) {
-      return id ? colecao.doc(id).set(divida) : colecao.add(divida);
+    salvar(id, item) {
+      return id ? colecao.doc(id).set(item) : colecao.add(item);
     },
     excluir(id) {
       return colecao.doc(id).delete();
@@ -58,12 +58,15 @@ function armazenamentoNuvem(db) {
   };
 }
 
-async function abrirArmazenamento() {
-  if (window.claude && typeof window.claude.use === "function") {
-    const db = await window.claude.use("db");
-    if (db) return armazenamentoNuvem(db);
+let bancoNuvem = null;
+async function abrirArmazenamento(nome, exemplos) {
+  if (!bancoNuvem) {
+    bancoNuvem = window.claude && typeof window.claude.use === "function"
+      ? window.claude.use("db").catch(() => null)
+      : Promise.resolve(null);
   }
-  return armazenamentoLocal();
+  const db = await bancoNuvem;
+  return db ? armazenamentoNuvem(db, nome) : armazenamentoLocal(nome, exemplos);
 }
 
 /* ---------- Cálculos ---------- */
@@ -146,6 +149,7 @@ function alternar(botao, painel, chave) {
 }
 
 let armazenamento = null;
+let parcelasDoMes = 0; // lido também pela torre (torre.js)
 let dividasAtuais = [];
 let editandoId = null; // null = fechado, "" = nova dívida, outro = id em edição
 
@@ -292,6 +296,8 @@ function renderizar(lista) {
   const ultimoTermino = dividas.reduce((max, d) => (d.termino > max ? d.termino : max), new Date(0));
 
   renderizarGrafico(dividas);
+  parcelasDoMes = dividas.filter((d) => !d.quitada).reduce((t, d) => t + d.valorParcela, 0);
+  document.dispatchEvent(new CustomEvent("dividas-atualizadas", { detail: { parcelasMes: parcelasDoMes } }));
 
   document.getElementById("total-mensal").textContent = moeda.format(soma("valorParcela", ativas));
   preencherBarra(document.getElementById("barra-geral"), total ? pago / total : 1);
@@ -405,7 +411,7 @@ async function iniciar() {
   document.getElementById("botao-cancelar").addEventListener("click", () => { mostrarAviso(""); fecharFormulario(); });
   document.getElementById("formulario").addEventListener("submit", enviarFormulario);
 
-  armazenamento = await abrirArmazenamento();
+  armazenamento = await abrirArmazenamento("dividas", typeof DIVIDAS !== "undefined" ? DIVIDAS : []);
   armazenamento.observar(
     (lista) => {
       document.getElementById("carregando").hidden = true;
