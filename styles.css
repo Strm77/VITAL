@@ -603,3 +603,46 @@ a.aba { text-decoration: none; }
   .timeline { flex-wrap: wrap; }
   .timeline-meses { flex-basis: 100%; order: 3; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; }
 }
+
+/* Compras parceladas */
+.parcelamentos { min-width: 680px; }
+.parcela-celula { min-width: 90px; }
+.parcela-num { font-variant-numeric: tabular-nums; font-size: 12px; }
+.mini-barra { height: 4px; margin-top: 4px; }
+.status.acabando { color: var(--perigo); }
+
+/* Previsão das faturas (colunas por mês) */
+.colunas {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(46px, 1fr));
+  gap: 6px;
+  margin-top: 16px;
+  overflow-x: auto;
+}
+.coluna {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: grid;
+  grid-template-rows: auto 140px auto auto;
+  gap: 4px;
+  justify-items: center;
+  padding: 4px 2px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.coluna:hover { background: var(--superficie); }
+.coluna:focus-visible { outline: 2px solid var(--progresso); }
+.coluna-valor { color: var(--texto-suave); white-space: nowrap; }
+.coluna-trilho { width: 60%; max-width: 28px; height: 100%; display: flex; align-items: flex-end; }
+.coluna-barra { width: 100%; min-height: 2px; background: var(--cat-cor); border-radius: 4px 4px 0 0; }
+.coluna.prevista .coluna-barra {
+  background: repeating-linear-gradient(135deg, var(--cat-cor) 0 3px, transparent 3px 6px);
+  border: 1.5px solid var(--cat-cor);
+  border-bottom: none;
+}
+.coluna-mes { color: var(--texto-suave); }
+.coluna.atual .coluna-mes { color: var(--texto); font-weight: 600; }
+.coluna-fim { color: var(--progresso); min-height: 1em; }
+.previsao .dica { margin: 10px 0 0; font-size: 12px; color: var(--texto-suave); }

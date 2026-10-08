@@ -93,11 +93,16 @@ function armazenamentoLocal(nome, exemplos) {
     try { localStorage.setItem(CHAVE, JSON.stringify(dados)); } catch {}
     ouvinte(dados);
   };
+  // Outra aba alterou os mesmos dados: atualiza esta na hora.
+  window.addEventListener("storage", (e) => {
+    if (e.key !== CHAVE || !e.newValue) return;
+    try { dados = JSON.parse(e.newValue); ouvinte(dados); } catch {}
+  });
   return {
     observar(fn) { ouvinte = fn; fn(dados); },
     async salvar(id, item) {
       if (id && dados.some((d) => d.id === id)) dados = dados.map((d) => (d.id === id ? { id, ...item } : d));
-      else dados = [...dados, { id: (id = id || nome + Date.now()), ...item }];
+      else dados = [...dados, { id: (id = id || nome + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)), ...item }];
       gravar();
       return id;
     },

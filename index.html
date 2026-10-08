@@ -184,6 +184,42 @@
       <div class="cartoes" id="cartoes"></div>
     </section>
 
+    <section class="painel" aria-labelledby="titulo-parcelamentos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-parcelamentos">Compras parceladas</h2>
+        <span class="mes-atual" id="parcelamentos-mes"></span>
+      </div>
+      <div class="pag-resumo" id="parcelamentos-resumo"></div>
+      <p class="estado" id="parcelamentos-vazio">Nenhuma compra parcelada em andamento neste mês.</p>
+      <div class="tabela-rolagem" id="parcelamentos-tabela-area" hidden>
+        <table class="tabela parcelamentos">
+          <thead>
+            <tr>
+              <th scope="col">Compra</th>
+              <th scope="col">Cartão</th>
+              <th scope="col">Parcela</th>
+              <th scope="col" class="num">Valor/mês</th>
+              <th scope="col" class="num">Falta pagar</th>
+              <th scope="col">Termina</th>
+            </tr>
+          </thead>
+          <tbody id="parcelamentos-corpo"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-previsao">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-previsao">Previsão das faturas</h2>
+        <span class="mes-atual">próximos 12 meses</span>
+      </div>
+      <p class="estado" id="previsao-vazia">A previsão aparece depois que você importar uma fatura com compras parceladas.</p>
+      <div class="previsao" id="previsao" hidden>
+        <div class="colunas" id="previsao-colunas"></div>
+        <p class="dica">Barras listradas são previsões: meses sem fatura importada mostram só as parcelas já programadas. “−2” embaixo do mês = dois parcelamentos terminam ali. Clique num mês para vê-lo no painel.</p>
+      </div>
+    </section>
+
     <section class="painel" aria-labelledby="titulo-importar">
       <div class="painel-cabecalho">
         <h2 id="titulo-importar">Importar fatura</h2>
@@ -250,6 +286,7 @@
               <tr>
                 <th scope="col">Data</th>
                 <th scope="col">Descrição</th>
+                <th scope="col">Parcela</th>
                 <th scope="col">Categoria</th>
                 <th scope="col" class="num">Valor</th>
                 <th scope="col"><span class="sr">Ações</span></th>

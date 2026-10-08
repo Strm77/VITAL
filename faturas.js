@@ -109,7 +109,11 @@ async function lerLinhasDoPdf(arquivo, senha) {
 
 /* ---------- Interpretação do texto ---------- */
 
-const IGNORAR = /saldo|total|limite|pagamento (minimo|recebido|efetuado|da fatura)|pagto|pagamento\s*-|valor minimo|fatura anterior|credito rotativo|parcelamento de fatura|proxima fatura|melhor dia|vencimento|fechamento/;
+const IGNORAR = /saldo|total|limite|pagamento (minimo|recebido|efetuado|da fatura|em\b)|pagto|pagamento\s*-|valor minimo|fatura anterior|credito rotativo|parcelamento de fatura|proxima fatura|melhor dia|vencimento|fechamento|periodo/;
+// Descrições que não são compras: só "R$", ou um período do tipo "a 01 OUT".
+const NAO_E_COMPRA = new RegExp(`^(r\\$\\s*[\\d.,]*|a\\s+\\d{1,2}\\s*(${NOMES_MES})[a-z]*\\.?(\\s+\\d{2,4})?|ate\\s+.*)$`);
+// Prefixo do cartão virtual que alguns bancos colocam na descrição: "•••• 5636 Loja".
+const PREFIXO_CARTAO = /^(?:[•*xX·.]{2,}\s*)(\d{4})\s+/;
 
 function extrairDaFatura(linhas) {
   const texto = linhas.join("\n");
@@ -152,15 +156,19 @@ function extrairDaFatura(linhas) {
     let r;
     while ((r = re.exec(linha))) {
       const [, dia, mes, ano, descBruta, sinal1, sinal2, valorTexto, sufixo] = r;
-      const descricao = descBruta.replace(/\s{2,}/g, " ").trim();
+      let descricao = descBruta.replace(/\s{2,}/g, " ").trim();
+      const prefixo = descricao.match(PREFIXO_CARTAO);
+      if (prefixo) descricao = descricao.slice(prefixo[0].length);
       const dsa = semAcento(descricao);
-      if (!/[a-z]/.test(dsa) || IGNORAR.test(dsa)) continue;
+      if (!/[a-z]{2}/.test(dsa.replace(/r\$/g, "")) || IGNORAR.test(dsa) || NAO_E_COMPRA.test(dsa)) continue;
       const data = dataISO(dia, mes, ano);
       if (!data) continue;
       const negativo = !!(sinal1 || sinal2 || (sufixo && /-|c/i.test(sufixo.trim())));
       const valor = numeroBR(valorTexto) * (negativo ? -1 : 1);
       if (!valor) continue;
-      lancamentos.push({ data, descricao, valor, categoria: categorizar(descricao, valor) });
+      const lanc = { data, descricao, valor, categoria: categorizar(descricao, valor) };
+      if (prefixo) lanc.finalCartao = prefixo[1];
+      lancamentos.push(lanc);
     }
   }
 
@@ -190,6 +198,7 @@ Regras:
 - "valor" positivo para gastos e negativo para estornos/créditos.
 - "categoria" deve ser exatamente uma destas: ${CATEGORIAS.join(", ")}.
 - Se a data não tiver ano, deduza pelo vencimento.
+- Em compras parceladas, termine a descrição com " - Parcela N/T" (ex.: "Loja X - Parcela 2/10").
 
 Texto da fatura:
 """
@@ -214,6 +223,101 @@ ${texto}
     vencimento,
     lancamentos,
   };
+}
+
+/* ---------- Parcelas ----------
+ * A parcela é lida da própria descrição, então funciona também com faturas já salvas.
+ * Formatos aceitos: "Parcela 2/3", "PARC 03/10", "(05/12)", "Loja 03/10", "2 de 10".
+ */
+
+const PADROES_PARCELA = [
+  /parc(?:ela)?\.?\s*(\d{1,2})\s*(?:\/|de)\s*(\d{1,2})/i,
+  /\((\d{1,2})\s*\/\s*(\d{1,2})\)/,
+  /\b(\d{1,2})\s*\/\s*(\d{1,2})\s*$/,
+  /\b(\d{1,2})\s+de\s+(\d{1,2})\s*$/i,
+];
+
+function lerParcela(descricao) {
+  for (const re of PADROES_PARCELA) {
+    const m = String(descricao).match(re);
+    if (!m) continue;
+    const atual = +m[1], total = +m[2];
+    if (total >= 2 && total <= 72 && atual >= 1 && atual <= total) return { atual, total };
+  }
+  return null;
+}
+
+function semParcela(descricao) {
+  const d = String(descricao);
+  for (const re of PADROES_PARCELA) {
+    const m = d.match(re);
+    if (!m || +m[2] < 2 || +m[2] > 72 || +m[1] < 1 || +m[1] > +m[2]) continue;
+    return d.replace(re, "").replace(/[\s\-–(]+$/, "").trim() || d;
+  }
+  return d;
+}
+
+function somarMeses(aaaamm, n) {
+  const [a, m] = aaaamm.split("-").map(Number);
+  const d = new Date(a, m - 1 + n, 1);
+  return `${d.getFullYear()}-${doisDigitos(d.getMonth() + 1)}`;
+}
+function mesesEntre(de, ate) {
+  const [a1, m1] = de.split("-").map(Number);
+  const [a2, m2] = ate.split("-").map(Number);
+  return (a2 - a1) * 12 + (m2 - m1);
+}
+const mesCurto = (aaaamm) => {
+  const [a, m] = aaaamm.split("-").map(Number);
+  return `${MESES_CURTOS[m - 1]}/${String(a).slice(2)}`;
+};
+
+/* Fatura mais recente do cartão até o mês informado (base para projetar o futuro). */
+function faturaBase(cartaoId, mes) {
+  return fat.faturas
+    .filter((f) => f.cartaoId === cartaoId && f.mes <= mes)
+    .sort((a, b) => b.mes.localeCompare(a.mes))[0];
+}
+
+/* Parcelamentos de um cartão vistos a partir de um mês. */
+function parcelamentosNoMes(cartaoId, mes) {
+  const base = faturaBase(cartaoId, mes);
+  if (!base) return [];
+  const passo = mesesEntre(base.mes, mes);
+  return (base.lancamentos || [])
+    .map((l) => ({ l, p: lerParcela(l.descricao) }))
+    .filter(({ l, p }) => p && l.valor > 0 && p.atual + passo <= p.total)
+    .map(({ l, p }) => {
+      const atual = p.atual + passo;
+      return {
+        cartaoId,
+        descricao: semParcela(l.descricao),
+        valor: l.valor,
+        atual,
+        total: p.total,
+        restantes: p.total - atual,
+        fim: somarMeses(base.mes, p.total - p.atual),
+        valorRestante: l.valor * (p.total - atual),
+      };
+    });
+}
+
+/* Valor da fatura de um cartão num mês: real se já foi importada; senão, previsto pelas parcelas. */
+function faturaDoMes(cartaoId, mes) {
+  const real = fat.faturas.find((f) => f.cartaoId === cartaoId && f.mes === mes);
+  if (real) return { valor: totalFatura(real.lancamentos || []), prevista: false };
+  const base = faturaBase(cartaoId, mes);
+  if (!base) return null;
+  const valor = parcelamentosNoMes(cartaoId, mes).reduce((t, p) => t + p.valor, 0);
+  return valor > 0 ? { valor, prevista: true } : null;
+}
+
+/* Faturas previstas do mês, usadas pelo gráfico de pizza nos meses futuros. */
+function faturasPrevistas(mes) {
+  return fat.cartoes
+    .map((c) => ({ c, f: faturaDoMes(c.id, mes) }))
+    .filter(({ f }) => f && f.prevista)
+    .map(({ c, f }) => ({ nome: `Fatura ${c.nome} (prevista)`, valor: Math.round(f.valor * 100) / 100 }));
 }
 
 /* ---------- Estado ---------- */
@@ -266,6 +370,7 @@ function renderizarCartoes() {
     .forEach((c) => {
       const faturas = fat.faturas.filter((f) => f.cartaoId === c.id).sort((a, b) => b.mes.localeCompare(a.mes));
       const ultima = faturas.find((f) => f.mes === mesRef);
+      const prevista = ultima ? null : faturaDoMes(c.id, mesRef);
       const botao = document.createElement("button");
       botao.type = "button";
       botao.className = "cartao" + (fat.filtroCartao === c.id ? " selecionado" : "");
@@ -278,7 +383,9 @@ function renderizarCartoes() {
         <span class="cartao-final">•••• ${escapar(c.final || "····")}</span>
         <span class="cartao-total">${ultima
           ? `${nomeDoMes(ultima.mes)}: ${moeda.format(totalFatura(ultima.lancamentos || []))}`
-          : `Sem fatura em ${nomeMesRef()}`} · ${faturas.length} fatura${faturas.length === 1 ? "" : "s"}</span>`;
+          : prevista
+            ? `Previsto em ${nomeMesRef()}: ${moeda.format(prevista.valor)}`
+            : `Sem fatura em ${nomeMesRef()}`} · ${faturas.length} fatura${faturas.length === 1 ? "" : "s"}</span>`;
       botao.addEventListener("click", () => {
         fat.filtroCartao = c.id;
         fat.filtroMes = "";
@@ -514,6 +621,12 @@ function renderizarPlanilha() {
     tr.innerHTML = `
       <td class="data">${dataBR(l.data)}</td>
       <td class="conta">${escapar(l.descricao)}</td>
+      <td class="data">${(() => {
+        const p = lerParcela(l.descricao);
+        if (!p) return "—";
+        const fim = somarMeses(l.fatura.mes, p.total - p.atual);
+        return `${p.atual}/${p.total} <span class="sub">${p.atual === p.total ? "última" : "até " + mesCurto(fim)}</span>`;
+      })()}</td>
       <td><select aria-label="Categoria de ${escapar(l.descricao)}">${CATEGORIAS.map((c) => `<option${c === l.categoria ? " selected" : ""}>${c}</option>`).join("")}</select></td>
       <td class="num${l.valor < 0 ? " credito" : ""}">${moeda.format(l.valor)}</td>
       <td><div class="acoes-linha"><button type="button" class="botao mini" aria-label="Remover ${escapar(l.descricao)}">Remover</button></div></td>`;
@@ -534,7 +647,7 @@ function renderizarPlanilha() {
 
   const total = totalFatura(linhas);
   document.querySelector("#planilha tfoot").innerHTML = `
-    <tr><td></td><td>${linhas.length} lançamento${linhas.length === 1 ? "" : "s"}</td><td>Total</td>
+    <tr><td></td><td>${linhas.length} lançamento${linhas.length === 1 ? "" : "s"}</td><td></td><td>Total</td>
     <td class="num">${moeda.format(total)}</td><td></td></tr>`;
 }
 
@@ -582,9 +695,96 @@ function renderizarRelatorio() {
 function renderizarFaturas() {
   renderizarFiltros();
   renderizarCartoes();
+  renderizarParcelamentos();
+  renderizarPrevisao();
+  if (typeof renderizarGrafico === "function") renderizarGrafico();
   renderizarPlanilha();
   renderizarRelatorio();
   if (fat.leitura) atualizarPrevia();
+}
+
+/* ---------- Compras parceladas e previsão ---------- */
+
+function renderizarParcelamentos() {
+  const nomeCartao = (id) => fat.cartoes.find((c) => c.id === id)?.nome || "Cartão";
+  const lista = fat.cartoes
+    .flatMap((c) => parcelamentosNoMes(c.id, mesRef))
+    .sort((a, b) => a.fim.localeCompare(b.fim) || b.valor - a.valor);
+
+  document.getElementById("parcelamentos-mes").textContent = nomeMesRef();
+  document.getElementById("parcelamentos-vazio").hidden = lista.length > 0;
+  document.getElementById("parcelamentos-tabela-area").hidden = !lista.length;
+
+  const porMes = lista.reduce((t, p) => t + p.valor, 0);
+  const restante = lista.reduce((t, p) => t + p.valorRestante, 0);
+  const acabando = lista.filter((p) => p.restantes <= 2).length;
+  document.getElementById("parcelamentos-resumo").innerHTML = lista.length ? `
+    <span>${lista.length} parcelamento${lista.length === 1 ? "" : "s"}</span>
+    <span>Por mês <strong>${moeda.format(porMes)}</strong></span>
+    <span>Ainda falta <strong>${moeda.format(restante)}</strong></span>
+    ${acabando ? `<span class="status pago">${acabando} terminando em até 2 meses</span>` : ""}` : "";
+
+  const corpo = document.getElementById("parcelamentos-corpo");
+  corpo.innerHTML = "";
+  lista.forEach((p) => {
+    const situacao = p.restantes === 0
+      ? `<span class="status pago">última parcela</span>`
+      : p.restantes <= 2
+        ? `<span class="status pendente acabando">falta${p.restantes === 1 ? "" : "m"} ${p.restantes}</span>`
+        : `<span class="sub">faltam ${p.restantes}</span>`;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="conta">${escapar(p.descricao)}</td>
+      <td>${escapar(nomeCartao(p.cartaoId))}</td>
+      <td class="parcela-celula">
+        <span class="parcela-num">${p.atual}/${p.total}</span>
+        <div class="barra mini-barra" role="progressbar" aria-label="Parcela ${p.atual} de ${p.total}"><div class="preenchimento"></div></div>
+      </td>
+      <td class="num">${moeda.format(p.valor)}</td>
+      <td class="num">${moeda.format(p.valorRestante)}</td>
+      <td class="data">${mesCurto(p.fim)} ${situacao}</td>`;
+    corpo.appendChild(tr);
+    preencherBarra(tr.querySelector(".barra"), p.atual / p.total);
+  });
+}
+
+function renderizarPrevisao() {
+  const meses = Array.from({ length: 12 }, (_, i) => somarMeses(mesRef, i));
+  const dados = meses.map((mes) => {
+    const porCartao = fat.cartoes
+      .map((c) => ({ c, f: faturaDoMes(c.id, mes) }))
+      .filter(({ f }) => f && f.valor > 0);
+    const terminam = fat.cartoes.flatMap((c) => parcelamentosNoMes(c.id, mes)).filter((p) => p.restantes === 0).length;
+    return {
+      mes,
+      total: porCartao.reduce((t, x) => t + x.f.valor, 0),
+      prevista: porCartao.some((x) => x.f.prevista),
+      detalhe: porCartao.map((x) => `${x.c.nome}: ${moeda.format(x.f.valor)}${x.f.prevista ? " (previsto)" : ""}`),
+      terminam,
+    };
+  });
+  const maior = Math.max(0, ...dados.map((d) => d.total));
+  document.getElementById("previsao-vazia").hidden = maior > 0;
+  document.getElementById("previsao").hidden = maior === 0;
+  const area = document.getElementById("previsao-colunas");
+  area.innerHTML = "";
+  if (!maior) return;
+  dados.forEach((d) => {
+    const botao = document.createElement("button");
+    botao.type = "button";
+    botao.className = "coluna" + (d.prevista ? " prevista" : "") + (d.mes === mesRef ? " atual" : "");
+    const titulo = `${nomeDoMes(d.mes)}: ${moeda.format(d.total)}` + (d.detalhe.length ? "\n" + d.detalhe.join("\n") : "") +
+      (d.terminam ? `\n${d.terminam} parcelamento${d.terminam === 1 ? " termina" : "s terminam"}` : "");
+    botao.title = titulo;
+    botao.setAttribute("aria-label", titulo.replace(/\n/g, ". "));
+    botao.innerHTML = `
+      <span class="coluna-valor">${d.total ? moeda.format(d.total).replace(/,\d{2}$/, "") : "—"}</span>
+      <span class="coluna-trilho"><span class="coluna-barra" style="height:${(d.total / maior) * 100}%"></span></span>
+      <span class="coluna-mes">${mesCurto(d.mes)}</span>
+      <span class="coluna-fim">${d.terminam ? `−${d.terminam}` : ""}</span>`;
+    botao.addEventListener("click", () => definirMes(d.mes));
+    area.appendChild(botao);
+  });
 }
 
 /* ---------- Planilha em CSV ---------- */

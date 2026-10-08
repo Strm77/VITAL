@@ -255,7 +255,11 @@ function compromissosDoMes() {
   return {
     dividas: dividasCalculadas.filter((d) => d.ativaNoMes && d.valorParcela > 0).map((d) => item(d.nome, d.valorParcela, false)),
     contas: doMes.filter((c) => c.origem !== "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
-    cartoes: doMes.filter((c) => c.origem === "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
+    cartoes: [
+      ...doMes.filter((c) => c.origem === "fatura").map((c) => item(c.nome, c.valor, c.status === "pago")),
+      // Meses futuros sem fatura importada: previsão pelas parcelas já programadas.
+      ...(typeof faturasPrevistas === "function" ? faturasPrevistas(mesRef).map((f) => item(f.nome, f.valor, false)) : []),
+    ],
   };
 }
 

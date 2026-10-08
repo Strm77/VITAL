@@ -1,0 +1,14 @@
+{
+  "name": "vital",
+  "private": true,
+  "description": "V.I.T.A.L — painel reflexo da vida (aba Financeiro)",
+  "scripts": {
+    "test": "node --test --test-concurrency=1 --test-reporter=spec \"tests/*.test.mjs\"",
+    "simulacao": "node tests/simulacao/exportar.mjs"
+  },
+  "devDependencies": {
+    "pdf-lib": "1.17.1",
+    "pdfjs-dist": "3.11.174",
+    "playwright": "1.64.0"
+  }
+}

@@ -54,3 +54,28 @@ As categorias são definidas por palavras-chave em `faturas.js` (`REGRAS_CATEGOR
   "Fatura <cartão>" com o valor e o vencimento da fatura. Você pode editar o valor;
   o valor editado é mantido mesmo que a fatura mude. Excluir a fatura remove a conta
   (se ainda não estiver paga); excluir a conta à mão não a recria.
+
+## Compras parceladas e previsão
+
+Na aba Faturas, **Compras parceladas** lista cada compra parcelada em andamento no mês da
+timeline (parcela atual, valor por mês, quanto falta e quando termina), destacando as que
+terminam em até 2 meses. **Previsão das faturas** mostra os próximos 12 meses: meses sem
+fatura importada aparecem listrados, somando só as parcelas já programadas. Nos meses
+futuros, o gráfico de pizza também mostra as faturas previstas de cada cartão.
+
+A parcela é lida da descrição do lançamento ("Parcela 2/3", "PARC 03/10", "(05/12)",
+"MAGALU 03/10", "Parcela 1 de 3"), então funciona também com faturas já importadas.
+
+## Testes
+
+```bash
+npm install
+npm test            # leitor de faturas + simulação completa do painel (Playwright)
+npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulação
+```
+
+- `tests/01-leitor.test.mjs` — leitura das linhas de fatura de vários bancos, parcelas e categorias.
+- `tests/02-simulacao.test.mjs` — importa 5 faturas em PDF (Nubank, Itaú, Bradesco, Inter e C6,
+  gerados em `tests/simulacao/gerar-pdfs.mjs`), cadastra 13 contas e confere totais, parcelas,
+  previsão, timeline, atualização em tempo real (inclusive entre abas), recarga e celular.
+- Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.
