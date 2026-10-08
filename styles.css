@@ -50,11 +50,15 @@ body {
 main {
   padding: 32px;
   display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: center;
+  gap: 24px;
 }
 
 .painel {
-  width: 100%;
+  flex: 1 1 420px;
+  min-width: 0;
   max-width: 560px;
   border: 1px solid var(--borda);
   border-radius: 14px;
@@ -224,3 +228,41 @@ main {
 @media (max-width: 480px) {
   .formulario { grid-template-columns: 1fr; }
 }
+
+.grafico { flex: 1 1 300px; max-width: 400px; }
+
+.pizza-area { position: relative; max-width: 240px; margin: 12px auto 16px; }
+.pizza { display: block; width: 100%; height: auto; }
+.pizza path { stroke: var(--fundo); stroke-width: 2; stroke-linejoin: round; cursor: pointer; transition: opacity 0.15s; }
+.pizza.focado path:not(.ativo) { opacity: 0.35; }
+
+.dica-grafico {
+  position: absolute;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--texto);
+  color: var(--fundo);
+  font-size: 12px;
+  width: max-content;
+  max-width: 220px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.legenda { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
+.legenda li {
+  display: grid;
+  grid-template-columns: 12px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 4px;
+  border-radius: 6px;
+}
+.legenda li.ativo { background: var(--superficie); }
+.legenda .cor { width: 12px; height: 12px; border-radius: 3px; }
+.legenda .nome { min-width: 0; overflow-wrap: anywhere; }
+.legenda .num { font-variant-numeric: tabular-nums; }
+.legenda .pct { color: var(--texto-suave); font-variant-numeric: tabular-nums; min-width: 3.5ch; text-align: right; }
+.legenda .total-legenda { border-top: 1px solid var(--borda); border-radius: 0; padding-top: 8px; }

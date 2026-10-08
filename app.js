@@ -291,6 +291,8 @@ function renderizar(lista) {
   const pago = soma("valorPago");
   const ultimoTermino = dividas.reduce((max, d) => (d.termino > max ? d.termino : max), new Date(0));
 
+  renderizarGrafico(dividas);
+
   document.getElementById("total-mensal").textContent = moeda.format(soma("valorParcela", ativas));
   preencherBarra(document.getElementById("barra-geral"), total ? pago / total : 1);
 
@@ -302,6 +304,98 @@ function renderizar(lista) {
     ["Parcelas que faltam (somadas)", soma("restantes")],
     ["Livre de todas as dívidas em", dividas.length ? capitalizar(mesAno.format(ultimoTermino)) : "—"],
   ])}</dl>`;
+}
+
+/* ---------- Gráfico de pizza ----------
+ * Cada fatia é o quanto falta pagar de uma dívida. Todas em vermelho:
+ * a maior fica com o tom mais escuro e as demais vão clareando.
+ */
+
+function tonsDeVermelho(qtd) {
+  if (qtd === 1) return ["hsl(0 72% 45%)"];
+  return Array.from({ length: qtd }, (_, i) => {
+    const t = i / (qtd - 1);
+    const luz = 30 + t * 46; // 30% (escuro) → 76% (claro)
+    const sat = 78 - t * 18;
+    return `hsl(0 ${sat.toFixed(0)}% ${luz.toFixed(0)}%)`;
+  });
+}
+
+function fatia(cx, cy, r, inicio, fim) {
+  if (fim - inicio >= Math.PI * 2 - 1e-6) {
+    return `M ${cx} ${cy - r} A ${r} ${r} 0 1 1 ${cx - 0.01} ${cy - r} Z`;
+  }
+  const x1 = cx + r * Math.sin(inicio), y1 = cy - r * Math.cos(inicio);
+  const x2 = cx + r * Math.sin(fim), y2 = cy - r * Math.cos(fim);
+  const grande = fim - inicio > Math.PI ? 1 : 0;
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${grande} 1 ${x2} ${y2} Z`;
+}
+
+function renderizarGrafico(dividas) {
+  const svg = document.getElementById("pizza");
+  const legenda = document.getElementById("legenda");
+  const dica = document.getElementById("dica-grafico");
+  const abertas = dividas.filter((d) => d.valorRestante > 0).sort((a, b) => b.valorRestante - a.valorRestante);
+  const total = abertas.reduce((t, d) => t + d.valorRestante, 0);
+  const cores = tonsDeVermelho(abertas.length);
+
+  svg.innerHTML = "";
+  legenda.innerHTML = "";
+  dica.hidden = true;
+  document.getElementById("grafico-vazio").hidden = abertas.length > 0;
+  svg.parentElement.hidden = abertas.length === 0;
+
+  const ns = "http://www.w3.org/2000/svg";
+  const itens = [];
+  const focar = (i) => {
+    svg.classList.toggle("focado", i != null);
+    itens.forEach(({ caminho, linha }, j) => {
+      caminho.classList.toggle("ativo", i === j);
+      linha.classList.toggle("ativo", i === j);
+    });
+    if (i == null) dica.hidden = true;
+  };
+
+  let angulo = 0;
+  abertas.forEach((d, i) => {
+    const parte = d.valorRestante / total;
+    const fim = angulo + parte * Math.PI * 2;
+    const caminho = document.createElementNS(ns, "path");
+    caminho.setAttribute("d", fatia(100, 100, 96, angulo, fim));
+    caminho.setAttribute("fill", cores[i]);
+    const meio = (angulo + fim) / 2;
+    const texto = `${d.nome}: ${moeda.format(d.valorRestante)} (${Math.round(parte * 100)}%)`;
+    caminho.setAttribute("aria-label", texto);
+    caminho.addEventListener("mouseenter", () => {
+      focar(i);
+      dica.textContent = texto;
+      const r = svg.getBoundingClientRect().width / 200;
+      dica.style.left = "50%";
+      dica.style.top = (100 - 60 * Math.cos(meio)) * r + "px";
+      dica.hidden = false;
+    });
+    caminho.addEventListener("mouseleave", () => focar(null));
+    svg.appendChild(caminho);
+    angulo = fim;
+
+    const linha = document.createElement("li");
+    linha.innerHTML = `
+      <span class="cor" style="background:${cores[i]}"></span>
+      <span class="nome">${escapar(d.nome)}</span>
+      <span class="num">${moeda.format(d.valorRestante)}</span>
+      <span class="pct">${Math.round(parte * 100)}%</span>`;
+    linha.addEventListener("mouseenter", () => focar(i));
+    linha.addEventListener("mouseleave", () => focar(null));
+    legenda.appendChild(linha);
+    itens.push({ caminho, linha });
+  });
+
+  if (abertas.length) {
+    const linhaTotal = document.createElement("li");
+    linhaTotal.className = "total-legenda";
+    linhaTotal.innerHTML = `<span></span><span class="nome"><strong>Total</strong></span><span class="num"><strong>${moeda.format(total)}</strong></span><span class="pct">100%</span>`;
+    legenda.appendChild(linhaTotal);
+  }
 }
 
 async function iniciar() {

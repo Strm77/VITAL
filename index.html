@@ -68,6 +68,18 @@
         <div id="detalhes-resumo" hidden></div>
       </div>
     </section>
+
+    <section class="painel grafico" aria-labelledby="titulo-grafico">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-grafico">Para onde vai o que falta pagar</h2>
+      </div>
+      <div class="pizza-area">
+        <svg class="pizza" id="pizza" viewBox="0 0 200 200" role="img" aria-labelledby="titulo-grafico"></svg>
+        <div class="dica-grafico" id="dica-grafico" hidden></div>
+      </div>
+      <p class="estado" id="grafico-vazio" hidden>Nenhuma dívida em aberto.</p>
+      <ul class="legenda" id="legenda"></ul>
+    </section>
   </main>
 
   <script src="dividas.js"></script>
