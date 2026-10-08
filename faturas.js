@@ -292,6 +292,9 @@ function parcelamentosNoMes(cartaoId, mes) {
       return {
         cartaoId,
         descricao: semParcela(l.descricao),
+        descricaoOriginal: l.descricao,
+        data: l.data,
+        categoria: l.categoria,
         valor: l.valor,
         atual,
         total: p.total,
@@ -333,6 +336,7 @@ const fat = {
   filtroCartao: "",
   filtroMes: "",
   todosOsMeses: false,
+  filtroTipo: "todos", // todos | parceladas | avista
 };
 
 const totalGastos = (lancs) => lancs.reduce((t, l) => t + (l.valor > 0 ? l.valor : 0), 0);
@@ -598,57 +602,108 @@ async function removerLancamento(fatura, indice) {
   }
 }
 
+/* Desenho da coluna "Parcelas": à vista, ou parcela atual com um bloco por parcela. */
+function celulaParcelas(p) {
+  if (!p) return `<span class="tag-vista">à vista</span>`;
+  const estado = p.restantes === 0 ? "ultima" : p.restantes <= 2 ? "acabando" : "";
+  const blocos = p.total <= 24
+    ? `<span class="blocos" aria-hidden="true">${Array.from({ length: p.total }, (_, i) =>
+        `<i class="${i < p.atual - 1 ? "pago" : i === p.atual - 1 ? "atual" : ""}"></i>`).join("")}</span>`
+    : `<span class="barra mini-barra" aria-hidden="true"><span class="preenchimento" style="width:${(p.atual / p.total) * 100}%"></span></span>`;
+  const situacao = p.restantes === 0 ? "última parcela" : `até ${mesCurto(p.fim)} · falta${p.restantes === 1 ? "" : "m"} ${p.restantes}`;
+  return `
+    <div class="parcelas">
+      <span class="chip-parcela ${estado}" aria-label="Parcela ${p.atual} de ${p.total}">${p.atual}/${p.total}</span>
+      ${blocos}
+    </div>
+    <span class="sub ${estado}">${situacao}</span>`;
+}
+
 function renderizarPlanilha() {
   const faturas = faturasSelecionadas();
-  const vazia = !faturas.length;
   const cartao = fat.cartoes.find((c) => c.id === fat.filtroCartao);
+  const mes = fat.filtroMes || mesRef;
+  // Mês sem fatura importada: mostra a fatura prevista (só as parcelas que continuam).
+  const prevista = !faturas.length && cartao && !fat.todosOsMeses ? parcelamentosNoMes(cartao.id, mes) : [];
+  const vazia = !faturas.length && !prevista.length;
+
   document.getElementById("planilha-vazia").textContent = cartao
-    ? `Nenhuma fatura de ${cartao.nome} em ${nomeDoMes(fat.filtroMes || mesRef)}. Escolha outro mês na timeline ou importe a fatura abaixo.`
-    : "Nenhuma fatura importada ainda. Importe o PDF de uma fatura acima.";
+    ? `Nenhuma fatura de ${cartao.nome} em ${nomeDoMes(mes)}. Escolha outro mês na timeline ou importe a fatura mais abaixo.`
+    : "Nenhuma fatura importada ainda. Importe o PDF de uma fatura em “Importar fatura”, mais abaixo.";
   document.getElementById("planilha-vazia").hidden = !vazia;
   document.getElementById("planilha-conteudo").hidden = vazia;
   document.getElementById("excluir-fatura").hidden = faturas.length !== 1;
+  document.getElementById("baixar-planilha").hidden = !faturas.length;
   if (vazia) return;
 
-  const linhas = faturas
-    .flatMap((f) => (f.lancamentos || []).map((l, i) => ({ ...l, fatura: f, indice: i })))
-    .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+  const todas = faturas.length
+    ? faturas.flatMap((f) => (f.lancamentos || []).map((l, i) => {
+        const p = lerParcela(l.descricao);
+        const parcela = p && l.valor > 0
+          ? { ...p, restantes: p.total - p.atual, fim: somarMeses(f.mes, p.total - p.atual) }
+          : null;
+        return { ...l, fatura: f, indice: i, parcela };
+      }))
+    : prevista.map((p) => ({ data: "", descricao: p.descricaoOriginal, categoria: p.categoria, valor: p.valor, parcela: p, prevista: true }));
+  todas.sort((a, b) => String(a.data).localeCompare(String(b.data)));
+
+  const parceladas = todas.filter((l) => l.parcela);
+  const avista = todas.filter((l) => !l.parcela);
+  const soma = (lista) => lista.reduce((t, l) => t + l.valor, 0);
+  const faltaParceladas = parceladas.reduce((t, l) => t + l.valor * l.parcela.restantes, 0);
+  const acabando = parceladas.filter((l) => l.parcela.restantes <= 2).length;
+  document.getElementById("planilha-resumo").innerHTML = `
+    ${prevista.length ? `<span class="status pendente">Fatura prevista: só as parcelas já programadas</span>` : ""}
+    <span>Total <strong>${moeda.format(soma(todas))}</strong></span>
+    <span>À vista <strong>${moeda.format(soma(avista))}</strong> (${avista.length})</span>
+    <span>Parceladas <strong>${moeda.format(soma(parceladas))}</strong> (${parceladas.length})</span>
+    ${parceladas.length ? `<span>Ainda falta das parceladas <strong>${moeda.format(faltaParceladas)}</strong></span>` : ""}
+    ${acabando ? `<span class="status pago">${acabando} terminando em até 2 meses</span>` : ""}`;
+
+  document.querySelectorAll(".segmentado .seg").forEach((b) => {
+    const ativo = b.dataset.tipo === fat.filtroTipo;
+    b.classList.toggle("ativo", ativo);
+    b.setAttribute("aria-pressed", String(ativo));
+  });
+  const linhas = fat.filtroTipo === "parceladas" ? parceladas : fat.filtroTipo === "avista" ? avista : todas;
 
   const corpo = document.querySelector("#planilha tbody");
   corpo.innerHTML = "";
   linhas.forEach((l) => {
     const tr = document.createElement("tr");
+    tr.className = (l.parcela ? "parcelada" : "avista") + (l.prevista ? " prevista" : "");
+    const nome = l.parcela ? semParcela(l.descricao) : l.descricao;
+    const valorCompra = l.parcela ? `<span class="sub">compra de ${moeda.format(l.valor * l.parcela.total)}</span>` : "";
     tr.innerHTML = `
-      <td class="data">${dataBR(l.data)}</td>
-      <td class="conta">${escapar(l.descricao)}</td>
-      <td class="data">${(() => {
-        const p = lerParcela(l.descricao);
-        if (!p) return "—";
-        const fim = somarMeses(l.fatura.mes, p.total - p.atual);
-        return `${p.atual}/${p.total} <span class="sub">${p.atual === p.total ? "última" : "até " + mesCurto(fim)}</span>`;
-      })()}</td>
-      <td><select aria-label="Categoria de ${escapar(l.descricao)}">${CATEGORIAS.map((c) => `<option${c === l.categoria ? " selected" : ""}>${c}</option>`).join("")}</select></td>
-      <td class="num${l.valor < 0 ? " credito" : ""}">${moeda.format(l.valor)}</td>
-      <td><div class="acoes-linha"><button type="button" class="botao mini" aria-label="Remover ${escapar(l.descricao)}">Remover</button></div></td>`;
-    tr.querySelector("select").addEventListener("change", (e) => atualizarLancamento(l.fatura, l.indice, { categoria: e.target.value }));
-    const rem = tr.querySelector("button");
-    rem.addEventListener("click", () => {
-      if (rem.dataset.confirmar !== "sim") {
-        rem.dataset.confirmar = "sim";
-        rem.textContent = "Confirmar";
-        rem.classList.add("perigo");
-        return;
-      }
-      rem.disabled = true;
-      removerLancamento(l.fatura, l.indice);
-    });
+      <td class="data">${l.data ? dataBR(l.data) : "—"}</td>
+      <td class="conta">${escapar(nome)}</td>
+      <td class="celula-parcelas">${celulaParcelas(l.parcela)}</td>
+      <td>${l.prevista
+        ? `<span class="sub">${escapar(l.categoria || "Outros")}</span>`
+        : `<select aria-label="Categoria de ${escapar(nome)}">${CATEGORIAS.map((c) => `<option${c === l.categoria ? " selected" : ""}>${c}</option>`).join("")}</select>`}</td>
+      <td class="num${l.valor < 0 ? " credito" : ""}">${moeda.format(l.valor)}${valorCompra}</td>
+      <td>${l.prevista ? "" : `<div class="acoes-linha"><button type="button" class="botao mini" aria-label="Remover ${escapar(nome)}">Remover</button></div>`}</td>`;
+    if (!l.prevista) {
+      tr.querySelector("select").addEventListener("change", (e) => atualizarLancamento(l.fatura, l.indice, { categoria: e.target.value }));
+      const rem = tr.querySelector("button");
+      rem.addEventListener("click", () => {
+        if (rem.dataset.confirmar !== "sim") {
+          rem.dataset.confirmar = "sim";
+          rem.textContent = "Confirmar";
+          rem.classList.add("perigo");
+          return;
+        }
+        rem.disabled = true;
+        removerLancamento(l.fatura, l.indice);
+      });
+    }
     corpo.appendChild(tr);
   });
 
-  const total = totalFatura(linhas);
+  const filtrado = fat.filtroTipo !== "todos";
   document.querySelector("#planilha tfoot").innerHTML = `
-    <tr><td></td><td>${linhas.length} lançamento${linhas.length === 1 ? "" : "s"}</td><td></td><td>Total</td>
-    <td class="num">${moeda.format(total)}</td><td></td></tr>`;
+    <tr><td></td><td>${linhas.length} lançamento${linhas.length === 1 ? "" : "s"}${filtrado ? ` de ${todas.length}` : ""}</td><td></td>
+    <td>${filtrado ? "Subtotal" : "Total"}</td><td class="num">${moeda.format(soma(linhas))}</td><td></td></tr>`;
 }
 
 function renderizarRelatorio() {
@@ -695,7 +750,6 @@ function renderizarRelatorio() {
 function renderizarFaturas() {
   renderizarFiltros();
   renderizarCartoes();
-  renderizarParcelamentos();
   renderizarPrevisao();
   if (typeof renderizarGrafico === "function") renderizarGrafico();
   renderizarPlanilha();
@@ -704,49 +758,6 @@ function renderizarFaturas() {
 }
 
 /* ---------- Compras parceladas e previsão ---------- */
-
-function renderizarParcelamentos() {
-  const nomeCartao = (id) => fat.cartoes.find((c) => c.id === id)?.nome || "Cartão";
-  const lista = fat.cartoes
-    .flatMap((c) => parcelamentosNoMes(c.id, mesRef))
-    .sort((a, b) => a.fim.localeCompare(b.fim) || b.valor - a.valor);
-
-  document.getElementById("parcelamentos-mes").textContent = nomeMesRef();
-  document.getElementById("parcelamentos-vazio").hidden = lista.length > 0;
-  document.getElementById("parcelamentos-tabela-area").hidden = !lista.length;
-
-  const porMes = lista.reduce((t, p) => t + p.valor, 0);
-  const restante = lista.reduce((t, p) => t + p.valorRestante, 0);
-  const acabando = lista.filter((p) => p.restantes <= 2).length;
-  document.getElementById("parcelamentos-resumo").innerHTML = lista.length ? `
-    <span>${lista.length} parcelamento${lista.length === 1 ? "" : "s"}</span>
-    <span>Por mês <strong>${moeda.format(porMes)}</strong></span>
-    <span>Ainda falta <strong>${moeda.format(restante)}</strong></span>
-    ${acabando ? `<span class="status pago">${acabando} terminando em até 2 meses</span>` : ""}` : "";
-
-  const corpo = document.getElementById("parcelamentos-corpo");
-  corpo.innerHTML = "";
-  lista.forEach((p) => {
-    const situacao = p.restantes === 0
-      ? `<span class="status pago">última parcela</span>`
-      : p.restantes <= 2
-        ? `<span class="status pendente acabando">falta${p.restantes === 1 ? "" : "m"} ${p.restantes}</span>`
-        : `<span class="sub">faltam ${p.restantes}</span>`;
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td class="conta">${escapar(p.descricao)}</td>
-      <td>${escapar(nomeCartao(p.cartaoId))}</td>
-      <td class="parcela-celula">
-        <span class="parcela-num">${p.atual}/${p.total}</span>
-        <div class="barra mini-barra" role="progressbar" aria-label="Parcela ${p.atual} de ${p.total}"><div class="preenchimento"></div></div>
-      </td>
-      <td class="num">${moeda.format(p.valor)}</td>
-      <td class="num">${moeda.format(p.valorRestante)}</td>
-      <td class="data">${mesCurto(p.fim)} ${situacao}</td>`;
-    corpo.appendChild(tr);
-    preencherBarra(tr.querySelector(".barra"), p.atual / p.total);
-  });
-}
 
 function renderizarPrevisao() {
   const meses = Array.from({ length: 12 }, (_, i) => somarMeses(mesRef, i));
@@ -797,9 +808,12 @@ async function baixarPlanilha() {
   const celula = (t) => `"${String(t).replace(/"/g, '""')}"`;
   const valorBR = (v) => v.toFixed(2).replace(".", ",");
   const csv = "﻿" + [
-    ["Data", "Descrição", "Categoria", "Valor", "Fatura"].map(celula).join(";"),
-    ...linhas.map((l) => [dataBR(l.data), l.descricao, l.categoria, valorBR(l.valor), nomeDoMes(l.mes)].map(celula).join(";")),
-    ["", "", "Total", valorBR(totalFatura(linhas)), ""].map(celula).join(";"),
+    ["Data", "Descrição", "Parcela", "Categoria", "Valor", "Fatura"].map(celula).join(";"),
+    ...linhas.map((l) => {
+      const p = l.valor > 0 && lerParcela(l.descricao);
+      return [dataBR(l.data), p ? semParcela(l.descricao) : l.descricao, p ? `${p.atual}/${p.total}` : "à vista", l.categoria, valorBR(l.valor), nomeDoMes(l.mes)].map(celula).join(";");
+    }),
+    ["", "", "", "Total", valorBR(totalFatura(linhas)), ""].map(celula).join(";"),
   ].join("\r\n");
   const nome = `fatura-${semAcento(cartao?.nome || "cartao").replace(/[^a-z0-9]+/g, "-")}-${fat.filtroMes || "todos"}.csv`;
 
@@ -916,6 +930,10 @@ async function iniciarFaturas() {
     renderizarFaturas();
   });
   document.getElementById("baixar-planilha").addEventListener("click", baixarPlanilha);
+  document.querySelectorAll(".segmentado .seg").forEach((b) => b.addEventListener("click", () => {
+    fat.filtroTipo = b.dataset.tipo;
+    renderizarPlanilha();
+  }));
   const excluir = document.getElementById("excluir-fatura");
   excluir.addEventListener("click", async () => {
     if (excluir.dataset.confirmar !== "sim") {

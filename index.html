@@ -211,27 +211,44 @@
       <div class="cartoes" id="cartoes"></div>
     </section>
 
-    <section class="painel" aria-labelledby="titulo-parcelamentos">
+    <section class="painel" aria-labelledby="titulo-planilha">
       <div class="painel-cabecalho">
-        <h2 id="titulo-parcelamentos">Compras parceladas</h2>
-        <span class="mes-atual" id="parcelamentos-mes"></span>
+        <h2 id="titulo-planilha">Fatura do cartão</h2>
+        <div class="filtros">
+          <label class="sr" for="filtro-cartao">Cartão</label>
+          <select id="filtro-cartao"></select>
+          <label class="sr" for="filtro-mes">Mês</label>
+          <select id="filtro-mes"></select>
+        </div>
       </div>
-      <div class="pag-resumo" id="parcelamentos-resumo"></div>
-      <p class="estado" id="parcelamentos-vazio">Nenhuma compra parcelada em andamento neste mês.</p>
-      <div class="tabela-rolagem" id="parcelamentos-tabela-area" hidden>
-        <table class="tabela parcelamentos">
-          <thead>
-            <tr>
-              <th scope="col">Compra</th>
-              <th scope="col">Cartão</th>
-              <th scope="col">Parcela</th>
-              <th scope="col" class="num">Valor/mês</th>
-              <th scope="col" class="num">Falta pagar</th>
-              <th scope="col">Termina</th>
-            </tr>
-          </thead>
-          <tbody id="parcelamentos-corpo"></tbody>
-        </table>
+      <p class="estado" id="planilha-vazia">Nenhuma fatura importada ainda. Importe o PDF de uma fatura em “Importar fatura”, mais abaixo.</p>
+      <div id="planilha-conteudo" hidden>
+        <div class="pag-resumo" id="planilha-resumo"></div>
+        <div class="segmentado" role="group" aria-label="Mostrar">
+          <button type="button" class="seg ativo" data-tipo="todos" aria-pressed="true">Todas</button>
+          <button type="button" class="seg" data-tipo="parceladas" aria-pressed="false">Parceladas</button>
+          <button type="button" class="seg" data-tipo="avista" aria-pressed="false">À vista</button>
+        </div>
+        <div class="tabela-rolagem">
+          <table class="tabela planilha" id="planilha">
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Descrição</th>
+                <th scope="col">Parcelas</th>
+                <th scope="col">Categoria</th>
+                <th scope="col" class="num">Valor</th>
+                <th scope="col"><span class="sr">Ações</span></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+        <div class="acoes">
+          <button type="button" class="botao" id="excluir-fatura">Excluir fatura</button>
+          <button type="button" class="botao primario" id="baixar-planilha">Baixar planilha (.csv)</button>
+        </div>
       </div>
     </section>
 
@@ -293,41 +310,6 @@
         </div>
       </form>
       <p class="dica">O PDF é lido aqui mesmo no navegador. Só os lançamentos encontrados são salvos.</p>
-    </section>
-
-    <section class="painel" aria-labelledby="titulo-planilha">
-      <div class="painel-cabecalho">
-        <h2 id="titulo-planilha">Planilha da fatura</h2>
-        <div class="filtros">
-          <label class="sr" for="filtro-cartao">Cartão</label>
-          <select id="filtro-cartao"></select>
-          <label class="sr" for="filtro-mes">Mês</label>
-          <select id="filtro-mes"></select>
-        </div>
-      </div>
-      <p class="estado" id="planilha-vazia">Nenhuma fatura importada ainda. Importe o PDF de uma fatura acima.</p>
-      <div id="planilha-conteudo" hidden>
-        <div class="tabela-rolagem">
-          <table class="tabela planilha" id="planilha">
-            <thead>
-              <tr>
-                <th scope="col">Data</th>
-                <th scope="col">Descrição</th>
-                <th scope="col">Parcela</th>
-                <th scope="col">Categoria</th>
-                <th scope="col" class="num">Valor</th>
-                <th scope="col"><span class="sr">Ações</span></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-            <tfoot></tfoot>
-          </table>
-        </div>
-        <div class="acoes">
-          <button type="button" class="botao" id="excluir-fatura">Excluir fatura</button>
-          <button type="button" class="botao primario" id="baixar-planilha">Baixar planilha (.csv)</button>
-        </div>
-      </div>
     </section>
   </main>
 

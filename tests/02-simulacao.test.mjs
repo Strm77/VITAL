@@ -59,20 +59,41 @@ test("2. Cada cartão mostra o total certo da fatura de outubro", async () => {
   await foto("01-faturas-outubro.png");
 });
 
-test("3. Compras parceladas: todas listadas, com as que estão acabando destacadas", async () => {
-  const esperadas = CARTOES.flatMap(parcelados);
-  const linhas = await pagina.$$eval("#parcelamentos-corpo tr", (trs) => trs.map((tr) => [...tr.cells].map((c) => c.textContent.replace(/\s+/g, " ").trim())));
-  assert.equal(linhas.length, esperadas.length);
-  for (const l of esperadas) {
-    const linha = linhas.find((x) => x[0].toUpperCase() === l.desc.toUpperCase());
-    assert.ok(linha, `parcelamento não listado: ${l.desc}`);
-    assert.ok(linha[2].startsWith(`${l.p[0]}/${l.p[1]}`), `${l.desc}: parcela ${linha[2]}`);
-    const faltam = l.p[1] - l.p[0];
-    if (faltam === 0) assert.match(linha[5], /última parcela/);
-    else if (faltam <= 2) assert.match(linha[5], /falta/);
+test("3. Fatura do cartão: parceladas e à vista na mesma tabela, com as que estão acabando destacadas", async () => {
+  for (const c of CARTOES) {
+    await pagina.locator(".cartao", { hasText: c.nome }).click();
+    await pagina.waitForTimeout(80);
+    const linhas = await pagina.$$eval("#planilha tbody tr", (trs) => trs.map((tr) => ({
+      tipo: tr.className,
+      nome: tr.cells[1].textContent.trim(),
+      chip: tr.querySelector(".chip-parcela")?.textContent ?? null,
+      estado: tr.querySelector(".chip-parcela")?.className ?? "",
+      blocos: tr.querySelectorAll(".blocos i").length,
+    })));
+    assert.equal(linhas.length, c.lancamentos.length, `${c.nome}: todas as compras numa tabela só`);
+    for (const l of c.lancamentos) {
+      const linha = linhas.find((x) => x.nome.toUpperCase() === l.desc.toUpperCase());
+      assert.ok(linha, `${c.nome}: faltou ${l.desc}`);
+      if (!l.p || l.valor < 0) { assert.match(linha.tipo, /avista/, l.desc); continue; }
+      assert.match(linha.tipo, /parcelada/, l.desc);
+      assert.equal(linha.chip, `${l.p[0]}/${l.p[1]}`, l.desc);
+      assert.equal(linha.blocos, l.p[1], `${l.desc}: um bloco por parcela`);
+      const faltam = l.p[1] - l.p[0];
+      if (faltam === 0) assert.match(linha.estado, /ultima/, l.desc);
+      else if (faltam <= 2) assert.match(linha.estado, /acabando/, l.desc);
+    }
+    const resumo = await texto(pagina, "#planilha-resumo");
+    assert.ok(resumo.includes(`Total ${brl(centavos(totalFatura(c)))}`), resumo);
+    const parcelado = parcelados(c).reduce((t, l) => t + l.valor, 0);
+    assert.ok(resumo.includes(`Parceladas ${brl(centavos(parcelado))} (${parcelados(c).length})`), resumo);
   }
-  const porMes = esperadas.reduce((t, l) => t + l.valor, 0);
-  assert.ok((await texto(pagina, "#parcelamentos-resumo")).includes(brl(centavos(porMes))));
+  // Filtro: só parceladas
+  await pagina.click(".seg[data-tipo=parceladas]");
+  assert.equal(await pagina.$$eval("#planilha tbody tr", (t) => t.every((x) => x.classList.contains("parcelada"))), true);
+  await pagina.click(".seg[data-tipo=avista]");
+  assert.equal(await pagina.$$eval("#planilha tbody tr", (t) => t.every((x) => x.classList.contains("avista"))), true);
+  await pagina.click(".seg[data-tipo=todos]");
+  await foto("01b-fatura-unificada.png");
 });
 
 test("4. Previsão: novembro e dezembro só com as parcelas que continuam", async () => {
@@ -166,11 +187,11 @@ test("10. Tempo real: remover um lançamento parcelado atualiza parcelas, previs
   const c = CARTOES[0];
   await pagina.locator(".cartao", { hasText: c.nome }).click();
   const alvo = parcelados(c).find((l) => l.p[0] + 1 <= l.p[1]); // continua em novembro
-  const antes = await pagina.$$eval("#parcelamentos-corpo tr", (t) => t.length);
+  const antes = await pagina.$$eval("#planilha tbody tr.parcelada", (t) => t.length);
   const botao = pagina.locator("#planilha tbody tr", { hasText: alvo.desc }).locator("button");
   await botao.click(); await botao.click();
   await pagina.waitForTimeout(150);
-  assert.equal(await pagina.$$eval("#parcelamentos-corpo tr", (t) => t.length), antes - 1);
+  assert.equal(await pagina.$$eval("#planilha tbody tr.parcelada", (t) => t.length), antes - 1);
   const nov = await pagina.$eval("#previsao-colunas .coluna:nth-child(2)", (x) => x.title.replace(/\u00a0/g, " "));
   const esperado = CARTOES.reduce((t, x) => t + previsto(x, 1), 0) - alvo.valor;
   assert.ok(nov.includes(brl(centavos(esperado))), nov);
@@ -188,9 +209,10 @@ test("11. Timeline: novembro mostra faturas previstas, a conta de novembro e as 
   assert.ok(legenda.filter((l) => l.includes("(prevista)")).length >= 4, legenda.join(" | "));
   await foto("03-painel-novembro.png");
   await irPara("faturas");
-  const parcelas = await pagina.$$eval("#parcelamentos-corpo tr", (t) => t.length);
-  const esperado = CARTOES.flatMap(parcelados).filter((l) => l.p[0] + 1 <= l.p[1]).length - 1; // um foi removido
-  assert.equal(parcelas, esperado);
+  // Nubank em novembro: fatura prevista com as parcelas que continuam (uma foi removida no teste 10)
+  const previstas = await pagina.$$eval("#planilha tbody tr.prevista", (t) => t.length);
+  assert.equal(previstas, parcelados(CARTOES[0]).filter((l) => l.p[0] + 1 <= l.p[1]).length - 1);
+  assert.match(await texto(pagina, "#planilha-resumo"), /Fatura prevista/);
   assert.match(await texto(pagina, ".cartao:has-text('Inter (simulação)') .cartao-total"), /Previsto em Novembro de 2026/);
   await foto("04-faturas-novembro.png");
   await pagina.click("#timeline-hoje");

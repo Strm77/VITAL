@@ -73,9 +73,10 @@ As categorias são definidas por palavras-chave em `faturas.js` (`REGRAS_CATEGOR
 
 ## Compras parceladas e previsão
 
-Na aba Faturas, **Compras parceladas** lista cada compra parcelada em andamento no mês da
-timeline (parcela atual, valor por mês, quanto falta e quando termina), destacando as que
-terminam em até 2 meses. **Previsão das faturas** mostra os próximos 12 meses: meses sem
+Na aba Faturas, a tabela **Fatura do cartão** mostra as compras à vista e as parceladas juntas.
+As parceladas aparecem com a parcela atual (ex.: 3/10), um bloco por parcela, até quando vão
+e o valor total da compra; as que terminam em até 2 meses ficam destacadas. Dá para filtrar
+Todas / Parceladas / À vista. Num mês sem fatura importada, a tabela mostra a fatura prevista. **Previsão das faturas** mostra os próximos 12 meses: meses sem
 fatura importada aparecem listrados, somando só as parcelas já programadas. Nos meses
 futuros, o gráfico de pizza também mostra as faturas previstas de cada cartão.
 

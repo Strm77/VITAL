@@ -643,12 +643,48 @@ a.aba { text-decoration: none; }
   .timeline-meses { flex-basis: 100%; order: 3; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; }
 }
 
-/* Compras parceladas */
-.parcelamentos { min-width: 680px; }
-.parcela-celula { min-width: 90px; }
-.parcela-num { font-variant-numeric: tabular-nums; font-size: 12px; }
+/* Fatura do cartão: compras à vista e parceladas na mesma tabela */
+.segmentado { display: inline-flex; gap: 2px; padding: 3px; margin: 12px 0 4px; border: 1px solid var(--borda); border-radius: 10px; }
+.seg {
+  all: unset;
+  cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--texto-suave);
+}
+.seg:hover { color: var(--texto); }
+.seg.ativo { background: var(--texto); color: var(--fundo); }
+.seg:focus-visible { outline: 2px solid var(--progresso); outline-offset: 1px; }
+#planilha-resumo { margin-top: 0; }
+
+.planilha { min-width: 720px; }
+.celula-parcelas { min-width: 150px; }
+.tag-vista { font-size: 12px; color: var(--texto-suave); }
+.parcelas { display: flex; align-items: center; gap: 8px; }
+.chip-parcela {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--cat-cor);
+  color: var(--fundo);
+}
+.chip-parcela.acabando { background: var(--perigo); }
+.chip-parcela.ultima { background: var(--progresso); }
+.blocos { display: flex; gap: 2px; flex-wrap: wrap; max-width: 120px; }
+.blocos i { width: 6px; height: 10px; border-radius: 2px; background: var(--trilho); }
+.blocos i.pago { background: var(--texto-suave); }
+.blocos i.atual { background: var(--cat-cor); }
+.parcelas .mini-barra { width: 80px; height: 6px; margin: 0; }
+.parcelas .mini-barra .preenchimento { background: var(--cat-cor); }
+.celula-parcelas .sub.acabando { color: var(--perigo); }
+.celula-parcelas .sub.ultima { color: var(--progresso); }
+.planilha tr.parcelada td { background: color-mix(in srgb, var(--cat-cor) 6%, transparent); }
+.planilha tr.prevista td { font-style: italic; }
 .mini-barra { height: 4px; margin-top: 4px; }
-.status.acabando { color: var(--perigo); }
 
 /* Previsão das faturas (colunas por mês) */
 .colunas {

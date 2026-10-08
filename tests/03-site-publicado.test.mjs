@@ -101,7 +101,7 @@ test("Fatura em PDF: fatura, lançamentos e conta automática nas tabelas certas
   const conta = db.pagamentos.find((p) => p.origem === "fatura");
   assert.equal(conta.fatura_id, db.faturas[0].id);
   assert.equal(conta.valor, 661.85);
-  await pagina.waitForSelector("#parcelamentos-corpo tr");
+  await pagina.waitForSelector("#planilha tbody tr.parcelada");
 });
 
 test("Remover um lançamento troca os lançamentos da fatura no banco", async () => {
