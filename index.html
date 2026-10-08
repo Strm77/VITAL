@@ -307,6 +307,13 @@
           <span class="dica">Lido do PDF quando ele informa o total. Confira com o valor da sua fatura.</span>
         </label>
         <div class="largo previa-resumo" id="previa-resumo"></div>
+        <details class="largo nao-lidas diagnostico" id="previa-diagnostico" hidden>
+          <summary></summary>
+          <ul class="paginas"></ul>
+          <label class="sr" for="diagnostico-texto">Texto lido do PDF</label>
+          <textarea id="diagnostico-texto" readonly rows="12"></textarea>
+          <button type="button" class="botao mini" id="copiar-diagnostico">Copiar texto lido</button>
+        </details>
         <details class="largo nao-lidas" id="previa-nao-lidas" hidden>
           <summary></summary>
           <ul></ul>

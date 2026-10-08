@@ -80,9 +80,11 @@ async function lerLinhasDoPdf(arquivo, senha) {
   }
 
   const linhas = [];
+  linhas.paginas = [];
   for (let n = 1; n <= pdf.numPages; n++) {
     const pagina = await pdf.getPage(n);
     const { items } = await pagina.getTextContent();
+    const inicioPagina = linhas.length;
     // Junta os pedaços de texto em linhas. A tolerância de altura evita separar a descrição
     // do valor quando o banco imprime os dois com alturas levemente diferentes.
     const partes = items
@@ -106,6 +108,7 @@ async function lerLinhasDoPdf(arquivo, senha) {
       }
       linhas.push(texto.replace(/\s+$/, ""));
     }
+    linhas.paginas.push({ numero: n, linhas: linhas.length - inicioPagina, pedacos: items.length });
   }
   return linhas;
 }
@@ -475,6 +478,7 @@ function mostrarPrevia(leitura, metodo) {
   form.elements.mes.value = leitura.mes;
   form.elements.vencimento.value = leitura.vencimento || "";
   form.elements.total.value = leitura.totalInformado ?? "";
+  renderizarDiagnostico(leitura);
   const naoLidas = document.getElementById("previa-nao-lidas");
   const lista = leitura.naoReconhecidas || [];
   naoLidas.hidden = !lista.length;
@@ -494,6 +498,34 @@ function mostrarPrevia(leitura, metodo) {
     document.getElementById("previa-claude").hidden = !s || metodo === "claude";
   });
   form.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+/* Diagnóstico da leitura: páginas, linhas e o texto completo extraído do PDF. */
+function renderizarDiagnostico(leitura) {
+  const caixa = document.getElementById("previa-diagnostico");
+  const linhas = fat.linhas || [];
+  caixa.hidden = !linhas.length;
+  if (!linhas.length) return;
+  const paginas = linhas.paginas || [];
+  const datas = leitura.lancamentos.map((l) => l.data).filter(Boolean).sort();
+  caixa.querySelector("summary").textContent =
+    `Diagnóstico da leitura: ${paginas.length} página${paginas.length === 1 ? "" : "s"}, ${linhas.length} linhas de texto` +
+    (datas.length ? ` · compras de ${dataBR(datas[0])} a ${dataBR(datas[datas.length - 1])}` : "");
+  caixa.querySelector(".paginas").innerHTML = paginas
+    .map((p) => `<li>Página ${p.numero}: ${p.linhas} linha${p.linhas === 1 ? "" : "s"}${p.pedacos === 0 ? " — <strong>sem texto (imagem?)</strong>" : ""}</li>`)
+    .join("");
+  let inicio = 0;
+  caixa.querySelector("textarea").value = paginas.length
+    ? paginas.map((p) => { const bloco = linhas.slice(inicio, inicio + p.linhas); inicio += p.linhas; return `=== Página ${p.numero} ===\n${bloco.join("\n")}`; }).join("\n\n")
+    : linhas.join("\n");
+}
+
+async function copiarDiagnostico() {
+  const campo = document.querySelector("#previa-diagnostico textarea");
+  const botao = document.getElementById("copiar-diagnostico");
+  try { await navigator.clipboard.writeText(campo.value); botao.textContent = "Copiado"; }
+  catch { campo.focus(); campo.select(); botao.textContent = "Selecionado: use Ctrl+C"; }
+  setTimeout(() => (botao.textContent = "Copiar texto lido"), 2500);
 }
 
 function atualizarPrevia() {
@@ -1001,6 +1033,7 @@ async function iniciarFaturas() {
   });
   document.getElementById("previa-cancelar").addEventListener("click", cancelarImportacao);
   document.getElementById("previa-claude").addEventListener("click", lerComClaude);
+  document.getElementById("copiar-diagnostico").addEventListener("click", copiarDiagnostico);
 
   document.getElementById("filtro-cartao").addEventListener("change", (e) => {
     fat.filtroCartao = e.target.value;
