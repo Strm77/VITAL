@@ -15,6 +15,7 @@
   </header>
 
   <main>
+    <div class="coluna-dividas area-dividas">
     <section class="painel" aria-labelledby="titulo-dividas">
       <div class="painel-cabecalho">
         <h2 id="titulo-dividas">Dívidas</h2>
@@ -69,6 +70,9 @@
       </div>
     </section>
 
+    <a class="botao botao-faturas" href="faturas.html">Faturas <span aria-hidden="true">→</span></a>
+    </div>
+
     <section class="painel grafico" aria-labelledby="titulo-grafico">
       <div class="painel-cabecalho">
         <h2 id="titulo-grafico">Para onde vai o que falta pagar</h2>
@@ -81,15 +85,71 @@
       <ul class="legenda" id="legenda"></ul>
     </section>
 
-    <section class="torre" aria-label="Ganhos, gastos e investimentos">
+    <section class="torre area-torre" aria-label="Ganhos, gastos e investimentos">
       <div class="painel bloco" id="bloco-ganhos"></div>
       <div class="painel bloco" id="bloco-gastos"></div>
       <div class="painel bloco" id="bloco-investimentos"></div>
+    </section>
+
+    <section class="painel area-pagamentos" aria-labelledby="titulo-pagamentos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-pagamentos">Controle de pagamentos</h2>
+        <span class="mes-atual" id="pagamentos-mes"></span>
+      </div>
+
+      <div class="pag-resumo" id="pag-resumo"></div>
+      <div class="barra" role="progressbar" aria-label="Contas pagas" id="pag-barra"><div class="preenchimento"></div></div>
+
+      <div class="tabela-rolagem">
+        <table class="tabela" id="pag-tabela">
+          <thead>
+            <tr>
+              <th scope="col">Conta</th>
+              <th scope="col">Vencimento</th>
+              <th scope="col" class="num">Valor</th>
+              <th scope="col">Status</th>
+              <th scope="col">Pago em</th>
+              <th scope="col"><span class="sr">Ações</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="estado" id="pag-vazio" hidden>Nenhuma conta cadastrada. Use “Adicionar conta” para registrar a primeira.</p>
+
+      <p class="aviso" id="pag-aviso" role="alert" hidden></p>
+
+      <form class="formulario" id="pag-form" hidden novalidate>
+        <h3 id="pag-form-titulo">Nova conta</h3>
+        <label class="campo largo">Conta
+          <input id="pag-nome" name="nome" type="text" maxlength="60" placeholder="Ex.: Conta de luz">
+        </label>
+        <label class="campo">Valor (R$)
+          <input id="pag-valor" name="valor" type="number" min="0.01" step="0.01" inputmode="decimal">
+        </label>
+        <label class="campo">Vencimento
+          <input id="pag-vencimento" name="vencimento" type="date">
+        </label>
+        <label class="campo largo">Status
+          <select id="pag-status" name="status">
+            <option value="pendente">Pendente</option>
+            <option value="pago">Pago</option>
+          </select>
+        </label>
+        <p class="dica largo">A data e a hora do pagamento são registradas sozinhas quando a conta passa para “Pago”.</p>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="pag-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar</button>
+        </div>
+      </form>
+
+      <button type="button" class="botao adicionar" id="pag-adicionar">+ Adicionar conta</button>
     </section>
   </main>
 
   <script src="dividas.js"></script>
   <script src="app.js"></script>
   <script src="torre.js"></script>
+  <script src="pagamentos.js"></script>
 </body>
 </html>

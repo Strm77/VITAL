@@ -63,3 +63,15 @@ const INVESTIMENTOS = [
   { nome: "Reserva de emergência (exemplo)", valorAplicado: 8000, valorAtual: 8640, meta: 15000 },
   { nome: "Tesouro IPCA+ (exemplo)", valorAplicado: 3000, valorAtual: 3210 },
 ];
+
+/*
+ * Exemplos iniciais do controle de pagamentos.
+ *   status  "pendente" ou "pago"
+ *   pagoEm  preenchido sozinho quando a conta é marcada como paga
+ */
+const PAGAMENTOS = [
+  { nome: "Internet (exemplo)", valor: 120, vencimento: MES_ATUAL + "-05", status: "pago", pagoEm: MES_ATUAL + "-04T19:20:00" },
+  { nome: "Água (exemplo)", valor: 85.4, vencimento: MES_ATUAL + "-06", status: "pendente", pagoEm: null },
+  { nome: "Conta de luz (exemplo)", valor: 182.9, vencimento: MES_ATUAL + "-15", status: "pendente", pagoEm: null },
+  { nome: "Celular (exemplo)", valor: 59.9, vencimento: MES_ATUAL + "-20", status: "pendente", pagoEm: null },
+];
