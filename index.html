@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>V.I.T.A.L — Financeiro</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topo">
+    <h1>V.I.T.A.L</h1>
+    <nav class="abas">
+      <span class="aba ativa">Financeiro</span>
+    </nav>
+  </header>
+
+  <main>
+    <section class="painel" aria-labelledby="titulo-dividas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-dividas">Dívidas</h2>
+        <span class="mes-atual" id="mes-atual"></span>
+      </div>
+
+      <ul class="lista" id="lista-dividas"></ul>
+
+      <div class="resumo">
+        <button class="linha-resumo" id="botao-resumo" aria-expanded="false" aria-controls="detalhes-resumo">
+          <span class="rotulo">Total das parcelas do mês</span>
+          <span class="valor" id="total-mensal"></span>
+          <span class="seta" aria-hidden="true"></span>
+        </button>
+        <div class="barra" role="progressbar" aria-label="Progresso geral" id="barra-geral">
+          <div class="preenchimento"></div>
+        </div>
+        <div id="detalhes-resumo" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <script src="dividas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
