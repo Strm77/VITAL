@@ -64,6 +64,7 @@ function renderizarPagamentos() {
     tr.innerHTML = `
       <td class="conta">${escapar(c.nome)}${c.origem === "fatura" ? ' <span class="origem-tag">cartão</span>' : ""}
         ${c.origem === "fatura" && c.valorEditado ? `<span class="sub">Fatura importada: ${moeda.format(Number(c.valorFatura) || 0)}</span>` : ""}</td>
+      <td class="tipo-conta">${c.tipo ? `<span class="chip-tipo ${c.tipo}">${c.tipo === "fixa" ? "Fixa" : "Variável"}</span> ` : ""}${c.categoria ? `<span class="chip-cat">${escapar(c.categoria)}</span>` : ""}</td>
       <td class="data">${venc ? dataCurta.format(venc) : "—"}</td>
       <td class="num">${moeda.format(Number(c.valor) || 0)}</td>
       <td><span class="status ${st.chave}">${st.rotulo}</span></td>
@@ -118,6 +119,8 @@ function abrirFormularioPag(id) {
   form.elements.valor.value = conta?.valor ?? "";
   form.elements.vencimento.value = conta?.vencimento ?? `${mesRef}-10`;
   form.elements.status.value = conta?.status ?? "pendente";
+  form.elements.tipo.value = conta?.tipo ?? (conta?.origem === "fatura" ? "variavel" : "");
+  form.elements.categoria.value = conta?.categoria ?? (conta?.origem === "fatura" ? "Cartão" : "");
   const origem = document.getElementById("pag-origem");
   origem.hidden = conta?.origem !== "fatura";
   if (!origem.hidden) {
@@ -148,6 +151,8 @@ async function salvarPag(evento) {
     valor: Number(form.elements.valor.value.trim().replace(",", ".")),
     vencimento: form.elements.vencimento.value,
     status: form.elements.status.value,
+    tipo: form.elements.tipo.value || null,
+    categoria: form.elements.categoria.value.trim() || null,
   };
   if (!conta.nome || !(conta.valor > 0) || !conta.vencimento) {
     avisoPag("Preencha conta, valor e vencimento.");

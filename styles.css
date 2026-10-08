@@ -799,3 +799,18 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .meses-assinatura i.cobrado { background: var(--cat-cor); }
 .meses-cab { display: flex; gap: 4px; margin-top: 4px; font-weight: 400; }
 .meses-cab span { width: 14px; text-align: center; font-size: 10px; }
+
+/* Tipo e categoria das contas */
+.tipo-conta { white-space: nowrap; }
+.chip-tipo, .chip-cat {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-right: 4px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--borda);
+}
+.chip-tipo.fixa { color: var(--cat-cor); border-color: color-mix(in srgb, var(--cat-cor) 45%, transparent); }
+.chip-tipo.variavel { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, transparent); }
+.chip-cat { color: var(--texto-suave); }

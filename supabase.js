@@ -104,10 +104,10 @@ const COLUNAS = {
   investimentos: ["nome", "valor_aplicado", "valor_atual", "meta"],
   cartoes: ["nome", "final"],
   faturas: ["cartao_id", "mes", "vencimento", "arquivo", "importado_em", "sem_conta", "total_informado"],
-  pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado"],
+  pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado", "tipo", "categoria"],
 };
 // Colunas que podem ficar vazias (quando o campo some do formulário, vira null no banco).
-const ANULAVEIS = new Set(["total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
+const ANULAVEIS = new Set(["tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
 const NUMERICAS = new Set(["total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
 
 function linhaParaObjeto(linha) {

@@ -72,6 +72,8 @@ test("Cadastros vão para as tabelas e voltam do banco", async () => {
   await pagina.fill("#pag-nome", "Energia");
   await pagina.fill("#pag-valor", "212.4");
   await pagina.fill("#pag-vencimento", "2026-10-12");
+  await pagina.selectOption("#pag-tipo", "fixa");
+  await pagina.fill("#pag-categoria", "Serviços");
   await pagina.click("#pag-form [type=submit]");
   await pagina.waitForSelector("#pag-tabela tbody tr");
   await pagina.locator("#pag-tabela tbody tr", { hasText: "Energia" }).locator("[data-acao=pagar]").click();
@@ -80,6 +82,8 @@ test("Cadastros vão para as tabelas e voltam do banco", async () => {
   assert.equal(db.dividas[0].valor_parcela, 300);
   assert.equal(db.dividas[0].primeira_parcela, "2026-10");
   assert.equal(db.pagamentos[0].status, "pago");
+  assert.equal(db.pagamentos[0].tipo, "fixa");
+  assert.equal(db.pagamentos[0].categoria, "Serviços");
   assert.match(db.pagamentos[0].pago_em, /^2026-10-08/);
 });
 
@@ -101,6 +105,8 @@ test("Fatura em PDF: fatura, lançamentos e conta automática nas tabelas certas
   const conta = db.pagamentos.find((p) => p.origem === "fatura");
   assert.equal(conta.fatura_id, db.faturas[0].id);
   assert.equal(conta.valor, 661.85);
+  assert.equal(conta.tipo, "variavel");
+  assert.equal(conta.categoria, "Cartão");
   await pagina.waitForSelector("#planilha tbody tr.parcelada");
 });
 

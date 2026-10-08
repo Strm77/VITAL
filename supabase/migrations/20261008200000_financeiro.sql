@@ -168,3 +168,7 @@ notify pgrst, 'reload config';
 
 -- Total oficial da fatura (lido do PDF ou digitado). Quando vazio, o painel soma os lançamentos.
 alter table financeiro.faturas add column if not exists total_informado numeric(12, 2);
+
+-- Tipo (fixa ou variável) e categoria livre da conta (Serviços, Cartão, Cartão de Loja...)
+alter table financeiro.pagamentos add column if not exists tipo text check (tipo in ('fixa', 'variavel'));
+alter table financeiro.pagamentos add column if not exists categoria text check (length(categoria) <= 40);

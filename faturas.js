@@ -1012,6 +1012,8 @@ async function sincronizarContasDasFaturas() {
         status: "pendente",
         pagoEm: null,
         origem: "fatura",
+        tipo: "variavel",
+        categoria: "Cartão",
         faturaId: f.id,
         valorFatura: total,
         valorEditado: false,

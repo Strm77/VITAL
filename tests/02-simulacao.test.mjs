@@ -25,9 +25,10 @@ after(() => navegador?.close());
 const linhasPagamentos = () =>
   pagina.$$eval("#pag-tabela tbody tr", (trs) => trs.map((tr) => ({
     nome: tr.cells[0].childNodes[0].textContent.trim(),
-    valor: tr.cells[2].textContent.replace(/\u00a0/g, " ").trim(),
-    status: tr.cells[3].textContent.trim(),
-    pagoEm: tr.cells[4].textContent.trim(),
+    tipo: tr.cells[1].textContent.replace(/\s+/g, " ").trim(),
+    valor: tr.cells[3].textContent.replace(/\u00a0/g, " ").trim(),
+    status: tr.cells[4].textContent.trim(),
+    pagoEm: tr.cells[5].textContent.trim(),
   })));
 const legendaPizza = () => pagina.$$eval("#legenda li", (li) => li.map((x) => x.textContent.replace(/\s+/g, " ").trim()));
 const irPara = async (aba) => { await pagina.click(`.subaba[data-aba=${aba}]`); await pagina.waitForTimeout(100); };
@@ -161,6 +162,7 @@ test("5. Cada fatura virou conta no controle de pagamentos", async () => {
     const conta = contas.find((x) => x.nome === `Fatura ${c.nome}`);
     assert.ok(conta, `faltou a conta da fatura ${c.nome}`);
     assert.equal(conta.valor, brl(centavos(totalFatura(c))));
+    assert.equal(conta.tipo, "Variável Cartão", "conta de fatura nasce Variável / Cartão");
   }
 });
 
@@ -170,9 +172,12 @@ test("6. Cadastra 13 contas pelo formulário e paga 3 delas", async () => {
     await pagina.fill("#pag-nome", c.nome);
     await pagina.fill("#pag-valor", String(c.valor));
     await pagina.fill("#pag-vencimento", c.vencimento);
+    await pagina.selectOption("#pag-tipo", "fixa");
+    await pagina.fill("#pag-categoria", "Serviços");
     await pagina.click("#pag-form [type=submit]");
     await pagina.waitForSelector("#pag-form", { state: "hidden" });
   }
+  assert.equal((await linhasPagamentos()).find((x) => x.nome === CONTAS[0].nome).tipo, "Fixa Serviços");
   for (const c of CONTAS.filter((x) => x.pagar)) {
     await pagina.locator("#pag-tabela tbody tr", { hasText: c.nome }).locator("[data-acao=pagar]").click();
     await pagina.waitForTimeout(80);

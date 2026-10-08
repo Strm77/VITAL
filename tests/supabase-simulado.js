@@ -9,7 +9,7 @@
     cartoes: "id nome final",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
-    pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado",
+    pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria",
   };
   const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"] };
   const ler = () => JSON.parse(sessionStorage.getItem("mock-db") || "{}");

@@ -151,6 +151,7 @@
           <thead>
             <tr>
               <th scope="col">Conta</th>
+              <th scope="col">Tipo</th>
               <th scope="col">Vencimento</th>
               <th scope="col" class="num">Valor</th>
               <th scope="col">Status</th>
@@ -175,6 +176,25 @@
         </label>
         <label class="campo">Vencimento
           <input id="pag-vencimento" name="vencimento" type="date">
+        </label>
+        <label class="campo">Tipo
+          <select id="pag-tipo" name="tipo">
+            <option value="">—</option>
+            <option value="fixa">Fixa</option>
+            <option value="variavel">Variável</option>
+          </select>
+        </label>
+        <label class="campo">Categoria
+          <input id="pag-categoria" name="categoria" type="text" maxlength="40" list="pag-categorias" placeholder="Ex.: Serviços">
+          <datalist id="pag-categorias">
+            <option value="Serviços"></option>
+            <option value="Cartão"></option>
+            <option value="Cartão de Loja"></option>
+            <option value="Moradia"></option>
+            <option value="Saúde"></option>
+            <option value="Educação"></option>
+            <option value="Transporte"></option>
+          </datalist>
         </label>
         <label class="campo largo">Status
           <select id="pag-status" name="status">
