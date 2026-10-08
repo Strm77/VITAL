@@ -48,6 +48,14 @@ atual; ao escolher outro mês, todas as seções passam a mostrar aquele mês: p
 dívidas, compromissos da pizza, ganhos e gastos, contas do controle de pagamentos e a
 fatura de cada cartão.
 
+## Assinaturas
+
+O submenu **Assinaturas** encontra sozinho as assinaturas nos lançamentos de todas as faturas
+importadas (Netflix, Prime Video, Spotify, PlayStation, Apple, Google One, Max, Claude, Adobe…)
+e mostra, por serviço: cartão, valor mensal (somando várias cobranças no mês), os últimos 6 meses,
+mudança de preço e se ainda está ativa. A lista de serviços fica em `assinaturas.js` (`SERVICOS`);
+um lançamento com categoria "Assinaturas" também entra.
+
 ## Faturas
 
 O submenu **Faturas** (ou o botão Faturas no painel) abre:

@@ -202,7 +202,7 @@ function alternar(botao, painel, chave) {
 /* ---------- Navegação entre as abas (Financeiro / Faturas) ---------- */
 
 function mostrarVista() {
-  const vista = location.hash === "#faturas" ? "faturas" : "painel";
+  const vista = { "#faturas": "faturas", "#assinaturas": "assinaturas" }[location.hash] || "painel";
   document.querySelectorAll("[data-vista]").forEach((el) => {
     el.hidden = el.dataset.vista !== vista;
   });

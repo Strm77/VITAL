@@ -44,6 +44,7 @@
   <nav class="submenu" aria-label="Financeiro">
     <a class="subaba" data-aba="painel" href="#painel">Painel</a>
     <a class="subaba" data-aba="faturas" href="#faturas">Faturas</a>
+    <a class="subaba" data-aba="assinaturas" href="#assinaturas">Assinaturas</a>
   </nav>
 
   <div class="timeline" id="timeline" role="group" aria-label="Mês de referência">
@@ -193,6 +194,35 @@
     </section>
   </main>
 
+  <main class="vista-faturas" data-vista="assinaturas" hidden>
+    <section class="painel" aria-labelledby="titulo-assinaturas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-assinaturas">Assinaturas</h2>
+        <span class="mes-atual" id="assinaturas-mes"></span>
+      </div>
+      <p class="estado" id="assinaturas-vazio">As assinaturas aparecem aqui depois que você importar uma fatura na aba Faturas.</p>
+      <div id="assinaturas-conteudo" hidden>
+        <div class="pag-resumo" id="assinaturas-resumo"></div>
+        <div class="tabela-rolagem">
+          <table class="tabela assinaturas" id="assinaturas-tabela">
+            <thead>
+              <tr>
+                <th scope="col">Serviço</th>
+                <th scope="col">Cartão</th>
+                <th scope="col" class="num">Valor mensal</th>
+                <th scope="col">Últimos 6 meses <span class="meses-cab" aria-hidden="true"></span></th>
+                <th scope="col">Última cobrança</th>
+                <th scope="col">Situação</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="dica">Encontradas automaticamente nas faturas importadas (Netflix, Prime Video, Spotify, PlayStation, Apple, Google One…). Para incluir outra, mude a categoria do lançamento para “Assinaturas” na tabela da fatura.</p>
+      </div>
+    </section>
+  </main>
+
   <main class="vista-faturas" data-vista="faturas" hidden>
     <section class="painel" aria-labelledby="titulo-relatorio">
       <div class="painel-cabecalho">
@@ -339,5 +369,6 @@
   <script src="torre.js"></script>
   <script src="pagamentos.js"></script>
   <script src="faturas.js"></script>
+  <script src="assinaturas.js"></script>
 </body>
 </html>

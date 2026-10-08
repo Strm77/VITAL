@@ -3,7 +3,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import path from "node:path";
 import { abrirNavegador, abrirPainel, SAIDA, brl, texto, centavos } from "./ajuda.mjs";
-import { CARTOES, CONTAS, totalFatura, somaLancamentos, parcelados, previsto } from "./simulacao/dados.mjs";
+import { CARTOES, CONTAS, ASSINATURAS, totalFatura, somaLancamentos, parcelados, previsto } from "./simulacao/dados.mjs";
 import { gerarPdfs } from "./simulacao/gerar-pdfs.mjs";
 
 let navegador, contexto, pagina, pdfs;
@@ -129,6 +129,29 @@ test("4. Previsão: novembro e dezembro só com as parcelas que continuam", asyn
     assert.ok(colunas[n].prevista);
   }
   assert.ok(!colunas[0].prevista, "outubro é fatura real");
+});
+
+test("4b. Aba Assinaturas: encontra as assinaturas de todas as faturas", async () => {
+  await irPara("assinaturas");
+  const linhas = await pagina.$$eval("#assinaturas-tabela tbody tr", (trs) => trs.map((tr) => [
+    tr.cells[0].querySelector("strong").textContent, tr.cells[1].textContent.trim(), tr.cells[2].textContent.replace(/\u00a0/g, " ").trim(), tr.cells[5].textContent.trim()]));
+  for (const [nome, cartao, valor] of ASSINATURAS) {
+    const linha = linhas.find((l) => l[0] === nome);
+    assert.ok(linha, `faltou ${nome} (vieram: ${linhas.map((l) => l[0]).join(", ")})`);
+    assert.equal(linha[1], cartao, nome);
+    assert.equal(linha[2], brl(valor), nome);
+    assert.equal(linha[3], "Ativa", nome);
+  }
+  assert.equal(linhas.length, ASSINATURAS.length, `só assinaturas: ${linhas.map((l) => l[0]).join(", ")}`);
+  const mensal = ASSINATURAS.reduce((t, a) => t + a[2], 0);
+  assert.ok((await texto(pagina, "#assinaturas-resumo")).includes(`Por mês ${brl(centavos(mensal))}`));
+  assert.ok((await texto(pagina, "#assinaturas-resumo")).includes(`Por ano ${brl(centavos(mensal * 12))}`));
+  await foto("08-assinaturas.png");
+  // Em agosto (antes das faturas), não há assinaturas.
+  await escolherMes(7);
+  assert.equal(await pagina.isVisible("#assinaturas-vazio"), true);
+  await escolherMes(9);
+  await irPara("faturas");
 });
 
 test("5. Cada fatura virou conta no controle de pagamentos", async () => {

@@ -147,6 +147,22 @@ test("Fatura do Nubank completa: total certo entre simulações e crédito da fa
   assert.equal(Math.round(soma * 100) / 100, 950);
 });
 
+test("Assinaturas reconhecidas pela descrição da fatura", async () => {
+  const r = await pagina.evaluate(() => [
+    ["Amazon Prime Canais", "Compras"], ["Amazonprimebr", "Outros"], ["Apple.Com/Bill", "Assinaturas"],
+    ["Assinatura HBO Max desconto Nubank", "Assinaturas"], ["Anthropic* Claude Sub", "Assinaturas"], ["Ppro*Adobe", "Outros"],
+    ["Mp *Melimais", "Outros"], ["Google One", "Assinaturas"], ["NETFLIX.COM", "Assinaturas"], ["PlayStation Network", "Lazer"],
+    ["SPOTIFY", "Assinaturas"], ["Dl*Clube Leitura 123", "Assinaturas"],
+    ["Amazon Br *Amazon", "Compras"], ["Uber* Trip", "Transporte"], ["Smash N Play", "Outros"],
+    ['IOF de "Anthropic* Claude Sub"', "Tarifas e juros"],
+  ].map(([d, c]) => identificarAssinatura(d, c)));
+  assert.deepEqual(r, [
+    "Prime Video", "Prime Video", "Apple (App Store / iCloud)", "Max (HBO)", "Claude", "Adobe", "Meli+", "Google One",
+    "Netflix", "PlayStation Plus", "Spotify", "Clube Leitura", null, null, null, null,
+  ]);
+  assert.equal(await pagina.evaluate(() => categorizar("PLAYSTATION NETWORK", 34.9)), "Assinaturas");
+});
+
 test("Categorias por palavra-chave", async () => {
   const r = await pagina.evaluate(() =>
     ["IFOOD *LANCHE", "UBER *TRIP", "DROGASIL", "NETFLIX.COM", "AMAZON BR", "IOF COMPRA", "CINEMARK", "LOJA DESCONHECIDA"].map((d) => categorizar(d, 10)));

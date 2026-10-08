@@ -25,14 +25,14 @@ const CREDITO = "Pagamentos e créditos";
 // Palavras-chave procuradas na descrição (sem acento, minúsculas).
 const REGRAS_CATEGORIA = [
   ["Tarifas e juros", ["iof", "anuidade", "juros", "encargo", "multa", "tarifa", "seguro fatura", "mora"]],
-  ["Assinaturas", ["netflix", "spotify", "prime video", "amazonprime", "disney", "hbo", "max.com", "youtube", "apple.com", "icloud", "google one", "google storage", "deezer", "globoplay", "paramount", "chatgpt", "openai", "claude", "anthropic", "crunchyroll", "microsoft", "adobe", "canva"]],
+  ["Assinaturas", ["netflix", "spotify", "prime video", "amazonprime", "amazon prime", "prime canais", "playstation", "psn", "xbox", "melimais", "twitch", "disney", "hbo", "max.com", "youtube", "apple.com", "icloud", "google one", "google storage", "deezer", "globoplay", "paramount", "chatgpt", "openai", "claude", "anthropic", "crunchyroll", "microsoft", "adobe", "canva"]],
   ["Alimentação", ["ifood", "i food", "restaurante", "lanchonete", "padaria", "burger", "mcdonald", "mc donald", "bk ", "pizza", "rappi", "bar ", "cafe", "subway", "outback", "starbucks", "sushi", "churrasc", "acai", "lanches", "food", "giraffas", "habib", "spoleto", "coco bambu", "ze delivery"]],
   ["Mercado", ["supermerc", "mercado ", "carrefour", "assai", "atacad", "pao de acucar", "extra ", "hortifruti", "sams club", "big ", "makro", "oba ", "st marche", "dia brasil", "zaffari", "savegnago", "mercadinho", "sacolao"]],
   ["Transporte", ["uber", "99app", "99 app", "99pop", "99 ", "cabify", "posto", "shell", "ipiranga", "petrobras", "br mania", "combust", "estacion", "sem parar", "semparar", "veloe", "conectcar", "metro", "bilhete", "onibus", "pedagio", "zul ", "estapar"]],
   ["Saúde", ["farmacia", "drogaria", "droga raia", "drogasil", "pague menos", "panvel", "hospital", "clinica", "laborator", "unimed", "amil", "odonto", "dentist", "medic", "smart fit", "smartfit", "academia", "bluefit", "gympass", "wellhub"]],
   ["Compras", ["amazon", "mercadolivre", "mercado livre", "mercadopago*", "shopee", "aliexpress", "magalu", "magazine", "americanas", "shein", "renner", "riachuelo", "c&a", "cea ", "zara", "centauro", "netshoes", "kabum", "submarino", "casas bahia", "ponto frio", "fast shop", "decathlon", "nike", "adidas", "temu", "boticario", "natura", "sephora"]],
   ["Casa", ["leroy", "telhanorte", "tok&stok", "tok stok", "camicado", "madeiramadeira", "mobly", "etna", "c&c", "obramax"]],
-  ["Lazer", ["cinema", "cinemark", "ingresso", "sympla", "eventim", "steam", "playstation", "psn", "xbox", "nintendo", "teatro", "show", "parque", "bilheteria"]],
+  ["Lazer", ["cinema", "cinemark", "ingresso", "sympla", "eventim", "steam", "nintendo", "teatro", "show", "parque", "bilheteria"]],
   ["Viagem", ["hotel", "airbnb", "booking", "latam", "gol linhas", "voegol", "azul linhas", "voeazul", "decolar", "123milhas", "hurb", "pousada", "localiza", "movida", "unidas"]],
   ["Educação", ["udemy", "alura", "curso", "escola", "faculdade", "universidade", "livraria", "livros", "coursera", "duolingo"]],
   ["Serviços", ["claro", "vivo", "tim ", "oi ", "net servicos", "internet", "energia", "enel", "cemig", "light ", "copel", "sabesp", "comgas", "condominio"]],
@@ -902,6 +902,7 @@ function renderizarFaturas() {
   if (typeof renderizarGrafico === "function") renderizarGrafico();
   renderizarPlanilha();
   renderizarRelatorio();
+  if (typeof renderizarAssinaturas === "function") renderizarAssinaturas();
   if (fat.leitura) atualizarPrevia();
 }
 

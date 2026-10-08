@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'site estático: sem dependências para instalar'",
-  "buildCommand": "mkdir -p public && cp index.html styles.css config.js comum.js supabase.js dividas.js app.js torre.js pagamentos.js faturas.js public/",
+  "buildCommand": "mkdir -p public && cp index.html styles.css config.js comum.js supabase.js dividas.js app.js torre.js pagamentos.js faturas.js assinaturas.js public/",
   "outputDirectory": "public",
   "headers": [
     {

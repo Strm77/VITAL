@@ -790,3 +790,12 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
   resize: vertical;
 }
 .diagnostico .paginas { font-family: inherit; }
+
+/* Aba Assinaturas */
+.assinaturas { min-width: 720px; }
+.assinaturas tr.inativa td { color: var(--texto-suave); }
+.meses-assinatura { display: inline-flex; gap: 4px; }
+.meses-assinatura i { width: 14px; height: 14px; border-radius: 4px; background: var(--trilho); }
+.meses-assinatura i.cobrado { background: var(--cat-cor); }
+.meses-cab { display: flex; gap: 4px; margin-top: 4px; font-weight: 400; }
+.meses-cab span { width: 14px; text-align: center; font-size: 10px; }

@@ -54,6 +54,7 @@ export const CARTOES = [
       { data: "2026-09-10", desc: "CINEMARK", valor: 64 },
       { data: "2026-09-16", desc: "PADARIA REAL", valor: 32.5 },
       { data: "2026-09-21", desc: "CENTAURO", valor: 159.9, p: [4, 4] },
+      { data: "2026-09-23", desc: "AMAZON PRIME CANAIS", valor: 29.9 },
     ],
   },
   {
@@ -66,6 +67,7 @@ export const CARTOES = [
       { data: "2026-09-05", desc: "LATAM AIRLINES", valor: 412.5, p: [2, 12] },
       { data: "2026-09-09", desc: "UDEMY", valor: 27.9 },
       { data: "2026-09-13", desc: "ZE DELIVERY", valor: 96.4 },
+      { data: "2026-09-15", desc: "PLAYSTATION NETWORK", valor: 34.9 },
       { data: "2026-09-19", desc: "ESTORNO LOJA ONLINE", valor: -50 },
       { data: "2026-09-24", desc: "KABUM", valor: 133.25, p: [7, 10] },
     ],
@@ -110,3 +112,12 @@ export const totalFatura = (c) => somaLancamentos(c) + (c.naoDetalhado || 0);
 export const parcelados = (c) => c.lancamentos.filter((l) => l.p);
 // Fatura prevista do cartão daqui a n meses (só parcelas que ainda existem).
 export const previsto = (c, n) => parcelados(c).filter((l) => l.p[0] + n <= l.p[1]).reduce((t, l) => t + l.valor, 0);
+
+// Assinaturas que a aba Assinaturas deve encontrar na simulação.
+export const ASSINATURAS = [
+  ["Netflix", "Nubank (simulação)", 55.9],
+  ["Spotify", "Itaú (simulação)", 21.9],
+  ["Prime Video", "Bradesco (simulação)", 29.9],
+  ["PlayStation Plus", "Inter (simulação)", 34.9],
+  ["Apple (App Store / iCloud)", "C6 (simulação)", 49.9],
+];
