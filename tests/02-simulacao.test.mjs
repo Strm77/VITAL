@@ -212,6 +212,30 @@ test("7. Resumo de pagamentos e pizza batem com os dados", async () => {
   assert.ok(legenda.some((l) => l.includes("Aluguel (simulação)") && l.includes("pago")));
 });
 
+test("7b. Dinheiro do mês: entradas, saídas, já saiu e sobra", async () => {
+  // Ganhos e gastos de exemplo do painel + dívidas de exemplo (parcela do carro vence dia 5, já saiu).
+  const ganhos = 5500 + 800, gastosAvulsos = 1400 + 900 + 250;
+  const parcelas = 450 + 320 + 1280.5, parcelasPagas = 1280.5;
+  const outubro = CONTAS.filter((c) => c.vencimento.startsWith("2026-10"));
+  const contas = outubro.reduce((t, c) => t + c.valor, 0) + CARTOES.reduce((t, c) => t + totalFatura(c), 0);
+  const pagas = outubro.filter((c) => c.pagar).reduce((t, c) => t + c.valor, 0);
+  const saidas = contas + parcelas + gastosAvulsos;
+  const jaSaiu = pagas + parcelasPagas + gastosAvulsos;
+  const numeros = await texto(pagina, "#bloco-fluxo .fluxo-numeros");
+  assert.ok(numeros.includes(`Entradas ${brl(centavos(ganhos))}`), numeros);
+  assert.ok(numeros.includes(`Saídas ${brl(centavos(saidas))}`), numeros);
+  assert.ok(numeros.includes(`Falta ${brl(centavos(saidas - ganhos))}`), numeros);
+  const linha = await texto(pagina, "#bloco-fluxo .porcentagem");
+  assert.ok(linha.includes(`Disponível agora −${brl(centavos(jaSaiu - ganhos))}`) || linha.includes(`Disponível agora ${brl(centavos(ganhos - jaSaiu))}`), linha);
+  assert.ok(linha.includes(`Ainda vai sair ${brl(centavos(saidas - jaSaiu))}`), linha);
+  // Quanto eu gastei = todas as saídas; Quanto eu ganho mostra a mesma sobra/falta.
+  assert.equal(await texto(pagina, "#bloco-gastos .valor"), brl(centavos(saidas)));
+  assert.match(await texto(pagina, "#bloco-ganhos .porcentagem"), new RegExp(`falta ${brl(centavos(saidas - ganhos)).replace(/[.$]/g, "\\$&")}`));
+  await pagina.click("#bloco-fluxo .linha");
+  const detalhe = (await texto(pagina, "#detalhes-fluxo")).replace(/\s/g, "");
+  assert.ok(detalhe.includes(`Contaspagas−${brl(centavos(pagas))}`.replace(/\s/g, "")), detalhe);
+});
+
 test("8. Tempo real: pagar uma conta atualiza resumo e pizza sem recarregar", async () => {
   const antes = await texto(pagina, "#pag-resumo");
   await pagina.locator("#pag-tabela tbody tr", { hasText: "Energia (simulação)" }).locator("[data-acao=pagar]").click();

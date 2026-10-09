@@ -814,3 +814,21 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .chip-tipo.fixa { color: var(--cat-cor); border-color: color-mix(in srgb, var(--cat-cor) 45%, transparent); }
 .chip-tipo.variavel { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, transparent); }
 .chip-cat { color: var(--texto-suave); }
+
+/* Dinheiro do mês (entradas, saídas e sobra) */
+.bloco-fluxo .painel-cabecalho { margin-bottom: 10px; }
+.fluxo-numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.fluxo-numeros div { display: grid; gap: 2px; min-width: 0; }
+.rotulo-fluxo { font-size: 12px; color: var(--texto-suave); }
+.fluxo-numeros strong { font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.fluxo-numeros .entrada { color: var(--progresso); }
+.fluxo-numeros .saida { color: var(--perigo); }
+.fluxo-barras { display: grid; gap: 4px; margin-top: 12px; }
+.fluxo-trilho { display: flex; height: 8px; border-radius: 999px; background: var(--trilho); overflow: hidden; }
+.seg-entrada { background: var(--progresso); }
+.seg-saiu { background: var(--perigo); }
+.seg-vai-sair { background: repeating-linear-gradient(135deg, var(--perigo) 0 3px, color-mix(in srgb, var(--perigo) 35%, transparent) 3px 6px); }
+.bloco-fluxo .porcentagem strong { color: var(--texto); font-weight: 600; }
+.bloco-fluxo .linha { margin-top: 10px; }
+.bloco-fluxo .rotulo { font-size: 13px; color: var(--texto-suave); }
+.bloco-fluxo .detalhes { margin-top: 10px; }

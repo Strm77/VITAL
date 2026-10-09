@@ -40,6 +40,19 @@ cadastre cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a d
 hora do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
 aparecem como *Atrasada*.
 
+## Dinheiro do mês
+
+No topo da torre, o bloco **Dinheiro do mês** mostra o fluxo do mês da timeline:
+
+- **Entradas** = ganhos do mês.
+- **Saídas** = contas do Controle de pagamentos (inclui as faturas de cartão) + parcelas das
+  dívidas + gastos avulsos (Pix, dinheiro, débito — fora do cartão, para não contar duas vezes).
+- **Já saiu** = contas pagas + parcelas já vencidas + gastos avulsos; **Disponível agora** =
+  entradas − já saiu; **Ainda vai sair** = contas pendentes + parcelas a vencer.
+- **Sobra (ou Falta) no fim do mês** = entradas − saídas.
+
+"Quanto eu gastei" passa a mostrar o total das saídas, e "Quanto eu ganho" a mesma sobra.
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a

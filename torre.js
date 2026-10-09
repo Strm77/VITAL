@@ -30,7 +30,8 @@ const BLOCOS = {
   },
   gastos: {
     titulo: "Quanto eu gastei",
-    novo: "+ Adicionar gasto",
+    novo: "+ Adicionar gasto avulso",
+    dica: "Use para gastos fora do cartão e fora das contas (Pix, dinheiro, débito). Compras no cartão já entram pela fatura.",
     campos: CAMPOS_MENSAIS,
     padrao: { recorrente: false },
   },
@@ -49,43 +50,128 @@ const BLOCOS = {
 
 const soma = (lista, campo) => lista.reduce((t, i) => t + (Number(i[campo]) || 0), 0);
 
+/* Fluxo do dinheiro no mês da timeline.
+ *   Entradas = ganhos do mês
+ *   Saídas   = contas do controle de pagamentos (inclui faturas de cartão)
+ *            + parcelas das dívidas + gastos avulsos (fora do cartão)
+ *   Já saiu  = contas pagas + parcelas já vencidas + gastos avulsos
+ *   Sobra    = entradas − saídas (previsão para o fim do mês)
+ */
 function resumoDoMes() {
   const ganhos = soma(torre.ganhos.filter(doMes), "valor");
   const gastos = soma(torre.gastos.filter(doMes), "valor");
-  const parcelas = torre.parcelasMes;
-  return { ganhos, gastos, parcelas, sobra: ganhos - gastos - parcelas };
+  let contas = [];
+  try { contas = typeof pag !== "undefined" ? pag.contas : []; } catch {}
+  contas = contas.filter((c) => String(c.vencimento || "").startsWith(mesRef));
+  const contasPagas = soma(contas.filter((c) => c.status === "pago"), "valor");
+  const contasAPagar = soma(contas.filter((c) => c.status !== "pago"), "valor");
+  let dividas = [];
+  try { dividas = typeof dividasCalculadas !== "undefined" ? dividasCalculadas.filter((d) => d.ativaNoMes) : []; } catch {}
+  const parcelasPagas = soma(dividas.filter((d) => d.vencimentoNoMes && d.vencimentoNoMes < hoje), "valorParcela");
+  const parcelas = dividas.length ? soma(dividas, "valorParcela") : torre.parcelasMes;
+  const parcelasAPagar = parcelas - parcelasPagas;
+
+  const saidas = contasPagas + contasAPagar + parcelas + gastos;
+  const jaSaiu = contasPagas + parcelasPagas + gastos;
+  const aSair = contasAPagar + parcelasAPagar;
+  return {
+    ganhos, gastos, parcelas, parcelasPagas, parcelasAPagar,
+    contasPagas, contasAPagar, qtdContas: contas.length,
+    saidas, jaSaiu, aSair,
+    disponivel: ganhos - jaSaiu,
+    sobra: ganhos - saidas,
+  };
+}
+
+/* Bloco "Dinheiro do mês": entradas, saídas e quanto sobra. */
+function renderizarFluxo() {
+  const raiz = document.getElementById("bloco-fluxo");
+  if (!raiz) return;
+  const r = resumoDoMes();
+  const vazio = !r.ganhos && !r.saidas;
+  const escala = Math.max(r.ganhos, r.saidas) || 1;
+  const pct = (v) => `${Math.max(0, (v / escala) * 100)}%`;
+  const sinal = (v) => (v < 0 ? "−" : "") + moeda.format(Math.abs(v));
+  const aberto = raiz.querySelector(".linha")?.getAttribute("aria-expanded") === "true";
+
+  raiz.innerHTML = `
+    <div class="painel-cabecalho">
+      <h2 class="titulo-bloco">Dinheiro do mês</h2>
+      <span class="mes-atual">${nomeMesRef()}</span>
+    </div>
+    ${vazio ? `<p class="estado">Cadastre seus ganhos e suas contas para ver quanto entra, quanto sai e quanto sobra.</p>` : `
+    <div class="fluxo-numeros">
+      <div><span class="rotulo-fluxo">Entradas</span> <strong class="entrada">${moeda.format(r.ganhos)}</strong></div>
+      <div><span class="rotulo-fluxo">Saídas</span> <strong class="saida">${moeda.format(r.saidas)}</strong></div>
+      <div><span class="rotulo-fluxo">${r.sobra >= 0 ? "Sobra" : "Falta"}</span> <strong class="${r.sobra >= 0 ? "entrada" : "saida"}">${moeda.format(Math.abs(r.sobra))}</strong></div>
+    </div>
+    <div class="fluxo-barras" aria-hidden="true">
+      <div class="fluxo-trilho"><span class="seg-entrada" style="width:${pct(r.ganhos)}"></span></div>
+      <div class="fluxo-trilho">
+        <span class="seg-saiu" style="width:${pct(r.jaSaiu)}"></span><span class="seg-vai-sair" style="width:${pct(r.aSair)}"></span>
+      </div>
+    </div>
+    <div class="porcentagem">
+      <span>Disponível agora <strong>${sinal(r.disponivel)}</strong></span>
+      <span>Ainda vai sair <strong>${moeda.format(r.aSair)}</strong></span>
+    </div>
+    <button class="linha" aria-expanded="${aberto}" aria-controls="detalhes-fluxo">
+      <span class="rotulo">Ver de onde vem e para onde vai</span><span></span>
+      <span class="seta" aria-hidden="true"></span>
+    </button>
+    <dl class="detalhes" id="detalhes-fluxo" ${aberto ? "" : "hidden"}>
+      ${listaDetalhes([
+        ["<strong>Entradas</strong>", `<strong>${moeda.format(r.ganhos)}</strong>`],
+        ["Ganhos do mês", moeda.format(r.ganhos)],
+        ["<strong>Já saiu</strong>", `<strong>− ${moeda.format(r.jaSaiu)}</strong>`],
+        ["Contas pagas", "− " + moeda.format(r.contasPagas)],
+        ["Parcelas de dívidas já vencidas", "− " + moeda.format(r.parcelasPagas)],
+        ["Gastos avulsos", "− " + moeda.format(r.gastos)],
+        ["<strong>Disponível agora</strong>", `<strong>${sinal(r.disponivel)}</strong>`],
+        ["<strong>Ainda vai sair</strong>", `<strong>− ${moeda.format(r.aSair)}</strong>`],
+        ["Contas a pagar", "− " + moeda.format(r.contasAPagar)],
+        ["Parcelas de dívidas a vencer", "− " + moeda.format(r.parcelasAPagar)],
+        [`<strong>${r.sobra >= 0 ? "Sobra" : "Falta"} no fim do mês</strong>`, `<strong>${sinal(r.sobra)}</strong>`],
+      ])}
+    </dl>`}`;
+  const botao = raiz.querySelector(".linha");
+  if (botao) botao.addEventListener("click", () => {
+    const abrir = botao.getAttribute("aria-expanded") !== "true";
+    botao.setAttribute("aria-expanded", String(abrir));
+    raiz.querySelector(".detalhes").hidden = !abrir;
+  });
 }
 
 /* Conteúdo de cada bloco: destaque, barra e linhas de detalhe. */
 function conteudo(tipo) {
   const r = resumoDoMes();
   if (tipo === "ganhos") {
-    const comprometido = r.ganhos ? (r.gastos + r.parcelas) / r.ganhos : 0;
+    const comprometido = r.ganhos ? r.saidas / r.ganhos : 0;
     return {
       destaque: moeda.format(r.ganhos),
       progresso: Math.min(comprometido, 1),
       perigo: comprometido > 1,
-      legenda: [`${porcento(comprometido)} comprometido`, `sobra ${moeda.format(r.sobra)}`],
+      legenda: [`${porcento(comprometido)} comprometido`, `${r.sobra >= 0 ? "sobra" : "falta"} ${moeda.format(Math.abs(r.sobra))}`],
       resumo: [
         ["Recebido no mês", moeda.format(r.ganhos)],
-        ["Gastos do mês", "− " + moeda.format(r.gastos)],
-        ["Parcelas das dívidas", "− " + moeda.format(r.parcelas)],
-        ["Sobra do mês", moeda.format(r.sobra)],
+        ["Saídas do mês", "− " + moeda.format(r.saidas)],
+        [r.sobra >= 0 ? "Sobra do mês" : "Falta no mês", moeda.format(r.sobra)],
       ],
     };
   }
   if (tipo === "gastos") {
-    const daRenda = r.ganhos ? r.gastos / r.ganhos : 0;
-    const maior = torre.gastos.filter(doMes).sort((a, b) => b.valor - a.valor)[0];
+    const daRenda = r.ganhos ? r.saidas / r.ganhos : 0;
     return {
-      destaque: moeda.format(r.gastos),
+      destaque: moeda.format(r.saidas),
       progresso: Math.min(daRenda, 1),
       perigo: daRenda > 1,
-      legenda: [`${porcento(daRenda)} da renda`, maior ? `maior: ${escapar(maior.nome)}` : ""],
+      legenda: [r.ganhos ? `${porcento(daRenda)} da renda` : "", `a pagar ${moeda.format(r.aSair)}`],
       resumo: [
-        ["Gastos fixos (todo mês)", moeda.format(soma(torre.gastos.filter((g) => g.recorrente && doMes(g)), "valor"))],
-        ["Gastos só deste mês", moeda.format(soma(torre.gastos.filter((g) => !g.recorrente && g.mes === mesRef), "valor"))],
-        ["Com as parcelas das dívidas", moeda.format(r.gastos + r.parcelas)],
+        [`Contas do controle de pagamentos (${r.qtdContas})`, moeda.format(r.contasPagas + r.contasAPagar)],
+        ["Parcelas das dívidas", moeda.format(r.parcelas)],
+        ["Gastos avulsos (fora do cartão)", moeda.format(r.gastos)],
+        ["Já pago", moeda.format(r.jaSaiu)],
+        ["Ainda a pagar", moeda.format(r.aSair)],
       ],
     };
   }
@@ -175,6 +261,7 @@ function renderizarBloco(tipo) {
 }
 
 function renderizarTorre() {
+  renderizarFluxo();
   Object.keys(BLOCOS).forEach(renderizarBloco);
 }
 
@@ -275,6 +362,7 @@ function montarBloco(tipo) {
       <p class="aviso" role="alert" hidden></p>
       <form class="formulario" hidden novalidate>
         <h3></h3>
+        ${cfg.dica ? `<p class="dica largo">${cfg.dica}</p>` : ""}
         ${campos}
         <div class="acoes largo">
           <button type="button" class="botao" data-acao="cancelar">Cancelar</button>

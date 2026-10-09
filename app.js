@@ -26,6 +26,10 @@ function calcular(divida) {
   const termino = vencimento(divida, Math.max(total - 1, 0));
   const mesFim = `${termino.getFullYear()}-${String(termino.getMonth() + 1).padStart(2, "0")}`;
   const ativaNoMes = total > 0 && divida.primeiraParcela <= mesRef && mesRef <= mesFim;
+  // Data de vencimento da parcela deste mês (usada no fluxo do dinheiro).
+  const [a0, m0] = divida.primeiraParcela.split("-").map(Number);
+  const [a1, m1] = mesRef.split("-").map(Number);
+  const vencimentoNoMes = ativaNoMes ? vencimento(divida, (a1 - a0) * 12 + (m1 - m0)) : null;
   return {
     ...divida,
     valorParcela,
@@ -39,6 +43,7 @@ function calcular(divida) {
     valorRestante: valorParcela * (total - pagas),
     termino,
     ativaNoMes,
+    vencimentoNoMes,
     progresso: total ? pagas / total : 1,
   };
 }

@@ -190,6 +190,7 @@ async function iniciarPagamentos() {
       pag.carregado = true;
       renderizarPagamentos();
       renderizarGrafico();
+      if (typeof renderizarTorre === "function") renderizarTorre();
       if (typeof sincronizarContasDasFaturas === "function") sincronizarContasDasFaturas();
     },
     () => avisoPag("Não foi possível carregar as contas. Recarregue a página.")
