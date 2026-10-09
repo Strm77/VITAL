@@ -8,6 +8,9 @@
     investimentos: "id nome valor_aplicado valor_atual meta",
     cartoes: "id nome final",
     metas: "id nome valor_alvo link prazo",
+    planos: "id tema objetivo data_inicio data_fim meta_horas meta_semanal_horas",
+    topicos: "id plano_id materia nome ordem concluido concluido_em",
+    sessoes: "id plano_id topico_id data minutos nota",
     movimentos_metas: "id meta_id data valor descricao",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
@@ -95,6 +98,7 @@
       window.__opcoes = opcoes;
       return {
         from: de,
+        schema: (nome) => { window.__schemas = [...(window.__schemas || []), nome]; return { from: de }; },
         channel: () => ({ on() { return this; }, subscribe() { return this; } }),
         auth: {
           getSession: async () => ({ data: { session: usuario() ? { user: usuario() } : null } }),

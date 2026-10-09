@@ -202,7 +202,16 @@ function alternar(botao, painel, chave) {
 /* ---------- Navegação entre as abas (Financeiro / Faturas) ---------- */
 
 function mostrarVista() {
-  const vista = { "#faturas": "faturas", "#assinaturas": "assinaturas", "#metas": "metas" }[location.hash] || "painel";
+  const vista = { "#faturas": "faturas", "#assinaturas": "assinaturas", "#metas": "metas", "#estudos": "estudos" }[location.hash] || "painel";
+  const area = vista === "estudos" ? "estudos" : "financeiro";
+  // Submenu e timeline só fazem sentido no Financeiro.
+  document.querySelectorAll("[data-area-de]").forEach((el) => { el.hidden = el.dataset.areaDe !== area; });
+  document.querySelectorAll(".aba[data-area]").forEach((aba) => {
+    const ativa = aba.dataset.area === area;
+    aba.classList.toggle("ativa", ativa);
+    if (ativa) aba.setAttribute("aria-current", "page");
+    else aba.removeAttribute("aria-current");
+  });
   document.querySelectorAll("[data-vista]").forEach((el) => {
     el.hidden = el.dataset.vista !== vista;
   });

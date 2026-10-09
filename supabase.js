@@ -104,13 +104,17 @@ const COLUNAS = {
   investimentos: ["nome", "valor_aplicado", "valor_atual", "meta"],
   cartoes: ["nome", "final"],
   metas: ["nome", "valor_alvo", "link", "prazo"],
+  // schema estudos
+  planos: ["tema", "objetivo", "data_inicio", "data_fim", "meta_horas", "meta_semanal_horas"],
+  topicos: ["plano_id", "materia", "nome", "ordem", "concluido", "concluido_em"],
+  sessoes: ["plano_id", "topico_id", "data", "minutos", "nota"],
   movimentos_metas: ["meta_id", "data", "valor", "descricao"],
   faturas: ["cartao_id", "mes", "vencimento", "arquivo", "importado_em", "sem_conta", "total_informado"],
   pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado", "tipo", "categoria"],
 };
 // Colunas que podem ficar vazias (quando o campo some do formulário, vira null no banco).
-const ANULAVEIS = new Set(["link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
-const NUMERICAS = new Set(["valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
+const ANULAVEIS = new Set(["objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
+const NUMERICAS = new Set(["meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
 
 function linhaParaObjeto(linha) {
   const obj = {};
@@ -132,14 +136,19 @@ function objetoParaLinha(tabela, item) {
   return linha;
 }
 
+// Tabelas que ficam fora do schema financeiro.
+const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estudos" };
+
 function armazenamentoSupabase(tabela) {
+  const schema = SCHEMA_DA_TABELA[tabela] || "financeiro";
+  const banco = schema === "financeiro" ? supa : supa.schema(schema);
   let ouvinte = () => {};
   let ouvinteErro = () => {};
   let agendado = null;
 
   async function carregar() {
     const colunas = tabela === "faturas" ? "*, lancamentos(ordem, data, descricao, valor, categoria, final_cartao)" : "*";
-    const { data, error } = await supa.from(tabela).select(colunas).order(tabela === "faturas" ? "importado_em" : "criado_em");
+    const { data, error } = await banco.from(tabela).select(colunas).order(tabela === "faturas" ? "importado_em" : "criado_em");
     if (error) throw error;
     return data.map((linha) => {
       const { lancamentos, ...resto } = linha;
@@ -169,7 +178,7 @@ function armazenamentoSupabase(tabela) {
       atualizar();
       // Tempo real: qualquer mudança nas tabelas (deste ou de outro aparelho) recarrega a seção.
       const canal = supa.channel("financeiro-" + tabela)
-        .on("postgres_changes", { event: "*", schema: "financeiro", table: tabela }, agendar);
+        .on("postgres_changes", { event: "*", schema, table: tabela }, agendar);
       if (tabela === "faturas") canal.on("postgres_changes", { event: "*", schema: "financeiro", table: "lancamentos" }, agendar);
       canal.subscribe();
     },
@@ -178,10 +187,10 @@ function armazenamentoSupabase(tabela) {
       const linha = objetoParaLinha(tabela, item);
       let novoId = id;
       if (id) {
-        const { error } = await supa.from(tabela).upsert({ id, ...linha });
+        const { error } = await banco.from(tabela).upsert({ id, ...linha });
         if (error) throw error;
       } else {
-        const { data, error } = await supa.from(tabela).insert(linha).select("id").single();
+        const { data, error } = await banco.from(tabela).insert(linha).select("id").single();
         if (error) throw error;
         novoId = data.id;
       }
@@ -207,7 +216,7 @@ function armazenamentoSupabase(tabela) {
     },
 
     async excluir(id) {
-      const { error } = await supa.from(tabela).delete().eq("id", id);
+      const { error } = await banco.from(tabela).delete().eq("id", id);
       if (error) throw error;
       agendar();
     },

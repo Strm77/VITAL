@@ -61,6 +61,19 @@ o saldo, quanto falta, quanto guardar por mês para cumprir o prazo e o históri
 guarda no mês entra como saída no **Dinheiro do mês** (o valor inicial, que já estava guardado,
 não conta). O Painel também mostra o bloco **Metas**, com o total guardado e o progresso de cada uma. Links só são aceitos se forem http(s).
 
+## Estudos
+
+A aba **Estudos** (no topo, ao lado de Financeiro) guarda planos de estudo. Cada plano tem um
+tema, um objetivo, prazo, meta de horas totais e meta de horas por semana. Os tópicos são
+digitados um por linha; escreva `Matéria: tópico` para agrupá-los por matéria. No cartão de
+cada plano ficam o progresso de horas, de tópicos e da semana, além do ritmo necessário para
+chegar no prazo comparado com o seu ritmo das últimas 4 semanas. **+ Registrar estudo** lança
+uma sessão (data, minutos, tópico e anotação) e pode marcar o tópico como concluído;
+**▶ Estudar agora** liga um cronômetro que continua contando mesmo se a página for recarregada
+e, ao parar, já abre o registro com os minutos preenchidos. No topo da área ficam o tempo de
+hoje, da semana, a sequência de dias seguidos e um gráfico dos últimos 14 dias. No Supabase os
+dados ficam no schema `estudos` (tabelas `planos`, `topicos` e `sessoes`, com RLS por usuário).
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a

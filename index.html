@@ -35,7 +35,8 @@
   <header class="topo">
     <h1>V.I.T.A.L</h1>
     <nav class="abas" aria-label="Áreas">
-      <span class="aba ativa" aria-current="page">Financeiro</span>
+      <a class="aba" data-area="financeiro" href="#painel">Financeiro</a>
+      <a class="aba" data-area="estudos" href="#estudos">Estudos</a>
     </nav>
     <div class="acoes-topo">
       <button type="button" class="tema" id="botao-tema" aria-label="Tema"></button>
@@ -46,14 +47,14 @@
     </div>
   </header>
 
-  <nav class="submenu" aria-label="Financeiro">
+  <nav class="submenu" aria-label="Financeiro" data-area-de="financeiro">
     <a class="subaba" data-aba="painel" href="#painel">Painel</a>
     <a class="subaba" data-aba="faturas" href="#faturas">Faturas</a>
     <a class="subaba" data-aba="assinaturas" href="#assinaturas">Assinaturas</a>
     <a class="subaba" data-aba="metas" href="#metas">Metas</a>
   </nav>
 
-  <div class="timeline" id="timeline" role="group" aria-label="Mês de referência">
+  <div class="timeline" id="timeline" role="group" aria-label="Mês de referência" data-area-de="financeiro">
     <div class="timeline-ano">
       <button type="button" class="seta-ano" id="timeline-anterior" aria-label="Ano anterior">‹</button>
       <span id="timeline-ano"></span>
@@ -219,6 +220,61 @@
       </form>
 
       <button type="button" class="botao adicionar" id="pag-adicionar">+ Adicionar conta</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-estudos" data-vista="estudos" hidden>
+    <section class="painel" aria-labelledby="titulo-estudos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-estudos">Estudos</h2>
+        <span class="mes-atual" id="estudos-hoje"></span>
+      </div>
+      <div class="estudos-resumo" id="estudos-resumo"></div>
+      <div class="dias-estudo" id="estudos-dias" aria-label="Minutos estudados nos últimos 14 dias"></div>
+      <p class="aviso" id="estudos-aviso" role="alert" hidden></p>
+    </section>
+
+    <div class="cronometro" id="cronometro" hidden>
+      <span class="cronometro-tempo" id="cronometro-tempo">00:00:00</span>
+      <span class="cronometro-plano" id="cronometro-plano"></span>
+      <button type="button" class="botao primario" id="cronometro-parar">Parar e registrar</button>
+      <button type="button" class="botao" id="cronometro-descartar">Descartar</button>
+    </div>
+
+    <p class="estado" id="estudos-vazio">Nenhum plano de estudo ainda. Crie um plano com o tema, a meta de horas, o prazo e as matérias que você quer estudar.</p>
+    <div class="planos" id="planos"></div>
+
+    <section class="painel">
+      <form class="formulario" id="plano-form" hidden novalidate>
+        <h3 id="plano-form-titulo">Novo plano de estudo</h3>
+        <label class="campo largo">Tema
+          <input id="plano-tema" name="tema" type="text" maxlength="80" placeholder="Ex.: Inglês, Concurso, Python, Certificação AWS">
+        </label>
+        <label class="campo largo">Objetivo (opcional)
+          <input id="plano-objetivo" name="objetivo" type="text" maxlength="300" placeholder="Ex.: conversar com fluência até a viagem">
+        </label>
+        <label class="campo">Início
+          <input id="plano-inicio" name="dataInicio" type="date">
+        </label>
+        <label class="campo">Prazo (opcional)
+          <input id="plano-fim" name="dataFim" type="date">
+        </label>
+        <label class="campo">Meta total (horas)
+          <input id="plano-horas" name="metaHoras" type="number" min="0.5" step="0.5" inputmode="decimal" placeholder="Ex.: 120">
+        </label>
+        <label class="campo">Meta por semana (horas)
+          <input id="plano-semana" name="metaSemanalHoras" type="number" min="0.5" step="0.5" inputmode="decimal" placeholder="Ex.: 6">
+        </label>
+        <label class="campo largo" id="plano-topicos-rotulo">Matérias e tópicos (um por linha, opcional)
+          <textarea id="plano-topicos" name="topicos" rows="5" placeholder="Gramática: Present perfect&#10;Gramática: Phrasal verbs&#10;Conversação: Pedir comida&#10;Vocabulário de viagem"></textarea>
+          <span class="dica">Use “Matéria: tópico” para agrupar. Sem os dois-pontos, o tópico fica sem matéria.</span>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="plano-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar plano</button>
+        </div>
+      </form>
+      <button type="button" class="botao adicionar" id="plano-adicionar">+ Novo plano de estudo</button>
     </section>
   </main>
 
@@ -436,5 +492,6 @@
   <script src="faturas.js"></script>
   <script src="assinaturas.js"></script>
   <script src="metas.js"></script>
+  <script src="estudos.js"></script>
 </body>
 </html>

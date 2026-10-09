@@ -875,3 +875,75 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .metas-painel .item-sub { font-size: 12px; color: var(--texto-suave); }
 .metas-painel .mini-barra { height: 6px; margin-top: 0; }
 .ir-metas { display: block; text-align: center; text-decoration: none; }
+
+/* Área Estudos */
+.vista-estudos { gap: 16px; }
+.estudos-resumo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.estudo-numero { display: grid; gap: 2px; min-width: 0; }
+.estudo-numero span { font-size: 12px; color: var(--texto-suave); }
+.estudo-numero strong { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.estudo-numero em { font-style: normal; font-size: 12px; color: var(--texto-suave); }
+.estudos-resumo .largo-total { grid-column: 1 / -1; margin-top: 0; }
+.dias-estudo { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 4px; margin-top: 16px; }
+.dia { display: grid; gap: 4px; justify-items: center; }
+.dia-trilho { width: 100%; max-width: 22px; height: 56px; display: flex; align-items: flex-end; background: var(--trilho); border-radius: 4px; overflow: hidden; }
+.dia-barra { width: 100%; background: var(--cat-cor); }
+.dia-rotulo { font-size: 10px; color: var(--texto-suave); }
+.dia.hoje .dia-rotulo { color: var(--texto); font-weight: 600; }
+
+.planos { display: grid; gap: 16px; }
+.plano { display: grid; gap: 12px; }
+.plano-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.plano h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.plano-objetivo { margin: 4px 0 0; font-size: 13px; color: var(--texto-suave); }
+.plano-metricas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.metrica-topo { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--texto-suave); flex-wrap: wrap; }
+.metrica-topo strong { color: var(--texto); font-weight: 600; font-variant-numeric: tabular-nums; }
+.metrica .barra { margin-top: 6px; }
+.ritmo { margin: 0; font-size: 13px; color: var(--texto-suave); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.plano-acoes { justify-content: flex-start; }
+.plano-acoes .botao { font-size: 12px; padding: 6px 12px; }
+.plano-detalhes { display: grid; gap: 10px; border-top: 1px solid var(--borda); padding-top: 12px; }
+.plano-detalhes h4 { margin: 4px 0 0; font-size: 13px; font-weight: 600; }
+.materia { display: grid; gap: 4px; }
+.materia-topo { display: flex; justify-content: space-between; font-size: 13px; }
+.materia-topo span { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.topicos { list-style: none; margin: 0; padding: 0; display: grid; }
+.topicos li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 4px 0; font-size: 13px; border-top: 1px solid var(--borda); }
+.topicos label { display: flex; gap: 8px; align-items: center; cursor: pointer; min-width: 0; }
+.topicos input { width: 16px; height: 16px; accent-color: var(--progresso); flex: none; }
+.topicos li.feito span { color: var(--texto-suave); text-decoration: line-through; }
+.topico-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto; gap: 8px; }
+.topico-form input {
+  font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--borda);
+  border-radius: 8px; background: var(--fundo); color: var(--texto); min-width: 0;
+}
+.sessao-form select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--fundo); color: var(--texto); }
+
+.cronometro {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--texto);
+  color: var(--fundo);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.cronometro-tempo { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cronometro-plano { font-size: 13px; opacity: 0.8; }
+.cronometro .botao { font-size: 12px; padding: 6px 12px; }
+
+@media (max-width: 700px) {
+  .estudos-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .plano-metricas { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .topico-form { grid-template-columns: minmax(0, 1fr); }
+}

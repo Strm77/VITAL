@@ -134,6 +134,22 @@ test("Metas: caixinha e valor inicial nas tabelas metas e movimentos_metas", asy
   await pagina.click(".subaba[data-aba=painel]");
 });
 
+test("Estudos: plano e tópicos gravados no schema estudos", async () => {
+  await pagina.click(".aba[data-area=estudos]");
+  await pagina.click("#plano-adicionar");
+  await pagina.fill("#plano-tema", "Python");
+  await pagina.fill("#plano-horas", "20");
+  await pagina.fill("#plano-topicos", "Básico: Listas\nBásico: Funções");
+  await pagina.click("#plano-form [type=submit]");
+  await pagina.waitForFunction(() => (JSON.parse(sessionStorage.getItem("mock-db")).topicos || []).length === 2);
+  const db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  assert.equal(db.planos[0].tema, "Python");
+  assert.equal(db.planos[0].meta_horas, 20);
+  assert.deepEqual(db.topicos.map((t) => [t.materia, t.nome, t.plano_id === db.planos[0].id]), [["Básico", "Listas", true], ["Básico", "Funções", true]]);
+  assert.ok((await pagina.evaluate(() => window.__schemas)).includes("estudos"), "usa o schema estudos");
+  await pagina.click(".aba[data-area=financeiro]");
+});
+
 test("Recarregar mantém a sessão e os dados", async () => {
   await pagina.reload();
   await pagina.waitForSelector("#tela-login", { state: "hidden" });
