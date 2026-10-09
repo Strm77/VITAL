@@ -33,6 +33,9 @@ async function movimentar(nome, tipo, valor) {
 
 test("Começa vazia e explica o que fazer", async () => {
   assert.equal(await pagina.isVisible("#metas-vazio"), true);
+  await pagina.click(".subaba[data-aba=painel]");
+  assert.match(await texto(pagina, "#bloco-metas"), /Nenhuma meta ainda/);
+  await pagina.click(".subaba[data-aba=metas]");
 });
 
 test("Link que não é de site é recusado", async () => {
@@ -77,12 +80,25 @@ test("Meta atingida fica destacada", async () => {
   await pagina.screenshot({ path: path.join(SAIDA, "09-metas.png"), fullPage: true });
 });
 
-test("Dinheiro do mês desconta o que foi guardado nas metas", async () => {
+test("Metas aparecem no Painel, com total e progresso de cada uma", async () => {
   await pagina.click(".subaba[data-aba=painel]");
+  assert.equal(await texto(pagina, "#bloco-metas .valor"), brl(1600));
+  assert.match(await texto(pagina, "#bloco-metas .porcentagem"), new RegExp(`37% de ${brl(4300).replace(/[.$]/g, "\\$&")}`));
+  await pagina.click("#bloco-metas .linha");
+  const itens = await pagina.$$eval("#bloco-metas .metas-painel li", (l) => l.map((x) => x.textContent.replace(/\s+/g, " ").trim()));
+  assert.equal(itens.length, 2);
+  assert.match(itens[0], /PlayStation 5/);
+  assert.match(itens[1], /Fone novo.*Meta atingida/);
+  await pagina.click("#bloco-metas .ir-metas");
+  await pagina.waitForSelector("#metas-lista .caixinha", { state: "visible", timeout: 3000 });
+  await pagina.click(".subaba[data-aba=painel]");
+});
+
+test("Dinheiro do mês desconta o que foi guardado nas metas", async () => {
   await pagina.click("#bloco-fluxo .linha");
   const detalhe = (await texto(pagina, "#detalhes-fluxo")).replace(/\s/g, "");
-  // 1.000 inicial + 500 − 200 (PS5) + 300 (fone) = 1.600 guardados em outubro
-  assert.ok(detalhe.includes(`Guardadonasmetas−${brl(1600)}`.replace(/\s/g, "")), detalhe);
+  // Valores iniciais (1.000 e 300) já estavam guardados: só conta 500 − 200 = 300 guardados em outubro
+  assert.ok(detalhe.includes(`Guardadonasmetas−${brl(300)}`.replace(/\s/g, "")), detalhe);
   await pagina.click(".subaba[data-aba=metas]");
 });
 

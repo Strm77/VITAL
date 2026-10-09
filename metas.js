@@ -4,6 +4,8 @@
  * Usa as funções de comum.js (moeda, escapar, preencherBarra, abrirArmazenamento...).
  */
 
+const DESCRICAO_INICIAL = "Valor inicial";
+
 const metas = {
   lista: [],
   movimentos: [],
@@ -45,8 +47,11 @@ function saldoDaMeta(id) {
 
 /* Quanto foi guardado (menos o retirado) nas metas num mês — usado no "Dinheiro do mês". */
 function guardadoNoMes(mes) {
+  // O "valor inicial" já estava guardado antes de criar a meta: não sai do dinheiro do mês.
   const existentes = new Set(metas.lista.map((m) => m.id));
-  return metas.movimentos.filter((m) => existentes.has(m.metaId) && String(m.data).startsWith(mes)).reduce((t, m) => t + Number(m.valor), 0);
+  return metas.movimentos
+    .filter((m) => existentes.has(m.metaId) && String(m.data).startsWith(mes) && m.descricao !== DESCRICAO_INICIAL)
+    .reduce((t, m) => t + Number(m.valor), 0);
 }
 
 function avisoMetas(texto) {
@@ -55,10 +60,9 @@ function avisoMetas(texto) {
   el.hidden = !texto;
 }
 
-function renderizarMetas() {
-  const area = document.getElementById("metas-lista");
-  if (!area) return;
-  const dados = metas.lista
+/* Metas com saldo, quanto falta e quanto guardar por mês. */
+function dadosMetas() {
+  return metas.lista
     .map((m) => {
       const saldo = saldoDaMeta(m.id);
       const falta = Math.max(Number(m.valorAlvo) - saldo, 0);
@@ -67,6 +71,58 @@ function renderizarMetas() {
       return { ...m, saldo, falta, meses, porMes, atingida: saldo >= Number(m.valorAlvo) };
     })
     .sort((a, b) => Number(a.atingida) - Number(b.atingida) || String(a.prazo || "9999").localeCompare(String(b.prazo || "9999")));
+}
+
+/* Bloco "Metas" no Painel: resumo e progresso de cada caixinha. */
+function renderizarMetasPainel(dados) {
+  const raiz = document.getElementById("bloco-metas");
+  if (!raiz) return;
+  const guardado = dados.reduce((t, m) => t + Math.max(m.saldo, 0), 0);
+  const alvo = dados.reduce((t, m) => t + Number(m.valorAlvo), 0);
+  const atingidas = dados.filter((m) => m.atingida).length;
+  const porMes = dados.reduce((t, m) => t + (m.porMes || 0), 0);
+  const aberto = raiz.querySelector(".linha")?.getAttribute("aria-expanded") === "true";
+  raiz.innerHTML = `
+    <button class="linha" aria-expanded="${aberto}" aria-controls="detalhes-metas-painel">
+      <span class="rotulo titulo-bloco">Metas</span>
+      <span class="valor">${moeda.format(guardado)}</span>
+      <span class="seta" aria-hidden="true"></span>
+    </button>
+    ${dados.length ? `
+    <div class="barra" role="progressbar" aria-label="Progresso das metas"><div class="preenchimento"></div></div>
+    <div class="porcentagem">
+      <span>${alvo ? Math.round((guardado / alvo) * 100) : 0}% de ${moeda.format(alvo)}</span>
+      <span>${porMes ? `guardar ${moeda.format(porMes)}/mês` : `${atingidas} de ${dados.length} atingida${dados.length === 1 ? "" : "s"}`}</span>
+    </div>` : `<p class="estado">Nenhuma meta ainda.</p>`}
+    <div class="detalhes-grupo" id="detalhes-metas-painel" ${aberto ? "" : "hidden"}>
+      ${dados.length ? `<ul class="metas-painel">${dados.map((m) => `
+        <li>
+          <div class="metas-painel-linha">
+            <span class="item-nome">${escapar(m.nome)}</span>
+            <span class="item-valor">${moeda.format(m.saldo)} <span class="sub-inline">de ${moeda.format(Number(m.valorAlvo))}</span></span>
+          </div>
+          <div class="barra mini-barra" role="progressbar" aria-label="Progresso de ${escapar(m.nome)}"><div class="preenchimento"></div></div>
+          <span class="item-sub">${m.atingida ? "Meta atingida" : `falta ${moeda.format(m.falta)}${m.prazo && m.porMes ? ` · ${moeda.format(m.porMes)}/mês até ${nomeMesCurto(m.prazo)}` : ""}`}</span>
+        </li>`).join("")}</ul>` : ""}
+      <a class="botao adicionar ir-metas" href="#metas">${dados.length ? "Abrir as metas" : "+ Criar uma meta"}</a>
+    </div>`;
+  if (dados.length) {
+    preencherBarra(raiz.querySelector(":scope > .barra"), alvo ? Math.min(guardado / alvo, 1) : 0);
+    raiz.querySelectorAll(".metas-painel .barra").forEach((b, i) => preencherBarra(b, Math.min(dados[i].saldo / Number(dados[i].valorAlvo), 1)));
+  }
+  const botao = raiz.querySelector(".linha");
+  botao.addEventListener("click", () => {
+    const abrir = botao.getAttribute("aria-expanded") !== "true";
+    botao.setAttribute("aria-expanded", String(abrir));
+    raiz.querySelector(".detalhes-grupo").hidden = !abrir;
+  });
+}
+
+function renderizarMetas() {
+  const area = document.getElementById("metas-lista");
+  if (!area) return;
+  const dados = dadosMetas();
+  renderizarMetasPainel(dados);
 
   const guardado = dados.reduce((t, m) => t + Math.max(m.saldo, 0), 0);
   const alvo = dados.reduce((t, m) => t + Number(m.valorAlvo), 0);
@@ -242,7 +298,7 @@ async function salvarMeta(e) {
   try {
     const id = await metas.armMetas.salvar(metas.editandoId || null, { nome, valorAlvo, link: link || null, prazo: form.elements.prazo.value || null });
     if (!metas.editandoId && inicial > 0) {
-      await metas.armMovimentos.salvar(null, { metaId: id, data: hojeISO(), valor: inicial, descricao: "Valor inicial" });
+      await metas.armMovimentos.salvar(null, { metaId: id, data: hojeISO(), valor: inicial, descricao: DESCRICAO_INICIAL });
     }
     avisoMetas("");
     fecharFormularioMeta();

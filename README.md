@@ -58,7 +58,8 @@ No topo da torre, o bloco **Dinheiro do mês** mostra o fluxo do mês da timelin
 O submenu **Metas** guarda objetivos como caixinhas: nome, valor da meta, link de compra e prazo
 (opcionais). Use **+ Guardar** e **− Retirar** para movimentar o dinheiro; cada caixinha mostra
 o saldo, quanto falta, quanto guardar por mês para cumprir o prazo e o histórico. O que você
-guarda no mês entra como saída no **Dinheiro do mês**. Links só são aceitos se forem http(s).
+guarda no mês entra como saída no **Dinheiro do mês** (o valor inicial, que já estava guardado,
+não conta). O Painel também mostra o bloco **Metas**, com o total guardado e o progresso de cada uma. Links só são aceitos se forem http(s).
 
 ## Navegação e timeline
 

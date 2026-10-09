@@ -864,3 +864,14 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .historico .hist-desc { min-width: 0; overflow-wrap: anywhere; }
 .historico .entrada { color: var(--progresso); font-variant-numeric: tabular-nums; }
 .historico .saida { color: var(--perigo); font-variant-numeric: tabular-nums; }
+
+/* Bloco Metas no Painel */
+.metas-painel { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.metas-painel li { display: grid; gap: 4px; font-size: 13px; }
+.metas-painel-linha { display: flex; justify-content: space-between; gap: 8px; }
+.metas-painel .item-nome { min-width: 0; overflow-wrap: anywhere; }
+.metas-painel .item-valor { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.metas-painel .sub-inline { font-weight: 400; font-size: 12px; color: var(--texto-suave); }
+.metas-painel .item-sub { font-size: 12px; color: var(--texto-suave); }
+.metas-painel .mini-barra { height: 6px; margin-top: 0; }
+.ir-metas { display: block; text-align: center; text-decoration: none; }
