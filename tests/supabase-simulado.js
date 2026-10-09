@@ -11,6 +11,8 @@
     planos: "id tema objetivo data_inicio data_fim meta_horas meta_semanal_horas",
     topicos: "id plano_id materia nome ordem concluido concluido_em",
     sessoes: "id plano_id topico_id data minutos nota",
+    registros: "id data tipo resultado descricao refeicao minutos intensidade nota",
+    objetivos: "id treinos_semana minutos_semana acerto_alimentacao",
     movimentos_metas: "id meta_id data valor descricao",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",

@@ -202,8 +202,8 @@ function alternar(botao, painel, chave) {
 /* ---------- Navegação entre as abas (Financeiro / Faturas) ---------- */
 
 function mostrarVista() {
-  const vista = { "#faturas": "faturas", "#assinaturas": "assinaturas", "#metas": "metas", "#estudos": "estudos" }[location.hash] || "painel";
-  const area = vista === "estudos" ? "estudos" : "financeiro";
+  const vista = { "#faturas": "faturas", "#assinaturas": "assinaturas", "#metas": "metas", "#estudos": "estudos", "#saude": "saude" }[location.hash] || "painel";
+  const area = ["estudos", "saude"].includes(vista) ? vista : "financeiro";
   // Submenu e timeline só fazem sentido no Financeiro.
   document.querySelectorAll("[data-area-de]").forEach((el) => { el.hidden = el.dataset.areaDe !== area; });
   document.querySelectorAll(".aba[data-area]").forEach((aba) => {

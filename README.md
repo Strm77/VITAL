@@ -74,6 +74,22 @@ e, ao parar, já abre o registro com os minutos preenchidos. No topo da área fi
 hoje, da semana, a sequência de dias seguidos e um gráfico dos últimos 14 dias. No Supabase os
 dados ficam no schema `estudos` (tabelas `planos`, `topicos` e `sessoes`, com RLS por usuário).
 
+## Saúde
+
+A aba **Saúde** registra os acertos e os erros na **alimentação** (por refeição) e no
+**exercício** (com minutos e intensidade). Em cima ficam a **nota de hoje** (percentual de
+acertos do dia, em um anel), até três **mensagens que reagem ao seu momento** (dia perfeito,
+dia difícil, meta de treinos da semana, sequência em risco, alimentação abaixo da meta com o
+seu ponto fraco, erro que se repete, evolução em relação à semana anterior) e os números da
+semana: treinos, minutos, acertos na alimentação nos últimos 7 dias e sequências.
+
+Gráficos: acertos para cima e erros para baixo nos últimos 30 dias, calendário de constância
+de 16 semanas, minutos de exercício por semana com a linha da meta, onde você mais erra (por
+refeição e erros repetidos) e seus melhores hábitos. Há 12 **conquistas** para desbloquear,
+comemoração a cada acerto, atalhos para repetir hoje o que você registra sempre e o histórico
+com edição. As metas (treinos e minutos por semana, % de acertos na alimentação) ficam no fim
+da página. No Supabase os dados ficam no schema `saude` (`registros` e `objetivos`, com RLS).
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a

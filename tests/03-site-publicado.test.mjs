@@ -150,6 +150,24 @@ test("Estudos: plano e tópicos gravados no schema estudos", async () => {
   await pagina.click(".aba[data-area=financeiro]");
 });
 
+test("Saúde: registros e metas gravados no schema saude", async () => {
+  await pagina.click(".aba[data-area=saude]");
+  await pagina.click("#saude-form label:has(> input[value=exercicio])");
+  await pagina.fill("#saude-descricao", "Corrida");
+  await pagina.fill("#saude-minutos", "30");
+  await pagina.click("#saude-salvar");
+  await pagina.fill("#saude-meta-treinos", "4");
+  await pagina.click("#saude-metas-form [type=submit]");
+  await pagina.waitForFunction(() => { const db = JSON.parse(sessionStorage.getItem("mock-db")); return (db.registros || []).length === 1 && (db.objetivos || []).length === 1; });
+  const db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  const { id, ...registro } = db.registros[0];
+  assert.deepEqual(registro, { data: "2026-10-08", tipo: "exercicio", resultado: "acerto", descricao: "Corrida", refeicao: null, minutos: 30, intensidade: "moderada", nota: null });
+  assert.equal(db.objetivos[0].treinos_semana, 4);
+  assert.ok((await pagina.evaluate(() => window.__schemas)).includes("saude"), "usa o schema saude");
+  await pagina.waitForFunction(() => document.querySelector("#saude-numeros").textContent.includes("de 4"));
+  await pagina.click(".aba[data-area=financeiro]");
+});
+
 test("Recarregar mantém a sessão e os dados", async () => {
   await pagina.reload();
   await pagina.waitForSelector("#tela-login", { state: "hidden" });

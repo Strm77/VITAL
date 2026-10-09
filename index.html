@@ -37,6 +37,7 @@
     <nav class="abas" aria-label="Áreas">
       <a class="aba" data-area="financeiro" href="#painel">Financeiro</a>
       <a class="aba" data-area="estudos" href="#estudos">Estudos</a>
+      <a class="aba" data-area="saude" href="#saude">Saúde</a>
     </nav>
     <div class="acoes-topo">
       <button type="button" class="tema" id="botao-tema" aria-label="Tema"></button>
@@ -278,6 +279,164 @@
     </section>
   </main>
 
+  <main class="vista-faturas vista-saude" data-vista="saude" hidden>
+    <section class="painel" aria-labelledby="titulo-saude">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-saude">Saúde</h2>
+        <span class="mes-atual" id="saude-hoje"></span>
+      </div>
+      <div class="saude-topo">
+        <div class="anel-dia" id="saude-anel"></div>
+        <div class="saude-mensagem" id="saude-mensagem" aria-live="polite"></div>
+      </div>
+      <div class="saude-numeros" id="saude-numeros"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-registrar">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-registrar">Registrar</h2>
+        <span class="mes-atual">feitos e deslizes</span>
+      </div>
+      <form class="formulario saude-form" id="saude-form" novalidate>
+        <fieldset class="segmentos largo">
+          <legend class="sr">Área</legend>
+          <label><input type="radio" name="tipo" value="alimentacao" checked> <span>🍽️ Alimentação</span></label>
+          <label><input type="radio" name="tipo" value="exercicio"> <span>🏃 Exercício</span></label>
+        </fieldset>
+        <fieldset class="segmentos resultado largo">
+          <legend class="sr">Resultado</legend>
+          <label class="acerto"><input type="radio" name="resultado" value="acerto" checked> <span>✓ Acertei</span></label>
+          <label class="erro"><input type="radio" name="resultado" value="erro"> <span>✗ Errei</span></label>
+        </fieldset>
+        <label class="campo largo">O que foi
+          <input id="saude-descricao" name="descricao" type="text" maxlength="120" list="saude-sugestoes" autocomplete="off">
+          <datalist id="saude-sugestoes"></datalist>
+        </label>
+        <label class="campo" data-so="alimentacao">Refeição
+          <select name="refeicao" id="saude-refeicao">
+            <option value="cafe">Café da manhã</option>
+            <option value="almoco">Almoço</option>
+            <option value="lanche">Lanche</option>
+            <option value="jantar">Jantar</option>
+            <option value="ceia">Ceia</option>
+            <option value="fora">Fora de hora</option>
+          </select>
+        </label>
+        <label class="campo" data-so="exercicio" hidden>Tempo (minutos)
+          <input id="saude-minutos" name="minutos" type="number" min="1" max="1440" step="1" inputmode="numeric">
+        </label>
+        <label class="campo" data-so="exercicio" hidden>Intensidade
+          <select name="intensidade" id="saude-intensidade">
+            <option value="leve">Leve</option>
+            <option value="moderada" selected>Moderada</option>
+            <option value="intensa">Intensa</option>
+          </select>
+        </label>
+        <label class="campo">Data
+          <input id="saude-data" name="data" type="date">
+        </label>
+        <label class="campo largo">Anotação (opcional)
+          <input name="nota" type="text" maxlength="200" placeholder="Como você se sentiu, o que motivou">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="saude-cancelar" hidden>Cancelar edição</button>
+          <button type="submit" class="botao primario" id="saude-salvar">Registrar</button>
+        </div>
+      </form>
+      <p class="aviso" id="saude-aviso" role="alert" hidden></p>
+      <div class="saude-rapidos" id="saude-rapidos"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-placar">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-placar">Acertos e erros</h2>
+        <span class="mes-atual" id="saude-placar-resumo"></span>
+      </div>
+      <div class="legenda-saude" aria-hidden="true"><span class="marca acerto"></span>Acertos <span class="marca erro"></span>Erros</div>
+      <div class="placar-dias" id="saude-placar" role="img"></div>
+    </section>
+
+    <div class="saude-grade">
+      <section class="painel" aria-labelledby="titulo-constancia">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-constancia">Constância</h2>
+          <span class="mes-atual">últimas 16 semanas</span>
+        </div>
+        <div class="calendario-saude" id="saude-calendario" role="img"></div>
+        <div class="legenda-saude escala" aria-hidden="true">
+          <span class="marca c-ruim"></span>Mais erros
+          <span class="marca c-n1"></span><span class="marca c-n2"></span><span class="marca c-n3"></span><span class="marca c-n4"></span>Mais acertos
+        </div>
+      </section>
+      <section class="painel" aria-labelledby="titulo-exercicio">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-exercicio">Exercício por semana</h2>
+          <span class="mes-atual" id="saude-exercicio-meta"></span>
+        </div>
+        <div class="semanas-saude" id="saude-semanas" role="img"></div>
+        <div class="legenda-saude" aria-hidden="true"><span class="marca bateu"></span>Meta batida <span class="marca nao-bateu"></span>Abaixo da meta <span class="marca linha"></span>Meta</div>
+      </section>
+    </div>
+
+    <div class="saude-grade">
+      <section class="painel" aria-labelledby="titulo-fracos">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-fracos">Onde você mais erra</h2>
+          <span class="mes-atual">últimos 30 dias</span>
+        </div>
+        <div id="saude-fracos"></div>
+      </section>
+      <section class="painel" aria-labelledby="titulo-fortes">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-fortes">Seus melhores hábitos</h2>
+          <span class="mes-atual">últimos 30 dias</span>
+        </div>
+        <div id="saude-fortes"></div>
+      </section>
+    </div>
+
+    <section class="painel" aria-labelledby="titulo-conquistas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-conquistas">Conquistas</h2>
+        <span class="mes-atual" id="saude-conquistas-total"></span>
+      </div>
+      <div class="conquistas" id="saude-conquistas"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-historico-saude">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-historico-saude">Histórico</h2>
+      </div>
+      <p class="estado" id="saude-vazio">Nada registrado ainda. Use o formulário acima para registrar o que você comeu e os treinos — os acertos e também os erros.</p>
+      <div class="historico-saude" id="saude-historico"></div>
+      <button type="button" class="botao adicionar" id="saude-mais" hidden>Mostrar dias anteriores</button>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-metas-saude">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-metas-saude">Suas metas</h2>
+      </div>
+      <form class="formulario" id="saude-metas-form" novalidate>
+        <label class="campo">Treinos por semana
+          <input id="saude-meta-treinos" name="treinosSemana" type="number" min="1" max="14" step="1" inputmode="numeric">
+        </label>
+        <label class="campo">Minutos de exercício por semana
+          <input id="saude-meta-minutos" name="minutosSemana" type="number" min="10" max="3000" step="10" inputmode="numeric">
+        </label>
+        <label class="campo">Acertos na alimentação (%)
+          <input id="saude-meta-alimentacao" name="acertoAlimentacao" type="number" min="10" max="100" step="5" inputmode="numeric">
+        </label>
+        <div class="acoes">
+          <button type="submit" class="botao primario">Salvar metas</button>
+        </div>
+      </form>
+      <p class="dica-saude">A OMS recomenda pelo menos 150 minutos de atividade moderada por semana.</p>
+    </section>
+
+    <div class="saude-toast" id="saude-toast" role="status" aria-live="polite" hidden></div>
+    <div class="saude-dica-flutuante" id="saude-dica" role="tooltip" hidden></div>
+  </main>
+
   <main class="vista-faturas" data-vista="metas" hidden>
     <section class="painel" aria-labelledby="titulo-metas">
       <div class="painel-cabecalho">
@@ -493,5 +652,6 @@
   <script src="assinaturas.js"></script>
   <script src="metas.js"></script>
   <script src="estudos.js"></script>
+  <script src="saude.js"></script>
 </body>
 </html>

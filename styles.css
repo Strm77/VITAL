@@ -947,3 +947,184 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
   .plano-metricas { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .topico-form { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Área Saúde */
+.vista-saude { gap: 16px; }
+.saude-topo { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 24px; align-items: center; margin-top: 12px; }
+.anel-dia { position: relative; width: 150px; height: 150px; }
+.anel-dia svg { width: 100%; height: 100%; }
+.anel-trilho, .anel-valor { fill: none; stroke-width: 10; }
+.anel-trilho { stroke: var(--trilho); }
+.anel-valor { stroke: var(--progresso); stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+.anel-dia.medio .anel-valor { stroke: var(--cat-cor); }
+.anel-dia.ruim .anel-valor { stroke: var(--perigo); }
+.anel-texto { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 2px; }
+.anel-rotulo, .anel-detalhe { font-size: 11px; color: var(--texto-suave); }
+.anel-texto strong { font-size: 38px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.saude-mensagem { display: grid; gap: 8px; }
+.mensagem { display: grid; gap: 2px; padding: 10px 14px; border-radius: 10px; border-left: 3px solid var(--borda); background: var(--superficie); font-size: 13px; }
+.mensagem strong { font-weight: 600; }
+.mensagem span { color: var(--texto-suave); }
+.mensagem.principal { padding: 14px 16px; }
+.mensagem.principal strong { font-size: 17px; }
+.mensagem.bom { border-left-color: var(--progresso); }
+.mensagem.alerta { border-left-color: var(--perigo); }
+.mensagem.neutro { border-left-color: var(--cat-cor); }
+
+.saude-numeros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.saude-numero { display: grid; gap: 4px; align-content: start; min-width: 0; }
+.saude-numero > span { font-size: 12px; color: var(--texto-suave); }
+.saude-numero strong { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.saude-numero em { font-style: normal; font-size: 12px; font-weight: 400; color: var(--texto-suave); }
+.saude-numero small { font-size: 12px; color: var(--texto-suave); }
+.saude-numero small.sobe { color: var(--progresso); }
+.saude-numero small.desce { color: var(--perigo); }
+.saude-numero .barra { margin-top: 2px; }
+.barra.abaixo .preenchimento { background: var(--perigo); }
+
+.saude-form { margin-top: 12px; }
+.segmentos { display: flex; gap: 8px; border: 0; margin: 0; padding: 0; flex-wrap: wrap; }
+.segmentos label { flex: 1; min-width: 130px; cursor: pointer; }
+.segmentos input { position: absolute; opacity: 0; pointer-events: none; }
+.segmentos label span {
+  display: block; text-align: center; padding: 10px 12px; border: 1px solid var(--borda); border-radius: 10px;
+  font-size: 14px; font-weight: 500; transition: background 0.15s, border-color 0.15s;
+}
+.segmentos input:checked + span { border-color: var(--texto); background: var(--superficie); }
+.segmentos input:focus-visible + span { outline: 2px solid var(--progresso); outline-offset: 2px; }
+.segmentos.resultado .acerto input:checked + span { border-color: var(--progresso); color: var(--progresso); background: color-mix(in srgb, var(--progresso) 10%, transparent); }
+.segmentos.resultado .erro input:checked + span { border-color: var(--perigo); color: var(--perigo); background: color-mix(in srgb, var(--perigo) 10%, transparent); }
+.saude-form select { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; background: var(--fundo); color: var(--texto); }
+.saude-form.modo-erro .botao.primario { background: var(--perigo); border-color: var(--perigo); }
+.saude-rapidos { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+.saude-rapidos:empty { display: none; }
+.rapidos-titulo { font-size: 12px; color: var(--texto-suave); margin-right: 4px; }
+.chip-rapido {
+  font: inherit; font-size: 12px; padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--borda); background: var(--fundo); color: var(--texto);
+}
+.chip-rapido.acerto { border-color: color-mix(in srgb, var(--progresso) 50%, var(--borda)); }
+.chip-rapido.erro { border-color: color-mix(in srgb, var(--perigo) 50%, var(--borda)); }
+.chip-rapido:hover { background: var(--superficie); }
+.chip-rapido:disabled { opacity: 0.5; }
+
+.legenda-saude { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 12px; color: var(--texto-suave); margin: 8px 0 4px; }
+.legenda-saude .marca { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-left: 6px; }
+.legenda-saude .marca:first-child { margin-left: 0; }
+.legenda-saude.escala .marca { margin-left: 0; }
+.legenda-saude.escala .c-n1 { margin-left: 10px; }
+.marca.acerto { background: var(--progresso); }
+.marca.erro { background: var(--perigo); }
+.marca.bateu { background: var(--progresso); }
+.marca.nao-bateu { background: color-mix(in srgb, var(--cat-cor) 55%, var(--trilho)); }
+.marca.linha { height: 0 !important; border-top: 2px dashed var(--texto-suave); border-radius: 0 !important; }
+
+.placar-dias { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 2px; margin-top: 8px; }
+.placar-dia { display: grid; grid-template-rows: 70px 50px auto; justify-items: center; cursor: default; }
+.placar-cima, .placar-baixo { width: 100%; max-width: 16px; display: flex; }
+.placar-cima { align-items: flex-end; border-bottom: 1px solid var(--borda); }
+.placar-baixo { align-items: flex-start; }
+.placar-barra { width: 100%; display: block; }
+.placar-barra.acerto { background: var(--progresso); border-radius: 4px 4px 0 0; }
+.placar-barra.erro { background: var(--perigo); border-radius: 0 0 4px 4px; }
+.placar-rotulo { font-size: 10px; color: var(--texto-suave); margin-top: 4px; white-space: nowrap; }
+.placar-dia.hoje .placar-rotulo { color: var(--texto); font-weight: 600; }
+.placar-dia:hover .placar-cima, .placar-dia:hover .placar-baixo { background: var(--superficie); }
+
+.saude-grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.saude-grade > .painel { margin: 0; }
+.calendario-saude { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px; margin-top: 12px; }
+.cal-semanas { display: grid; grid-template-rows: repeat(7, minmax(0, 1fr)); gap: 3px; font-size: 10px; color: var(--texto-suave); }
+.cal-semanas span { display: flex; align-items: center; }
+.cal-grade { display: grid; grid-template-rows: repeat(7, auto); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 3px; }
+.cal-dia { aspect-ratio: 1; border-radius: 3px; max-width: 22px; width: 100%; }
+.cal-dia.futuro { visibility: hidden; }
+.cal-dia.hoje { outline: 2px solid var(--texto); outline-offset: 1px; }
+.c-vazio { background: var(--trilho); }
+.c-ruim { background: color-mix(in srgb, var(--perigo) 70%, var(--trilho)); }
+.c-n1 { background: color-mix(in srgb, var(--progresso) 30%, var(--trilho)); }
+.c-n2 { background: color-mix(in srgb, var(--progresso) 55%, var(--trilho)); }
+.c-n3 { background: color-mix(in srgb, var(--progresso) 80%, var(--trilho)); }
+.c-n4 { background: var(--progresso); }
+
+.semanas-saude { margin-top: 12px; }
+.semanas-area { position: relative; height: 150px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; align-items: end; border-bottom: 1px solid var(--borda); }
+.semana-meta { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--texto-suave); opacity: 0.6; pointer-events: none; z-index: 1; }
+.semana-col { height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-width: 0; }
+.semana-valor { font-size: 10px; color: var(--texto-suave); white-space: nowrap; margin-bottom: 2px; font-variant-numeric: tabular-nums; }
+.semana-barra { width: 100%; max-width: 32px; border-radius: 4px 4px 0 0; display: block; }
+.semana-barra.bateu { background: var(--progresso); }
+.semana-barra.nao-bateu { background: color-mix(in srgb, var(--cat-cor) 55%, var(--trilho)); }
+.semana-col.atual .semana-valor { color: var(--texto); font-weight: 600; }
+.semanas-rotulos { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; font-size: 10px; color: var(--texto-suave); text-align: center; margin-top: 4px; }
+
+.saude-sub { margin: 12px 0 6px; font-size: 12px; font-weight: 600; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.04em; }
+.barras-h { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.barras-h li { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 32px; gap: 8px; align-items: center; font-size: 13px; }
+.barras-h-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.barras-h-trilho { height: 8px; background: var(--trilho); border-radius: 4px; overflow: hidden; }
+.barras-h-barra { display: block; height: 100%; border-radius: 0 4px 4px 0; }
+.barras-h-barra.erro { background: var(--perigo); }
+.barras-h-barra.acerto { background: var(--progresso); }
+.barras-h-n { font-size: 12px; color: var(--texto-suave); text-align: right; font-variant-numeric: tabular-nums; }
+.dica-saude { margin: 12px 0 0; font-size: 13px; color: var(--texto-suave); }
+.dica-saude strong { color: var(--texto); font-weight: 600; }
+
+.conquistas { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+.conquista { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; align-items: start; padding: 12px; border: 1px solid var(--borda); border-radius: 12px; }
+.conquista-icone { font-size: 26px; line-height: 40px; text-align: center; filter: grayscale(1); opacity: 0.45; }
+.conquista-texto { display: grid; gap: 3px; min-width: 0; }
+.conquista-texto strong { font-size: 14px; font-weight: 600; }
+.conquista-texto span { font-size: 12px; color: var(--texto-suave); }
+.conquista .barra { margin-top: 4px; }
+.conquista.ganha { border-color: color-mix(in srgb, var(--progresso) 60%, var(--borda)); background: color-mix(in srgb, var(--progresso) 7%, transparent); }
+.conquista.ganha .conquista-icone { filter: none; opacity: 1; }
+.conquista.ganha .conquista-status { color: var(--progresso); font-weight: 600; }
+
+.historico-saude { display: grid; gap: 14px; margin-top: 8px; }
+.dia-saude-topo { display: flex; gap: 10px; align-items: center; font-size: 14px; margin-bottom: 4px; }
+.nota-chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--trilho); font-variant-numeric: tabular-nums; }
+.nota-chip.bom { color: var(--progresso); }
+.nota-chip.ruim { color: var(--perigo); }
+.registros-saude { list-style: none; margin: 0; padding: 0; }
+.registros-saude li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--borda); font-size: 13px; }
+.registro-icone { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--fundo); }
+.registros-saude li.acerto .registro-icone { background: var(--progresso); }
+.registros-saude li.erro .registro-icone { background: var(--perigo); }
+.registro-texto { display: grid; min-width: 0; }
+.registro-texto small { color: var(--texto-suave); font-size: 12px; }
+
+.saude-toast {
+  position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  z-index: 20; max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 12px; font-size: 14px; font-weight: 500;
+  background: var(--texto); color: var(--fundo); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  animation: toast-entra 0.25s ease;
+}
+.saude-toast.acerto, .saude-toast.conquista { background: var(--progresso); color: #fff; }
+.saude-toast.erro { background: var(--perigo); color: #fff; }
+@keyframes toast-entra { from { opacity: 0; transform: translate(-50%, 10px); } }
+.saude-dica-flutuante {
+  position: fixed; z-index: 30; pointer-events: none; padding: 6px 10px; border-radius: 8px; font-size: 12px;
+  background: var(--texto); color: var(--fundo); white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+.confete { position: fixed; inset: 0; pointer-events: none; z-index: 25; overflow: hidden; }
+.confete span { position: absolute; top: 45%; width: 8px; height: 12px; border-radius: 2px; animation: confete-cai 1.3s ease-out forwards; }
+.confete .c0 { background: var(--progresso); }
+.confete .c1 { background: var(--cat-cor); }
+.confete .c2 { background: #f5b942; }
+.confete .c3 { background: #e86fa5; }
+@keyframes confete-cai {
+  0% { transform: translate(0, 0) rotate(0); opacity: 1; }
+  30% { transform: translate(calc(var(--dx) * 0.6), -160px) rotate(calc(var(--giro) * 0.4)); }
+  100% { transform: translate(var(--dx), 260px) rotate(var(--giro)); opacity: 0; }
+}
+
+@media (max-width: 900px) {
+  .saude-grade { grid-template-columns: minmax(0, 1fr); }
+  .saude-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .saude-topo { grid-template-columns: minmax(0, 1fr); justify-items: center; }
+  .placar-dias { grid-template-columns: repeat(30, minmax(0, 1fr)); gap: 1px; }
+  .placar-rotulo { font-size: 9px; }
+}
