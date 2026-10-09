@@ -7,6 +7,8 @@
     gastos: "id nome valor recorrente mes",
     investimentos: "id nome valor_aplicado valor_atual meta",
     cartoes: "id nome final",
+    metas: "id nome valor_alvo link prazo",
+    movimentos_metas: "id meta_id data valor descricao",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
     pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria",

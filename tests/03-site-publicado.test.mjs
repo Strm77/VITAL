@@ -117,6 +117,23 @@ test("Remover um lançamento troca os lançamentos da fatura no banco", async ()
   await pagina.waitForFunction(() => JSON.parse(sessionStorage.getItem("mock-db")).pagamentos.find((p) => p.origem === "fatura").valor_fatura === 643.45);
 });
 
+test("Metas: caixinha e valor inicial nas tabelas metas e movimentos_metas", async () => {
+  await pagina.click(".subaba[data-aba=metas]");
+  await pagina.click("#meta-adicionar");
+  await pagina.fill("#meta-nome", "Viagem");
+  await pagina.fill("#meta-valor", "5000");
+  await pagina.fill("#meta-link", "https://exemplo.com/pacote");
+  await pagina.fill("#meta-prazo", "2027-06");
+  await pagina.fill("#meta-inicial", "800");
+  await pagina.click("#meta-form [type=submit]");
+  await pagina.waitForFunction(() => (JSON.parse(sessionStorage.getItem("mock-db")).movimentos_metas || []).length === 1);
+  const db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  assert.deepEqual([db.metas[0].nome, db.metas[0].valor_alvo, db.metas[0].link, db.metas[0].prazo], ["Viagem", 5000, "https://exemplo.com/pacote", "2027-06"]);
+  assert.equal(db.movimentos_metas[0].meta_id, db.metas[0].id);
+  assert.equal(db.movimentos_metas[0].valor, 800);
+  await pagina.click(".subaba[data-aba=painel]");
+});
+
 test("Recarregar mantém a sessão e os dados", async () => {
   await pagina.reload();
   await pagina.waitForSelector("#tela-login", { state: "hidden" });

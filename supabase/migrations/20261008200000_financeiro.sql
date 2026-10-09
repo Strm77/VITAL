@@ -172,3 +172,24 @@ alter table financeiro.faturas add column if not exists total_informado numeric(
 -- Tipo (fixa ou variável) e categoria livre da conta (Serviços, Cartão, Cartão de Loja...)
 alter table financeiro.pagamentos add column if not exists tipo text check (tipo in ('fixa', 'variavel'));
 alter table financeiro.pagamentos add column if not exists categoria text check (length(categoria) <= 40);
+
+-- Metas (caixinhas): objetivo com valor, link de compra e prazo; o saldo vem dos movimentos.
+create table if not exists financeiro.metas (
+  id text primary key default financeiro.novo_id(),
+  usuario_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  nome text not null check (length(nome) between 1 and 80),
+  valor_alvo numeric(12, 2) not null check (valor_alvo > 0),
+  link text check (link ~* '^https?://' and length(link) <= 2000),
+  prazo text check (prazo ~ '^\d{4}-\d{2}$'),
+  criado_em timestamptz not null default now()
+);
+create table if not exists financeiro.movimentos_metas (
+  id text primary key default financeiro.novo_id(),
+  usuario_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  meta_id text not null references financeiro.metas (id) on delete cascade,
+  data date not null,
+  valor numeric(12, 2) not null check (valor <> 0),
+  descricao text check (length(descricao) <= 120),
+  criado_em timestamptz not null default now()
+);
+-- (RLS, índices, permissões e tempo real iguais às demais tabelas — ver migração "metas_caixinhas")

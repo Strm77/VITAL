@@ -832,3 +832,35 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .bloco-fluxo .linha { margin-top: 10px; }
 .bloco-fluxo .rotulo { font-size: 13px; color: var(--texto-suave); }
 .bloco-fluxo .detalhes { margin-top: 10px; }
+
+/* Metas (caixinhas) */
+.caixinhas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 14px; }
+.caixinha {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  min-width: 0;
+}
+.caixinha.atingida { border-color: var(--progresso); }
+.caixinha-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.caixinha h3 { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.link-meta { flex: none; font-size: 12px; color: var(--cat-cor); text-decoration: none; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-meta:hover { text-decoration: underline; }
+.caixinha-valores { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+.caixinha-valores strong { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.caixinha-valores span { font-size: 13px; color: var(--texto-suave); }
+.caixinha .barra { margin-top: 0; }
+.caixinha .acabando { color: var(--perigo); }
+.caixinha-acoes { justify-content: flex-start; }
+.caixinha-acoes .botao { padding: 5px 10px; font-size: 12px; }
+.mov-form { grid-template-columns: 1fr 1fr; margin: 0; padding: 12px; }
+.historico { list-style: none; margin: 0; padding: 0; display: grid; font-size: 12px; }
+.historico li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid var(--borda); }
+.historico .sub { display: block; font-size: 11px; color: var(--texto-suave); }
+.caixinha .porcentagem { flex-wrap: wrap; gap: 2px 12px; }
+.historico .hist-desc { min-width: 0; overflow-wrap: anywhere; }
+.historico .entrada { color: var(--progresso); font-variant-numeric: tabular-nums; }
+.historico .saida { color: var(--perigo); font-variant-numeric: tabular-nums; }

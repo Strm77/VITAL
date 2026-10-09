@@ -71,12 +71,14 @@ function resumoDoMes() {
   const parcelas = dividas.length ? soma(dividas, "valorParcela") : torre.parcelasMes;
   const parcelasAPagar = parcelas - parcelasPagas;
 
-  const saidas = contasPagas + contasAPagar + parcelas + gastos;
-  const jaSaiu = contasPagas + parcelasPagas + gastos;
+  // Dinheiro guardado nas metas no mês (guardado − retirado) sai do disponível.
+  const guardado = typeof guardadoNoMes === "function" ? guardadoNoMes(mesRef) : 0;
+  const saidas = contasPagas + contasAPagar + parcelas + gastos + guardado;
+  const jaSaiu = contasPagas + parcelasPagas + gastos + guardado;
   const aSair = contasAPagar + parcelasAPagar;
   return {
     ganhos, gastos, parcelas, parcelasPagas, parcelasAPagar,
-    contasPagas, contasAPagar, qtdContas: contas.length,
+    contasPagas, contasAPagar, qtdContas: contas.length, guardado,
     saidas, jaSaiu, aSair,
     disponivel: ganhos - jaSaiu,
     sobra: ganhos - saidas,
@@ -127,6 +129,7 @@ function renderizarFluxo() {
         ["Contas pagas", "− " + moeda.format(r.contasPagas)],
         ["Parcelas de dívidas já vencidas", "− " + moeda.format(r.parcelasPagas)],
         ["Gastos avulsos", "− " + moeda.format(r.gastos)],
+        ...(r.guardado ? [[r.guardado > 0 ? "Guardado nas metas" : "Retirado das metas", (r.guardado > 0 ? "− " : "+ ") + moeda.format(Math.abs(r.guardado))]] : []),
         ["<strong>Disponível agora</strong>", `<strong>${sinal(r.disponivel)}</strong>`],
         ["<strong>Ainda vai sair</strong>", `<strong>− ${moeda.format(r.aSair)}</strong>`],
         ["Contas a pagar", "− " + moeda.format(r.contasAPagar)],
@@ -170,6 +173,7 @@ function conteudo(tipo) {
         [`Contas do controle de pagamentos (${r.qtdContas})`, moeda.format(r.contasPagas + r.contasAPagar)],
         ["Parcelas das dívidas", moeda.format(r.parcelas)],
         ["Gastos avulsos (fora do cartão)", moeda.format(r.gastos)],
+        ...(r.guardado ? [["Guardado nas metas", moeda.format(r.guardado)]] : []),
         ["Já pago", moeda.format(r.jaSaiu)],
         ["Ainda a pagar", moeda.format(r.aSair)],
       ],

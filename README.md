@@ -53,6 +53,13 @@ No topo da torre, o bloco **Dinheiro do mês** mostra o fluxo do mês da timelin
 
 "Quanto eu gastei" passa a mostrar o total das saídas, e "Quanto eu ganho" a mesma sobra.
 
+## Metas (caixinhas)
+
+O submenu **Metas** guarda objetivos como caixinhas: nome, valor da meta, link de compra e prazo
+(opcionais). Use **+ Guardar** e **− Retirar** para movimentar o dinheiro; cada caixinha mostra
+o saldo, quanto falta, quanto guardar por mês para cumprir o prazo e o histórico. O que você
+guarda no mês entra como saída no **Dinheiro do mês**. Links só são aceitos se forem http(s).
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a
@@ -117,6 +124,7 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/02-simulacao.test.mjs` — importa 5 faturas em PDF (Nubank, Itaú, Bradesco, Inter e C6,
   gerados em `tests/simulacao/gerar-pdfs.mjs`), cadastra 13 contas e confere totais, parcelas,
   previsão, timeline, atualização em tempo real (inclusive entre abas), recarga e celular.
+- `tests/05-metas.test.mjs` — caixinhas: criar, guardar, retirar, prazo, link seguro e Dinheiro do mês.
 - `tests/04-tema.test.mjs` — modo escuro (preto neutro), botão de tema e cores da pizza no fundo preto.
 - `tests/03-site-publicado.test.mjs` — modo site publicado com um Supabase simulado
   (`tests/supabase-simulado.js`): login, e-mail não permitido, gravação nas tabelas, lançamentos
