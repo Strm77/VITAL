@@ -175,7 +175,8 @@ test("Celular e tema escuro sem rolagem lateral", async () => {
 
 test("Voltar ao Financeiro e nenhum erro de JavaScript", async () => {
   await pagina.click(".aba[data-area=financeiro]");
-  assert.equal(await pagina.isVisible(".submenu"), true);
+  await pagina.waitForSelector('.submenu[data-area-de="financeiro"]:not([hidden])');
+  assert.equal(await pagina.isVisible('.submenu[data-area-de="shark"]'), false);
   assert.equal(await pagina.isVisible("[data-vista=saude]"), false);
   assert.deepEqual(pagina.erros, []);
 });

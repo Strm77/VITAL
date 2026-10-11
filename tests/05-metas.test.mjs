@@ -11,6 +11,7 @@ before(async () => {
   navegador = await abrirNavegador();
   pagina = await abrirPainel(await navegador.newContext());
   await pagina.click(".subaba[data-aba=metas]");
+  await pagina.waitForSelector("[data-vista=metas]:not([hidden])");
 });
 after(() => navegador?.close());
 

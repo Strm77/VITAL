@@ -111,13 +111,19 @@ const COLUNAS = {
   // schema saude
   registros: ["data", "tipo", "resultado", "descricao", "refeicao", "minutos", "intensidade", "nota"],
   objetivos: ["treinos_semana", "minutos_semana", "acerto_alimentacao"],
+  // schema shark
+  clientes: ["nome", "cor", "valor_mensal", "dia_pagamento", "inicio_cobranca", "ativo"],
+  frentes: ["cliente_id", "nome", "tipo", "meta_artes", "prazo", "calendario", "inicio", "modelo", "valor_por_etapa"],
+  eventos: ["calendario", "nome", "data", "local"],
+  tarefas: ["frente_id", "evento_id", "item", "nome", "prazo", "quantidade", "status", "entregue_em", "extra"],
+  recebimentos: ["cliente_id", "descricao", "valor", "vencimento", "recebido_em", "referencia", "ignorado"],
   movimentos_metas: ["meta_id", "data", "valor", "descricao"],
   faturas: ["cartao_id", "mes", "vencimento", "arquivo", "importado_em", "sem_conta", "total_informado"],
   pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado", "tipo", "categoria"],
 };
 // Colunas que podem ficar vazias (quando o campo some do formulário, vira null no banco).
-const ANULAVEIS = new Set(["refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
-const NUMERICAS = new Set(["meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
+const ANULAVEIS = new Set(["valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
+const NUMERICAS = new Set(["valor_mensal", "valor_por_etapa", "meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
 
 function linhaParaObjeto(linha) {
   const obj = {};
@@ -140,7 +146,8 @@ function objetoParaLinha(tabela, item) {
 }
 
 // Tabelas que ficam fora do schema financeiro.
-const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estudos", registros: "saude", objetivos: "saude" };
+const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estudos", registros: "saude", objetivos: "saude",
+  clientes: "shark", frentes: "shark", eventos: "shark", tarefas: "shark", recebimentos: "shark" };
 
 function armazenamentoSupabase(tabela) {
   const schema = SCHEMA_DA_TABELA[tabela] || "financeiro";

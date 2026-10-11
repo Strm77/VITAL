@@ -51,14 +51,16 @@ const BLOCOS = {
 const soma = (lista, campo) => lista.reduce((t, i) => t + (Number(i[campo]) || 0), 0);
 
 /* Fluxo do dinheiro no mês da timeline.
- *   Entradas = ganhos do mês
+ *   Entradas = ganhos do mês + o que os clientes do SHARK pagaram no mês
  *   Saídas   = contas do controle de pagamentos (inclui faturas de cartão)
  *            + parcelas das dívidas + gastos avulsos (fora do cartão)
  *   Já saiu  = contas pagas + parcelas já vencidas + gastos avulsos
  *   Sobra    = entradas − saídas (previsão para o fim do mês)
  */
 function resumoDoMes() {
-  const ganhos = soma(torre.ganhos.filter(doMes), "valor");
+  const ganhosCadastrados = soma(torre.ganhos.filter(doMes), "valor");
+  const shark = typeof sharkNoMes === "function" ? sharkNoMes(mesRef) : { recebido: 0, aReceber: 0, itens: [] };
+  const ganhos = ganhosCadastrados + shark.recebido;
   const gastos = soma(torre.gastos.filter(doMes), "valor");
   let contas = [];
   try { contas = typeof pag !== "undefined" ? pag.contas : []; } catch {}
@@ -77,7 +79,8 @@ function resumoDoMes() {
   const jaSaiu = contasPagas + parcelasPagas + gastos + guardado;
   const aSair = contasAPagar + parcelasAPagar;
   return {
-    ganhos, gastos, parcelas, parcelasPagas, parcelasAPagar,
+    ganhos, ganhosCadastrados, sharkRecebido: shark.recebido, sharkAReceber: shark.aReceber, sharkItens: shark.itens,
+    gastos, parcelas, parcelasPagas, parcelasAPagar,
     contasPagas, contasAPagar, qtdContas: contas.length, guardado,
     saidas, jaSaiu, aSair,
     disponivel: ganhos - jaSaiu,
@@ -124,7 +127,9 @@ function renderizarFluxo() {
     <dl class="detalhes" id="detalhes-fluxo" ${aberto ? "" : "hidden"}>
       ${listaDetalhes([
         ["<strong>Entradas</strong>", `<strong>${moeda.format(r.ganhos)}</strong>`],
-        ["Ganhos do mês", moeda.format(r.ganhos)],
+        ["Ganhos cadastrados", moeda.format(r.ganhosCadastrados)],
+        ...(r.sharkRecebido ? [["Clientes SHARK (recebido)", moeda.format(r.sharkRecebido)]] : []),
+        ...(r.sharkAReceber ? [["SHARK a receber (ainda não entrou)", moeda.format(r.sharkAReceber)]] : []),
         ["<strong>Já saiu</strong>", `<strong>− ${moeda.format(r.jaSaiu)}</strong>`],
         ["Contas pagas", "− " + moeda.format(r.contasPagas)],
         ["Parcelas de dívidas já vencidas", "− " + moeda.format(r.parcelasPagas)],
@@ -157,6 +162,8 @@ function conteudo(tipo) {
       legenda: [`${porcento(comprometido)} comprometido`, `${r.sobra >= 0 ? "sobra" : "falta"} ${moeda.format(Math.abs(r.sobra))}`],
       resumo: [
         ["Recebido no mês", moeda.format(r.ganhos)],
+        ...(r.sharkRecebido ? [["Dos clientes SHARK", moeda.format(r.sharkRecebido)]] : []),
+        ...(r.sharkAReceber ? [["SHARK a receber", moeda.format(r.sharkAReceber)]] : []),
         ["Saídas do mês", "− " + moeda.format(r.saidas)],
         [r.sobra >= 0 ? "Sobra do mês" : "Falta no mês", moeda.format(r.sobra)],
       ],
@@ -230,7 +237,8 @@ function renderizarBloco(tipo) {
 
   raiz.querySelector(".resumo-bloco").innerHTML = listaDetalhes(c.resumo);
   const ul = raiz.querySelector(".itens");
-  ul.innerHTML = itens.length
+  const doShark = tipo === "ganhos" ? resumoDoMes().sharkItens : [];
+  ul.innerHTML = itens.length || doShark.length
     ? ""
     : `<li class="estado">Nada cadastrado ainda.</li>`;
   itens.forEach((item) => {
@@ -260,6 +268,19 @@ function renderizarBloco(tipo) {
       try { await torre.armazenamentos[tipo].excluir(item.id); }
       catch { ex.disabled = false; avisoTorre(tipo, "Não foi possível excluir. Tente de novo."); }
     });
+    ul.appendChild(li);
+  });
+  // Recebimentos de clientes do SHARK: só leitura aqui, edita-se no SHARK.
+  doShark.forEach((r) => {
+    const li = document.createElement("li");
+    li.className = "item item-shark";
+    li.innerHTML = `
+      <div class="item-texto">
+        <span class="item-nome">${escapar(r.cliente.nome)} — ${escapar(r.descricao)}</span>
+        <span class="item-sub">SHARK · recebido em ${r.recebidoEm.split("-").reverse().slice(0, 2).join("/")}</span>
+      </div>
+      <span class="item-valor">${moeda.format(r.valor)}</span>
+      <div class="item-acoes"><a class="botao mini" href="#shark-recebimentos">Ver no SHARK</a></div>`;
     ul.appendChild(li);
   });
 }

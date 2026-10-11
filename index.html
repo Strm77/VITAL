@@ -38,6 +38,7 @@
       <a class="aba" data-area="financeiro" href="#painel">Financeiro</a>
       <a class="aba" data-area="estudos" href="#estudos">Estudos</a>
       <a class="aba" data-area="saude" href="#saude">Saúde</a>
+      <a class="aba aba-shark" data-area="shark" href="#shark">SHARK</a>
     </nav>
     <div class="acoes-topo">
       <button type="button" class="tema" id="botao-tema" aria-label="Tema"></button>
@@ -53,6 +54,13 @@
     <a class="subaba" data-aba="faturas" href="#faturas">Faturas</a>
     <a class="subaba" data-aba="assinaturas" href="#assinaturas">Assinaturas</a>
     <a class="subaba" data-aba="metas" href="#metas">Metas</a>
+  </nav>
+
+  <nav class="submenu" aria-label="SHARK" data-area-de="shark" hidden>
+    <a class="subaba" data-aba="shark" href="#shark">Tarefas</a>
+    <a class="subaba" data-aba="shark-clientes" href="#shark-clientes">Clientes</a>
+    <a class="subaba" data-aba="shark-calendario" href="#shark-calendario">Calendário</a>
+    <a class="subaba" data-aba="shark-recebimentos" href="#shark-recebimentos">Recebimentos</a>
   </nav>
 
   <div class="timeline" id="timeline" role="group" aria-label="Mês de referência" data-area-de="financeiro">
@@ -437,6 +445,232 @@
     <div class="saude-dica-flutuante" id="saude-dica" role="tooltip" hidden></div>
   </main>
 
+  <main class="vista-faturas vista-shark" data-vista="shark" hidden>
+    <section class="painel" aria-labelledby="titulo-shark">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-shark" class="titulo-shark">SHARK</h2>
+        <span class="mes-atual" id="shark-hoje"></span>
+      </div>
+      <div class="shark-numeros" id="shark-numeros"></div>
+      <div class="shark-alertas" id="shark-alertas" aria-live="polite"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-carga">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-carga">Carga por semana</h2>
+        <label class="limite-semana">Limite confortável
+          <input id="shark-limite" type="number" min="1" max="200" step="1" inputmode="numeric"> artes/semana
+        </label>
+      </div>
+      <div class="carga-legenda" id="shark-carga-legenda"></div>
+      <div class="carga-semanas" id="shark-carga" role="img"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-entregas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-entregas">Próximas entregas</h2>
+        <span class="mes-atual">próximos 60 dias</span>
+      </div>
+      <div class="filtro-clientes" id="shark-filtro" role="group" aria-label="Filtrar por cliente"></div>
+      <p class="estado" id="shark-sem-tarefas" hidden></p>
+      <div class="grupos-tarefas" id="shark-tarefas"></div>
+      <form class="formulario" id="extra-form" hidden novalidate>
+        <h3>Nova arte</h3>
+        <label class="campo largo">Cliente e frente
+          <select id="extra-frente" name="frenteId"></select>
+        </label>
+        <label class="campo largo">Nome da arte
+          <input id="extra-nome" name="nome" type="text" maxlength="120" placeholder="Ex.: Post patrocinador, Arte extra de pódio">
+        </label>
+        <label class="campo">Prazo
+          <input id="extra-prazo" name="prazo" type="date">
+        </label>
+        <label class="campo">Quantidade de artes
+          <input id="extra-quantidade" name="quantidade" type="number" min="1" max="1000" step="1" value="1" inputmode="numeric">
+        </label>
+        <label class="campo largo">Etapa (opcional)
+          <select id="extra-evento" name="eventoId"></select>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="extra-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar arte</button>
+        </div>
+      </form>
+      <p class="aviso" id="shark-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="extra-adicionar">+ Arte extra ou avulsa</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-shark" data-vista="shark-clientes" hidden>
+    <p class="estado" id="clientes-vazio">Nenhum cliente ainda. Cadastre um cliente e depois as frentes de trabalho dele: um pacote de artes (ex.: 100 artes) ou artes por etapa de um calendário (ex.: Stock Car).</p>
+    <div class="clientes-shark" id="clientes-shark"></div>
+    <section class="painel">
+      <form class="formulario" id="cliente-form" hidden novalidate>
+        <h3 id="cliente-form-titulo">Novo cliente</h3>
+        <label class="campo largo">Nome
+          <input id="cliente-nome" name="nome" type="text" maxlength="60" placeholder="Ex.: KMKZY">
+        </label>
+        <fieldset class="cores largo" id="cliente-cores">
+          <legend>Cor</legend>
+        </fieldset>
+        <label class="campo">Valor mensal fixo (R$, opcional)
+          <input id="cliente-mensal" name="valorMensal" type="number" min="0.01" step="0.01" inputmode="decimal">
+        </label>
+        <label class="campo">Dia do pagamento
+          <input id="cliente-dia" name="diaPagamento" type="number" min="1" max="31" step="1" inputmode="numeric">
+        </label>
+        <label class="campo">Cobrar a partir de
+          <input id="cliente-inicio" name="inicioCobranca" type="month">
+        </label>
+        <p class="dica-saude largo">Com valor mensal, o recebimento de cada mês aparece sozinho em Recebimentos.</p>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="cliente-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar cliente</button>
+        </div>
+      </form>
+      <button type="button" class="botao adicionar" id="cliente-adicionar">+ Novo cliente</button>
+    </section>
+
+    <section class="painel">
+      <form class="formulario" id="frente-form" hidden novalidate>
+        <h3 id="frente-form-titulo">Nova frente de trabalho</h3>
+        <label class="campo">Cliente
+          <select id="frente-cliente" name="clienteId"></select>
+        </label>
+        <label class="campo">Nome da frente
+          <input id="frente-nome" name="nome" type="text" maxlength="60" placeholder="Ex.: Pacote 100 artes, Alfredinho, Lucas">
+        </label>
+        <fieldset class="segmentos largo">
+          <legend class="sr">Tipo</legend>
+          <label><input type="radio" name="tipo" value="pacote" checked> <span>📦 Pacote de artes</span></label>
+          <label><input type="radio" name="tipo" value="etapas"> <span>🏁 Artes por etapa</span></label>
+        </fieldset>
+        <label class="campo" data-tipo="pacote">Total de artes
+          <input id="frente-meta" name="metaArtes" type="number" min="1" step="1" inputmode="numeric" placeholder="Ex.: 100">
+        </label>
+        <label class="campo" data-tipo="pacote">Já entregues
+          <input id="frente-ja" name="jaEntregues" type="number" min="0" step="1" inputmode="numeric" placeholder="Ex.: 56">
+        </label>
+        <label class="campo" data-tipo="pacote">Prazo do pacote (opcional)
+          <input id="frente-prazo" name="prazo" type="date">
+        </label>
+        <label class="campo" data-tipo="etapas" hidden>Calendário
+          <input id="frente-calendario" name="calendario" type="text" maxlength="40" list="shark-calendarios" placeholder="Ex.: Stock Car, NKR">
+        </label>
+        <label class="campo" data-tipo="etapas" hidden>Começar a partir de
+          <input id="frente-inicio" name="inicio" type="date">
+        </label>
+        <label class="campo largo" data-tipo="etapas" hidden>Artes de cada etapa (uma por linha)
+          <textarea id="frente-modelo" name="modelo" rows="6" placeholder="Race Week -6&#10;Cronograma Geral -5&#10;Sexta -3&#10;Campeões 80kg +1"></textarea>
+          <span class="dica">O número no fim é o prazo em relação ao dia da corrida: <strong>-6</strong> = 6 dias antes, <strong>+1</strong> = 1 dia depois. Sem número, o prazo é o próprio dia.</span>
+        </label>
+        <label class="campo" data-tipo="etapas" hidden>Valor por etapa (R$, opcional)
+          <input id="frente-valor-etapa" name="valorPorEtapa" type="number" min="0.01" step="0.01" inputmode="decimal">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="frente-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar frente</button>
+        </div>
+      </form>
+      <p class="aviso" id="frente-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="frente-adicionar">+ Nova frente de trabalho</button>
+    </section>
+    <datalist id="shark-calendarios"></datalist>
+  </main>
+
+  <main class="vista-faturas vista-shark" data-vista="shark-calendario" hidden>
+    <section class="painel" aria-labelledby="titulo-agenda">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-agenda">Agenda de artes</h2>
+        <div class="navegar-mes">
+          <button type="button" class="botao mini" id="agenda-anterior" aria-label="Mês anterior">‹</button>
+          <span class="mes-atual" id="agenda-mes"></span>
+          <button type="button" class="botao mini" id="agenda-proximo" aria-label="Próximo mês">›</button>
+        </div>
+      </div>
+      <div class="agenda" id="agenda"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-eventos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-eventos">Calendários de eventos</h2>
+      </div>
+      <div class="importar-stock" id="importar-stock"></div>
+      <p class="estado" id="eventos-vazio">Nenhum evento ainda. Importe o calendário da Stock Car ou cadastre as etapas dos seus clientes.</p>
+      <div id="eventos-lista"></div>
+      <form class="formulario" id="evento-form" hidden novalidate>
+        <h3 id="evento-form-titulo">Novo evento</h3>
+        <label class="campo">Calendário
+          <input id="evento-calendario" name="calendario" type="text" maxlength="40" list="shark-calendarios" placeholder="Ex.: Stock Car, NKR">
+        </label>
+        <label class="campo">Dia da corrida / do evento
+          <input id="evento-data" name="data" type="date">
+        </label>
+        <label class="campo">Nome
+          <input id="evento-nome" name="nome" type="text" maxlength="80" placeholder="Ex.: Etapa 10 — Goiânia">
+        </label>
+        <label class="campo">Local (opcional)
+          <input id="evento-local" name="local" type="text" maxlength="80">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="evento-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar evento</button>
+        </div>
+      </form>
+      <button type="button" class="botao adicionar" id="evento-adicionar">+ Novo evento</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-shark" data-vista="shark-recebimentos" hidden>
+    <section class="painel" aria-labelledby="titulo-receb">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-receb">Recebimentos</h2>
+        <span class="mes-atual">entram como ganho no Financeiro</span>
+      </div>
+      <div class="shark-numeros" id="receb-numeros"></div>
+    </section>
+    <section class="painel" aria-labelledby="titulo-a-receber">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-a-receber">A receber</h2>
+      </div>
+      <p class="estado" id="a-receber-vazio">Nada a receber agora.</p>
+      <div class="tabela-rolavel"><table class="tabela-receb" id="a-receber"></table></div>
+      <form class="formulario" id="receb-form" hidden novalidate>
+        <h3 id="receb-form-titulo">Novo recebimento</h3>
+        <label class="campo">Cliente
+          <select id="receb-cliente" name="clienteId"></select>
+        </label>
+        <label class="campo">Descrição
+          <input id="receb-descricao" name="descricao" type="text" maxlength="120" placeholder="Ex.: Pacote 100 artes — parcela 2">
+        </label>
+        <label class="campo">Valor (R$)
+          <input id="receb-valor" name="valor" type="number" min="0.01" step="0.01" inputmode="decimal">
+        </label>
+        <label class="campo">Vencimento
+          <input id="receb-vencimento" name="vencimento" type="date">
+        </label>
+        <label class="campo">Recebido em (vazio = ainda não)
+          <input id="receb-recebido" name="recebidoEm" type="date">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="receb-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar</button>
+        </div>
+      </form>
+      <p class="aviso" id="receb-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="receb-adicionar">+ Registrar recebimento</button>
+    </section>
+    <section class="painel" aria-labelledby="titulo-recebidos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-recebidos">Recebidos</h2>
+        <span class="mes-atual">últimos 12 meses</span>
+      </div>
+      <div class="receb-meses" id="receb-meses" role="img"></div>
+      <p class="estado" id="recebidos-vazio">Nenhum recebimento registrado ainda.</p>
+      <div class="tabela-rolavel"><table class="tabela-receb" id="recebidos"></table></div>
+    </section>
+  </main>
+
   <main class="vista-faturas" data-vista="metas" hidden>
     <section class="painel" aria-labelledby="titulo-metas">
       <div class="painel-cabecalho">
@@ -653,5 +887,6 @@
   <script src="metas.js"></script>
   <script src="estudos.js"></script>
   <script src="saude.js"></script>
+  <script src="shark.js"></script>
 </body>
 </html>

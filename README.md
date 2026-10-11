@@ -90,6 +90,26 @@ comemoração a cada acerto, atalhos para repetir hoje o que você registra semp
 com edição. As metas (treinos e minutos por semana, % de acertos na alimentação) ficam no fim
 da página. No Supabase os dados ficam no schema `saude` (`registros` e `objetivos`, com RLS).
 
+## SHARK (design)
+
+A aba **SHARK** é o gerenciador de tarefas do estúdio de design, com quatro subpáginas:
+
+- **Tarefas**: atrasadas, artes da semana, próximos 30 dias, entregues no mês e quanto falta
+  receber; alertas (etapa chegando, semana acima do limite com sugestão de adiantar artes,
+  ritmo dos pacotes, pagamentos atrasados); a **carga por semana** (8 semanas, por cliente,
+  com o ritmo dos pacotes listrado e a linha do seu limite confortável) e a lista de entregas
+  agrupada por semana, com filtro por cliente e artes extras.
+- **Clientes**: cada cliente tem frentes de trabalho de dois tipos. **Pacote** (ex.: 100 artes,
+  já entregues 56) com barra de progresso, “+1 entregue”, várias de uma vez, histórico e ritmo
+  para o prazo. **Por etapa**: segue um calendário (ex.: Stock Car) e um modelo de artes, uma
+  por linha, com o prazo em dias em relação à corrida (`Race Week -6`, `Campeões 80kg +1`). As
+  artes de cada etapa são geradas sozinhas quando o evento entra no calendário.
+- **Calendário**: agenda do mês com as etapas e as artes de cada dia, e os calendários de
+  eventos (importação das etapas restantes da Stock Car 2026 e eventos próprios, como a NKR).
+- **Recebimentos**: mensalidades e valores por etapa aparecem previstos sozinhos; “Recebi”
+  registra a data. O que foi recebido entra como ganho do mês no **Financeiro** (Dinheiro do
+  mês e bloco de ganhos). No Supabase os dados ficam no schema `shark`.
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a

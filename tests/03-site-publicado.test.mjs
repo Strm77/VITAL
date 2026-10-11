@@ -168,6 +168,40 @@ test("Saúde: registros e metas gravados no schema saude", async () => {
   await pagina.click(".aba[data-area=financeiro]");
 });
 
+test("SHARK: cliente, frente por etapa, arte gerada e recebimento no schema shark", async () => {
+  await pagina.click(".aba[data-area=shark]");
+  await pagina.click('.subaba[data-aba="shark-calendario"]');
+  await pagina.click("#importar-stock-botao");
+  await pagina.click('.subaba[data-aba="shark-clientes"]');
+  await pagina.click("#cliente-adicionar");
+  await pagina.fill("#cliente-nome", "SENTA O PÉ");
+  await pagina.click("#cliente-form [type=submit]");
+  await pagina.waitForSelector(".cliente-shark");
+  await pagina.click(".cliente-shark [data-acao=nova-frente]");
+  await pagina.fill("#frente-nome", "Alfredinho");
+  await pagina.click("#frente-form label:has(> input[value=etapas])");
+  await pagina.fill("#frente-calendario", "Stock Car");
+  await pagina.fill("#frente-modelo", "Race Week -6");
+  await pagina.fill("#frente-valor-etapa", "300");
+  await pagina.click("#frente-form [type=submit]");
+  await pagina.click('.subaba[data-aba="shark"]');
+  await pagina.locator("#shark-tarefas .tarefa", { hasText: "Race Week" }).first().locator("[data-tarefa]").check();
+  await pagina.click('.subaba[data-aba="shark-recebimentos"]');
+  await pagina.locator("#a-receber tr", { hasText: "Etapa Goiânia" }).locator("[data-receb-acao=recebi]").click();
+  await pagina.waitForFunction(() => { const db = JSON.parse(sessionStorage.getItem("mock-db")); return (db.tarefas || []).length === 1 && (db.recebimentos || []).length === 1; });
+  const db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  assert.equal(db.eventos.length, 3);
+  assert.deepEqual(db.frentes[0].modelo, [{ nome: "Race Week", dias: -6 }]);
+  assert.equal(db.frentes[0].valor_por_etapa, 300);
+  const t = db.tarefas[0];
+  assert.ok(t.id.startsWith("tf-"), "arte gerada salva com id fixo (não duplica)");
+  assert.deepEqual([t.nome, t.prazo, t.status, t.entregue_em, t.evento_id === db.eventos.find((e) => e.data === "2026-10-18").id], ["Race Week", "2026-10-12", "entregue", "2026-10-08", true]);
+  assert.deepEqual([db.recebimentos[0].valor, db.recebimentos[0].recebido_em, db.recebimentos[0].vencimento], [300, "2026-10-08", "2026-10-25"]);
+  assert.ok((await pagina.evaluate(() => window.__schemas)).includes("shark"), "usa o schema shark");
+  await pagina.click(".aba[data-area=financeiro]");
+  await pagina.waitForFunction(() => document.querySelector("#bloco-ganhos").textContent.includes("SENTA O PÉ — Alfredinho — Etapa Goiânia"));
+});
+
 test("Recarregar mantém a sessão e os dados", async () => {
   await pagina.reload();
   await pagina.waitForSelector("#tela-login", { state: "hidden" });
