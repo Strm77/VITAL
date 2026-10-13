@@ -51,10 +51,12 @@ test("Senha errada e cadastro de e-mail não permitido mostram mensagem clara", 
   await pagina.waitForFunction(() => document.querySelector("#login-aviso").textContent.includes("não tem acesso"));
 });
 
-test("Login certo abre o painel vazio (sem os exemplos)", async () => {
+test("Login certo abre a Visão geral e o painel vazio (sem os exemplos)", async () => {
   await pagina.fill("#login-senha", "senha-certa");
   await pagina.click("[data-acao=entrar]");
   await pagina.waitForSelector("#tela-login", { state: "hidden" });
+  await pagina.waitForSelector('main[data-vista="inicio"]:not([hidden])');
+  await pagina.click(".aba[data-area=financeiro]");
   await pagina.waitForSelector("#vazio:not([hidden])");
   assert.equal(await pagina.textContent("#usuario-email"), "eu@exemplo.com");
   assert.equal(await pagina.$$eval("#pag-tabela tbody tr", (t) => t.length), 0);
@@ -200,6 +202,32 @@ test("SHARK: cliente, frente por etapa, arte gerada e recebimento no schema shar
   assert.ok((await pagina.evaluate(() => window.__schemas)).includes("shark"), "usa o schema shark");
   await pagina.click(".aba[data-area=financeiro]");
   await pagina.waitForFunction(() => document.querySelector("#bloco-ganhos").textContent.includes("SENTA O PÉ — Alfredinho — Etapa Goiânia"));
+});
+
+test("Visão geral, Bem-estar e Rotina gravam no schema vida", async () => {
+  await pagina.click(".aba[data-area=inicio]");
+  await pagina.waitForSelector('main[data-vista="inicio"]:not([hidden])');
+  await pagina.click('main[data-vista="inicio"] [data-checkin=humor][data-valor="4"]');
+  await pagina.fill("[data-prioridade='1']", "Fechar o mês");
+  await pagina.press("[data-prioridade='1']", "Enter");
+  await pagina.click(".aba[data-area=saude]");
+  await pagina.click('.subaba[data-aba="saude-bemestar"]');
+  await pagina.click("#agua-mais");
+  await pagina.fill("#meta-agua", "10");
+  await pagina.click("#bemestar-metas-form [type=submit]");
+  await pagina.click(".aba[data-area=rotina]");
+  await pagina.fill("#afazer-titulo", "Ligar para o contador");
+  await pagina.click("#afazer-salvar");
+  await pagina.waitForFunction(() => {
+    const db = JSON.parse(sessionStorage.getItem("mock-db"));
+    return db.checkins?.[0]?.agua_copos === 1 && (db.prioridades || []).length === 1 && (db.afazeres || []).length === 1 && db.objetivos?.some((o) => o.meta_agua === 10);
+  });
+  const db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  assert.deepEqual([db.checkins[0].id, db.checkins[0].data, db.checkins[0].humor], ["ck-2026-10-08", "2026-10-08", 4]);
+  assert.deepEqual([db.prioridades[0].semana, db.prioridades[0].ordem, db.prioridades[0].texto], ["2026-10-05", 1, "Fechar o mês"]);
+  assert.deepEqual([db.afazeres[0].titulo, db.afazeres[0].prioridade, db.afazeres[0].feito_em], ["Ligar para o contador", "media", null]);
+  assert.ok((await pagina.evaluate(() => window.__schemas)).includes("vida"), "usa o schema vida");
+  await pagina.click(".aba[data-area=financeiro]");
 });
 
 test("Recarregar mantém a sessão e os dados", async () => {

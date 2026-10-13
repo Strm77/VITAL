@@ -38,6 +38,8 @@ function metasSaude() {
     treinosSemana: Number(o.treinosSemana) || 3,
     minutosSemana: Number(o.minutosSemana) || 150,
     acertoAlimentacao: Number(o.acertoAlimentacao) || 80,
+    metaAgua: Number(o.metaAgua) || 8,
+    metaSono: Number(o.metaSono) || 8,
   };
 }
 
@@ -481,6 +483,7 @@ function renderizarSugestoes() {
 /* ---------- Render geral ---------- */
 
 function renderizarSaude() {
+  avisarDados();
   if (!document.getElementById("saude-numeros")) return;
   const s = estatisticasSaude();
   renderizarTopoSaude(s);
@@ -614,7 +617,9 @@ async function salvarMetasSaude(e) {
   sau.ultimaAcao = Date.now();
   try {
     document.activeElement?.blur();
-    await sau.arm.objetivos.salvar(sau.objetivos[0]?.id || null, dados);
+    // Mantém as metas de água e sono (salvas em Bem-estar) na mesma linha.
+    const { id, ...atual } = sau.objetivos[0] || {};
+    await sau.arm.objetivos.salvar(id || null, { ...atual, ...dados });
     avisoSaude("Metas salvas. Bora! 🎯", "apoio");
   } catch {
     avisoSaude("Não foi possível salvar as metas.", "erro");

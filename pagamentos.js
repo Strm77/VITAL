@@ -28,6 +28,7 @@ function avisoPag(texto) {
 }
 
 function renderizarPagamentos() {
+  avisarDados();
   document.getElementById("pagamentos-mes").textContent = nomeMesRef();
   document.getElementById("pag-vazio").textContent = pag.contas.length
     ? `Nenhuma conta com vencimento em ${nomeMesRef()}.`

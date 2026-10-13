@@ -199,11 +199,20 @@ function alternar(botao, painel, chave) {
   });
 }
 
+/* Avisa (uma vez por rodada) que dados de alguma área mudaram: a Visão geral se atualiza. */
+let timerDados = null;
+function avisarDados() {
+  clearTimeout(timerDados);
+  timerDados = setTimeout(() => document.dispatchEvent(new Event("vital-dados")), 50);
+}
+
 /* ---------- Navegação entre as abas (Financeiro / Faturas) ---------- */
 
 function mostrarVista() {
-  const vista = { "#faturas": "faturas", "#assinaturas": "assinaturas", "#metas": "metas", "#estudos": "estudos", "#saude": "saude", "#shark": "shark", "#shark-clientes": "shark-clientes", "#shark-calendario": "shark-calendario", "#shark-recebimentos": "shark-recebimentos" }[location.hash] || "painel";
-  const area = vista.startsWith("shark") ? "shark" : ["estudos", "saude"].includes(vista) ? vista : "financeiro";
+  // A página abre na Visão geral; cada vista tem o próprio endereço (#painel, #saude-bemestar…).
+  const pedida = location.hash.slice(1);
+  const vista = pedida && document.querySelector(`main[data-vista="${CSS.escape(pedida)}"]`) ? pedida : "inicio";
+  const area = ["painel", "faturas", "assinaturas", "metas"].includes(vista) ? "financeiro" : vista.split("-")[0];
   // Submenu e timeline só fazem sentido no Financeiro.
   document.querySelectorAll("[data-area-de]").forEach((el) => { el.hidden = el.dataset.areaDe !== area; });
   document.querySelectorAll(".aba[data-area]").forEach((aba) => {
@@ -222,6 +231,7 @@ function mostrarVista() {
     else aba.removeAttribute("aria-current");
   });
   window.scrollTo(0, 0);
+  document.dispatchEvent(new CustomEvent("vista-mostrada", { detail: vista }));
 }
 /* ---------- Tema (automático / escuro / claro) ---------- */
 

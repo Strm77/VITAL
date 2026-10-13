@@ -110,7 +110,17 @@ const COLUNAS = {
   sessoes: ["plano_id", "topico_id", "data", "minutos", "nota"],
   // schema saude
   registros: ["data", "tipo", "resultado", "descricao", "refeicao", "minutos", "intensidade", "nota"],
-  objetivos: ["treinos_semana", "minutos_semana", "acerto_alimentacao"],
+  objetivos: ["treinos_semana", "minutos_semana", "acerto_alimentacao", "meta_agua", "meta_sono"],
+  // schema vida
+  checkins: ["data", "humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "nota"],
+  prioridades: ["semana", "ordem", "texto", "feita"],
+  satisfacao: ["mes", "area", "nota"],
+  habitos: ["nome", "icone", "area", "vezes_semana", "autocuidado", "ativo"],
+  habitos_feitos: ["habito_id", "data"],
+  compromissos: ["titulo", "data", "hora", "tipo", "local", "nota", "feito", "recorrencia_meses"],
+  projetos: ["nome", "objetivo", "prazo", "status", "area"],
+  afazeres: ["titulo", "prazo", "prioridade", "projeto_id", "feito_em"],
+  blocos_tempo: ["data", "area", "minutos", "descricao"],
   // schema shark
   clientes: ["nome", "cor", "valor_mensal", "dia_pagamento", "inicio_cobranca", "ativo"],
   frentes: ["cliente_id", "nome", "tipo", "meta_artes", "prazo", "calendario", "inicio", "modelo", "valor_por_etapa"],
@@ -122,8 +132,8 @@ const COLUNAS = {
   pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado", "tipo", "categoria"],
 };
 // Colunas que podem ficar vazias (quando o campo some do formulário, vira null no banco).
-const ANULAVEIS = new Set(["valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
-const NUMERICAS = new Set(["valor_mensal", "valor_por_etapa", "meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
+const ANULAVEIS = new Set(["humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "hora", "recorrencia_meses", "projeto_id", "feito_em", "icone", "area", "valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura"]);
+const NUMERICAS = new Set(["sono_horas", "meta_sono", "valor_mensal", "valor_por_etapa", "meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura"]);
 
 function linhaParaObjeto(linha) {
   const obj = {};
@@ -147,7 +157,9 @@ function objetoParaLinha(tabela, item) {
 
 // Tabelas que ficam fora do schema financeiro.
 const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estudos", registros: "saude", objetivos: "saude",
-  clientes: "shark", frentes: "shark", eventos: "shark", tarefas: "shark", recebimentos: "shark" };
+  clientes: "shark", frentes: "shark", eventos: "shark", tarefas: "shark", recebimentos: "shark",
+  checkins: "vida", prioridades: "vida", satisfacao: "vida", habitos: "vida", habitos_feitos: "vida",
+  compromissos: "vida", projetos: "vida", afazeres: "vida", blocos_tempo: "vida" };
 
 function armazenamentoSupabase(tabela) {
   const schema = SCHEMA_DA_TABELA[tabela] || "financeiro";

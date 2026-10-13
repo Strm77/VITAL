@@ -35,9 +35,11 @@
   <header class="topo">
     <h1>V.I.T.A.L</h1>
     <nav class="abas" aria-label="Áreas">
+      <a class="aba" data-area="inicio" href="#inicio">Visão geral</a>
       <a class="aba" data-area="financeiro" href="#painel">Financeiro</a>
       <a class="aba" data-area="estudos" href="#estudos">Estudos</a>
       <a class="aba" data-area="saude" href="#saude">Saúde</a>
+      <a class="aba" data-area="rotina" href="#rotina">Rotina</a>
       <a class="aba aba-shark" data-area="shark" href="#shark">SHARK</a>
     </nav>
     <div class="acoes-topo">
@@ -54,6 +56,19 @@
     <a class="subaba" data-aba="faturas" href="#faturas">Faturas</a>
     <a class="subaba" data-aba="assinaturas" href="#assinaturas">Assinaturas</a>
     <a class="subaba" data-aba="metas" href="#metas">Metas</a>
+  </nav>
+
+  <nav class="submenu" aria-label="Saúde" data-area-de="saude" hidden>
+    <a class="subaba" data-aba="saude" href="#saude">Alimentação e exercício</a>
+    <a class="subaba" data-aba="saude-bemestar" href="#saude-bemestar">Bem-estar</a>
+  </nav>
+
+  <nav class="submenu" aria-label="Rotina" data-area-de="rotina" hidden>
+    <a class="subaba" data-aba="rotina" href="#rotina">Tarefas</a>
+    <a class="subaba" data-aba="rotina-agenda" href="#rotina-agenda">Agenda</a>
+    <a class="subaba" data-aba="rotina-projetos" href="#rotina-projetos">Projetos</a>
+    <a class="subaba" data-aba="rotina-habitos" href="#rotina-habitos">Hábitos</a>
+    <a class="subaba" data-aba="rotina-tempo" href="#rotina-tempo">Tempo</a>
   </nav>
 
   <nav class="submenu" aria-label="SHARK" data-area-de="shark" hidden>
@@ -671,6 +686,334 @@
     </section>
   </main>
 
+  <main class="vista-faturas vista-inicio" data-vista="inicio" hidden>
+    <section class="painel saudacao" aria-labelledby="inicio-saudacao">
+      <div class="painel-cabecalho">
+        <h2 id="inicio-saudacao">Olá</h2>
+        <span class="mes-atual" id="inicio-data"></span>
+      </div>
+      <p class="inicio-frase" id="inicio-frase"></p>
+    </section>
+
+    <div class="inicio-grade">
+      <section class="painel" aria-labelledby="titulo-sentindo">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-sentindo">Como estou me sentindo?</h2>
+          <span class="mes-atual">hoje</span>
+        </div>
+        <div class="checkin" data-checkin-raiz></div>
+        <div class="humor-dias" id="humor-dias" role="img"></div>
+      </section>
+
+      <section class="painel" aria-labelledby="titulo-prioridades">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-prioridades">Minhas 3 prioridades da semana</h2>
+          <span class="mes-atual" id="prioridades-semana"></span>
+        </div>
+        <ol class="prioridades" id="prioridades"></ol>
+        <div class="prioridades-anteriores" id="prioridades-anteriores"></div>
+      </section>
+    </div>
+
+    <section class="painel" aria-labelledby="titulo-atencao">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-atencao">O que merece atenção hoje</h2>
+        <span class="mes-atual" id="atencao-total"></span>
+      </div>
+      <ul class="atencao" id="atencao"></ul>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-andamento">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-andamento">Metas em andamento</h2>
+        <span class="mes-atual" id="andamento-total"></span>
+      </div>
+      <div class="andamento" id="andamento"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-roda">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-roda">Satisfação com a vida</h2>
+        <span class="mes-atual" id="roda-mes"></span>
+      </div>
+      <div class="roda" id="roda"></div>
+      <form class="formulario roda-form" id="roda-form" hidden novalidate>
+        <h3>Como está cada área da sua vida? (0 a 10)</h3>
+        <div class="roda-campos largo" id="roda-campos"></div>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="roda-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar avaliação</button>
+        </div>
+      </form>
+      <button type="button" class="botao adicionar" id="roda-avaliar">Avaliar este mês</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-bemestar" data-vista="saude-bemestar" hidden>
+    <section class="painel" aria-labelledby="titulo-bemestar">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-bemestar">Bem-estar de hoje</h2>
+        <span class="mes-atual" id="bemestar-hoje"></span>
+      </div>
+      <div class="bemestar-grade">
+        <div class="bemestar-bloco">
+          <h3>😴 Sono</h3>
+          <label class="campo">Horas dormidas
+            <input id="sono-horas" type="number" min="0" max="24" step="0.5" inputmode="decimal" placeholder="Ex.: 7.5">
+          </label>
+          <div class="escala-rotulo">Qualidade</div>
+          <div class="escala" data-escala="sonoQualidade"></div>
+        </div>
+        <div class="bemestar-bloco">
+          <h3>💧 Água</h3>
+          <div class="agua">
+            <button type="button" class="botao" id="agua-menos" aria-label="Tirar um copo">−</button>
+            <div class="agua-numero"><strong id="agua-copos">0</strong> <span id="agua-meta">de 8 copos</span></div>
+            <button type="button" class="botao primario" id="agua-mais" aria-label="Mais um copo">+ copo</button>
+          </div>
+          <div class="copos" id="copos" aria-hidden="true"></div>
+        </div>
+        <div class="bemestar-bloco largo-2">
+          <h3>🙂 Humor, energia e estresse</h3>
+          <div class="checkin" data-checkin-raiz></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="saude-grade">
+      <section class="painel" aria-labelledby="titulo-sono">
+        <div class="painel-cabecalho"><h2 id="titulo-sono">Sono</h2><span class="mes-atual" id="sono-resumo"></span></div>
+        <div class="barras-dias" id="sono-grafico" role="img"></div>
+        <div class="legenda-saude" aria-hidden="true"><span class="marca bateu"></span>Dormiu a meta <span class="marca nao-bateu"></span>Abaixo <span class="marca linha"></span>Meta</div>
+      </section>
+      <section class="painel" aria-labelledby="titulo-agua">
+        <div class="painel-cabecalho"><h2 id="titulo-agua">Hidratação</h2><span class="mes-atual" id="agua-resumo"></span></div>
+        <div class="barras-dias" id="agua-grafico" role="img"></div>
+        <div class="legenda-saude" aria-hidden="true"><span class="marca bateu"></span>Bateu a meta <span class="marca nao-bateu"></span>Abaixo <span class="marca linha"></span>Meta</div>
+      </section>
+    </div>
+
+    <section class="painel" aria-labelledby="titulo-humor">
+      <div class="painel-cabecalho"><h2 id="titulo-humor">Humor, energia e estresse</h2><span class="mes-atual">últimos 14 dias</span></div>
+      <div class="linhas-humor" id="humor-grafico"></div>
+    </section>
+
+    <div class="saude-grade">
+      <section class="painel" aria-labelledby="titulo-autocuidado">
+        <div class="painel-cabecalho"><h2 id="titulo-autocuidado">Autocuidado</h2><a class="mes-atual" href="#rotina-habitos">todos os hábitos</a></div>
+        <p class="estado" id="autocuidado-vazio">Nenhum hábito de autocuidado ainda. Ex.: meditar, alongar, ler antes de dormir, skincare.</p>
+        <ul class="habitos-hoje" id="autocuidado"></ul>
+        <form class="linha-form" id="autocuidado-form" novalidate>
+          <input name="nome" type="text" maxlength="60" placeholder="Novo hábito de autocuidado" aria-label="Novo hábito de autocuidado">
+          <select name="vezes" aria-label="Vezes por semana">
+            <option value="7">todo dia</option><option value="5">5× semana</option><option value="3">3× semana</option><option value="2">2× semana</option><option value="1">1× semana</option>
+          </select>
+          <button type="submit" class="botao">Adicionar</button>
+        </form>
+      </section>
+      <section class="painel" aria-labelledby="titulo-consultas">
+        <div class="painel-cabecalho"><h2 id="titulo-consultas">Consultas e prevenção</h2></div>
+        <p class="estado" id="consultas-vazio">Nenhuma consulta ou exame marcado. Cadastre também os preventivos que se repetem (dentista a cada 6 meses, check-up anual).</p>
+        <ul class="compromissos" id="consultas"></ul>
+        <button type="button" class="botao adicionar" id="consulta-adicionar">+ Consulta ou exame</button>
+      </section>
+    </div>
+
+    <section class="painel" aria-labelledby="titulo-metas-bem">
+      <div class="painel-cabecalho"><h2 id="titulo-metas-bem">Metas de bem-estar</h2></div>
+      <form class="formulario" id="bemestar-metas-form" novalidate>
+        <label class="campo">Copos de água por dia
+          <input id="meta-agua" name="metaAgua" type="number" min="1" max="30" step="1" inputmode="numeric">
+        </label>
+        <label class="campo">Horas de sono por noite
+          <input id="meta-sono" name="metaSono" type="number" min="4" max="12" step="0.5" inputmode="decimal">
+        </label>
+        <div class="acoes"><button type="submit" class="botao primario">Salvar metas</button></div>
+      </form>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-rotina" data-vista="rotina" hidden>
+    <section class="painel" aria-labelledby="titulo-tarefas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-tarefas">Tarefas</h2>
+        <span class="mes-atual" id="tarefas-hoje"></span>
+      </div>
+      <div class="shark-numeros" id="tarefas-numeros"></div>
+      <form class="tarefa-rapida" id="afazer-form" novalidate>
+        <input id="afazer-titulo" name="titulo" type="text" maxlength="140" placeholder="O que precisa ser feito?" aria-label="Nova tarefa">
+        <select id="afazer-prioridade" name="prioridade" aria-label="Prioridade">
+          <option value="alta">🔴 Alta</option><option value="media" selected>🟡 Média</option><option value="baixa">⚪ Baixa</option>
+        </select>
+        <input id="afazer-prazo" name="prazo" type="date" aria-label="Prazo">
+        <select id="afazer-projeto" name="projetoId" aria-label="Projeto"></select>
+        <button type="submit" class="botao primario" id="afazer-salvar">Adicionar</button>
+        <button type="button" class="botao" id="afazer-cancelar" hidden>Cancelar</button>
+      </form>
+      <p class="aviso" id="rotina-aviso" role="alert" hidden></p>
+      <div class="filtro-clientes" id="afazeres-filtro" role="group" aria-label="Filtrar"></div>
+      <p class="estado" id="afazeres-vazio">Nenhuma tarefa pendente. Anote acima o que precisa ser feito, com prioridade e prazo.</p>
+      <div class="grupos-tarefas" id="afazeres"></div>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-rotina" data-vista="rotina-agenda" hidden>
+    <section class="painel" aria-labelledby="titulo-agenda-vida">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-agenda-vida">Agenda</h2>
+        <div class="navegar-mes">
+          <button type="button" class="botao mini" id="agenda-vida-anterior" aria-label="Mês anterior">‹</button>
+          <span class="mes-atual" id="agenda-vida-mes"></span>
+          <button type="button" class="botao mini" id="agenda-vida-proximo" aria-label="Próximo mês">›</button>
+        </div>
+      </div>
+      <div class="legenda-agenda" aria-hidden="true">
+        <span><i class="tipo-compromisso"></i>Compromissos</span><span><i class="tipo-consulta"></i>Saúde</span><span><i class="tipo-tarefa"></i>Tarefas</span><span><i class="tipo-conta"></i>Contas</span><span><i class="tipo-shark"></i>SHARK</span><span><i class="tipo-estudo"></i>Estudos</span>
+      </div>
+      <div class="agenda" id="agenda-vida"></div>
+    </section>
+    <section class="painel" aria-labelledby="titulo-proximos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-proximos">Próximos 14 dias</h2>
+      </div>
+      <div class="proximos" id="proximos"></div>
+      <form class="formulario" id="compromisso-form" hidden novalidate>
+        <h3 id="compromisso-form-titulo">Novo compromisso</h3>
+        <label class="campo largo">Título
+          <input id="compromisso-titulo" name="titulo" type="text" maxlength="100" placeholder="Ex.: Reunião com cliente, Dentista">
+        </label>
+        <label class="campo">Tipo
+          <select id="compromisso-tipo" name="tipo">
+            <option value="compromisso">Compromisso</option><option value="consulta">Consulta</option><option value="exame">Exame</option>
+          </select>
+        </label>
+        <label class="campo">Data
+          <input id="compromisso-data" name="data" type="date">
+        </label>
+        <label class="campo">Hora (opcional)
+          <input id="compromisso-hora" name="hora" type="time">
+        </label>
+        <label class="campo">Local (opcional)
+          <input id="compromisso-local" name="local" type="text" maxlength="100">
+        </label>
+        <label class="campo">Repetir a cada (meses, opcional)
+          <input id="compromisso-repetir" name="recorrenciaMeses" type="number" min="1" max="60" step="1" inputmode="numeric" placeholder="Ex.: 6 para dentista">
+        </label>
+        <label class="campo largo">Anotação (opcional)
+          <input id="compromisso-nota" name="nota" type="text" maxlength="300">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="compromisso-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar</button>
+        </div>
+      </form>
+      <p class="aviso" id="compromisso-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="compromisso-adicionar">+ Novo compromisso</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-rotina" data-vista="rotina-projetos" hidden>
+    <p class="estado" id="projetos-vazio">Nenhum projeto ainda. Um projeto junta várias tarefas com um objetivo — o próximo passo aparece sempre no topo.</p>
+    <div class="projetos" id="projetos"></div>
+    <section class="painel">
+      <form class="formulario" id="projeto-form" hidden novalidate>
+        <h3 id="projeto-form-titulo">Novo projeto</h3>
+        <label class="campo largo">Nome
+          <input id="projeto-nome" name="nome" type="text" maxlength="80" placeholder="Ex.: Portfólio novo, Mudança de casa">
+        </label>
+        <label class="campo largo">Objetivo (opcional)
+          <input id="projeto-objetivo" name="objetivo" type="text" maxlength="300">
+        </label>
+        <label class="campo">Área da vida
+          <select id="projeto-area" name="area"></select>
+        </label>
+        <label class="campo">Prazo (opcional)
+          <input id="projeto-prazo" name="prazo" type="date">
+        </label>
+        <label class="campo largo" id="projeto-passos-rotulo">Primeiros passos (um por linha, opcional)
+          <textarea id="projeto-passos" name="passos" rows="4" placeholder="Definir escopo&#10;Separar referências&#10;Montar primeira versão"></textarea>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="projeto-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar projeto</button>
+        </div>
+      </form>
+      <button type="button" class="botao adicionar" id="projeto-adicionar">+ Novo projeto</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-rotina" data-vista="rotina-habitos" hidden>
+    <section class="painel" aria-labelledby="titulo-habitos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-habitos">Hábitos</h2>
+        <span class="mes-atual" id="habitos-semana"></span>
+      </div>
+      <div class="shark-numeros" id="habitos-numeros"></div>
+      <p class="estado" id="habitos-vazio">Nenhum hábito ainda. Comece com um ou dois — beber água, ler 10 páginas, caminhar.</p>
+      <div class="tabela-rolavel"><table class="grade-habitos" id="grade-habitos"></table></div>
+      <form class="formulario" id="habito-form" hidden novalidate>
+        <h3 id="habito-form-titulo">Novo hábito</h3>
+        <label class="campo">Nome
+          <input id="habito-nome" name="nome" type="text" maxlength="60" placeholder="Ex.: Ler 10 páginas">
+        </label>
+        <label class="campo">Ícone (opcional)
+          <input id="habito-icone" name="icone" type="text" maxlength="8" placeholder="📖">
+        </label>
+        <label class="campo">Frequência
+          <select id="habito-vezes" name="vezesSemana">
+            <option value="7">Todo dia</option><option value="6">6× por semana</option><option value="5">5× por semana</option><option value="4">4× por semana</option><option value="3">3× por semana</option><option value="2">2× por semana</option><option value="1">1× por semana</option>
+          </select>
+        </label>
+        <label class="campo">Área da vida
+          <select id="habito-area" name="area"></select>
+        </label>
+        <label class="campo-check largo"><input id="habito-autocuidado" name="autocuidado" type="checkbox"> É autocuidado (aparece em Saúde › Bem-estar)</label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="habito-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar hábito</button>
+        </div>
+      </form>
+      <button type="button" class="botao adicionar" id="habito-adicionar">+ Novo hábito</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-rotina" data-vista="rotina-tempo" hidden>
+    <section class="painel" aria-labelledby="titulo-tempo">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-tempo">Tempo dedicado</h2>
+        <span class="mes-atual" id="tempo-semana"></span>
+      </div>
+      <div class="tempo-foco" id="tempo-foco"></div>
+      <div class="tempo-areas" id="tempo-areas" role="img"></div>
+      <p class="dica-saude">Estudos (sessões) e exercícios (Saúde) entram sozinhos. Registre aqui o resto do seu tempo.</p>
+    </section>
+    <section class="painel" aria-labelledby="titulo-registrar-tempo">
+      <div class="painel-cabecalho"><h2 id="titulo-registrar-tempo">Registrar tempo</h2></div>
+      <form class="formulario" id="tempo-form" novalidate>
+        <label class="campo">Área da vida
+          <select id="tempo-area" name="area"></select>
+        </label>
+        <label class="campo">Minutos
+          <input id="tempo-minutos" name="minutos" type="number" min="1" max="1440" step="1" inputmode="numeric">
+        </label>
+        <div class="chips-tempo largo" role="group" aria-label="Duração rápida">
+          <button type="button" class="chip-filtro" data-minutos="15">15 min</button><button type="button" class="chip-filtro" data-minutos="30">30 min</button><button type="button" class="chip-filtro" data-minutos="60">1h</button><button type="button" class="chip-filtro" data-minutos="90">1h30</button><button type="button" class="chip-filtro" data-minutos="120">2h</button>
+        </div>
+        <label class="campo">Data
+          <input id="tempo-data" name="data" type="date">
+        </label>
+        <label class="campo">O que fez (opcional)
+          <input id="tempo-descricao" name="descricao" type="text" maxlength="120" placeholder="Ex.: jantar com a família">
+        </label>
+        <div class="acoes largo"><button type="submit" class="botao primario">Registrar</button></div>
+      </form>
+      <p class="aviso" id="tempo-aviso" role="alert" hidden></p>
+      <ul class="blocos-tempo" id="blocos-tempo"></ul>
+    </section>
+  </main>
+
+  <div class="saude-toast" id="vida-toast" role="status" aria-live="polite" hidden></div>
+
   <main class="vista-faturas" data-vista="metas" hidden>
     <section class="painel" aria-labelledby="titulo-metas">
       <div class="painel-cabecalho">
@@ -888,5 +1231,8 @@
   <script src="estudos.js"></script>
   <script src="saude.js"></script>
   <script src="shark.js"></script>
+  <script src="vida.js"></script>
+  <script src="bemestar.js"></script>
+  <script src="rotina.js"></script>
 </body>
 </html>

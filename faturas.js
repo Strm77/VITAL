@@ -625,7 +625,8 @@ async function salvarImportacao(evento) {
     cancelarImportacao();
     estadoLeitura(`Fatura de ${nomeDoMes(mes)} salva.`);
     renderizarFaturas();
-  } catch {
+  } catch (e) {
+    console.error(e);
     avisoLeitura("Não foi possível salvar a fatura. Verifique sua conexão e tente de novo.");
   } finally {
     botao.disabled = false;

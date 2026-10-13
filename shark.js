@@ -1027,6 +1027,7 @@ async function salvarReceb(e) {
 /* ---------- Render geral ---------- */
 
 function renderizarShark() {
+  avisarDados();
   if (!document.getElementById("shark-numeros")) return;
   renderizarTopoShark();
   renderizarCargaShark();

@@ -163,9 +163,9 @@ test("Carga por semana: limite baixo avisa a semana pesada e sugere adiantar", a
 test("Agenda do mês mostra as etapas e as artes de cada dia", async () => {
   await ir("shark-calendario");
   assert.match(await texto(pagina, "#agenda-mes"), /Outubro de 2026/);
-  const dia18 = pagina.locator(".agenda-dia:not(.fora)", { has: pagina.locator(".agenda-num", { hasText: /^18$/ }) });
+  const dia18 = pagina.locator("#agenda .agenda-dia:not(.fora)", { has: pagina.locator(".agenda-num", { hasText: /^18$/ }) });
   assert.match(await dia18.textContent(), /Etapa Goiânia/);
-  const dia13 = pagina.locator(".agenda-dia:not(.fora)", { has: pagina.locator(".agenda-num", { hasText: /^13$/ }) });
+  const dia13 = pagina.locator("#agenda .agenda-dia:not(.fora)", { has: pagina.locator(".agenda-num", { hasText: /^13$/ }) });
   assert.match(await dia13.textContent(), /1 arte/);
   await pagina.click("#agenda-proximo");
   assert.match(await texto(pagina, "#agenda-mes"), /Novembro de 2026/);

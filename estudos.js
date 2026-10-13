@@ -119,6 +119,7 @@ function renderizarResumoEstudos() {
 /* ---------- Planos ---------- */
 
 function renderizarPlanos() {
+  avisarDados();
   const area = document.getElementById("planos");
   if (!area) return;
   renderizarResumoEstudos();

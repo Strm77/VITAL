@@ -119,6 +119,7 @@ function renderizarMetasPainel(dados) {
 }
 
 function renderizarMetas() {
+  avisarDados();
   const area = document.getElementById("metas-lista");
   if (!area) return;
   const dados = dadosMetas();

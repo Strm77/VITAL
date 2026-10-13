@@ -18,7 +18,7 @@ export async function abrirNavegador() {
 }
 
 /* Abre o painel com os dados zerados (ou com o estado de outro teste, se `manterDados`). */
-export async function abrirPainel(contexto, { hash = "", manterDados = false, largura = 1440 } = {}) {
+export async function abrirPainel(contexto, { hash = "#painel", manterDados = false, largura = 1440 } = {}) {
   const pagina = await contexto.newPage({ viewport: { width: largura, height: 1000 } });
   pagina.erros = [];
   pagina.on("pageerror", (e) => pagina.erros.push(e.message));

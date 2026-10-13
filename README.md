@@ -90,6 +90,39 @@ comemoração a cada acerto, atalhos para repetir hoje o que você registra semp
 com edição. As metas (treinos e minutos por semana, % de acertos na alimentação) ficam no fim
 da página. No Supabase os dados ficam no schema `saude` (`registros` e `objetivos`, com RLS).
 
+## Visão geral (página inicial)
+
+O site abre na **Visão geral**, o centro de comando que junta todas as áreas:
+
+- **Como estou me sentindo?** humor (5 rostos), energia, estresse e uma frase do dia, com o
+  humor dos últimos 14 dias. É o mesmo check-in que aparece em Saúde › Bem-estar.
+- **Minhas 3 prioridades da semana**, com o que ficou da semana passada para trazer.
+- **O que merece atenção hoje**: compromissos e consultas, tarefas atrasadas e de hoje,
+  hábitos pendentes, contas vencendo, artes do SHARK, treino necessário para a meta da semana,
+  estudo que falta na semana. Os urgentes vêm primeiro.
+- **Metas em andamento**: caixinhas, planos de estudo, treinos, pacotes do SHARK e projetos.
+- **Satisfação com a vida**: a roda da vida (0 a 10 em 8 áreas) avaliada todo mês, com a média,
+  a comparação com o mês anterior e as áreas de foco (menores notas).
+
+## Saúde › Bem-estar
+
+Sono (horas e qualidade), água (copos, com meta), humor/energia/estresse, gráficos dos
+últimos 14 dias, hábitos de **autocuidado** e **consultas e exames**. Uma consulta com
+repetição (ex.: dentista a cada 6 meses) já agenda a próxima quando é marcada como feita.
+
+## Rotina
+
+- **Tarefas** com prioridade (alta, média, baixa), prazo e projeto, agrupadas em atrasadas,
+  hoje, esta semana, mais adiante e sem prazo.
+- **Agenda**: mês com tudo junto (compromissos, consultas, tarefas, contas, artes e etapas do
+  SHARK, prazos de estudo) e a lista dos próximos 14 dias.
+- **Projetos** com progresso e o **próximo passo** sempre em destaque.
+- **Hábitos**: grade da semana, frequência (todo dia ou N vezes por semana) e sequências.
+- **Tempo**: tempo por área da vida na semana (estudos e exercícios entram sozinhos),
+  comparado com as áreas de foco da roda da vida.
+
+No Supabase esses dados ficam no schema `vida`.
+
 ## SHARK (design)
 
 A aba **SHARK** é o gerenciador de tarefas do estúdio de design, com quatro subpáginas:
