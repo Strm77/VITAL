@@ -17,6 +17,13 @@ e `pagamentos` — veja `supabase/migrations/`).
 - `config.js` tem a URL do projeto e a chave publicável (pode ficar no navegador).
 - A Vercel publica a cada push: `vercel.json` copia os arquivos do site para `public/`.
 
+### Despertador do banco
+
+No plano gratuito, o Supabase pausa o projeto depois de ~7 dias sem acesso. Para evitar isso,
+a Vercel chama todo dia (cron em `vercel.json`, 11:17 UTC) a rota `api/manter-ativo.js`, que
+executa a função `public.manter_ativo()` no banco (ela só devolve a hora, sem ler dados).
+Se mesmo assim o projeto for pausado, basta restaurá-lo no painel do Supabase.
+
 ## Como usar localmente
 
 1. Abra o `index.html` no navegador (não precisa instalar nada). Aberto como arquivo,
