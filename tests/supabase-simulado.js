@@ -117,7 +117,24 @@
         schema: (nome) => { window.__schemas = [...(window.__schemas || []), nome]; return { from: de }; },
         channel: () => ({ on() { return this; }, subscribe() { return this; } }),
         auth: {
-          getSession: async () => ({ data: { session: usuario() ? { user: usuario() } : null } }),
+          getSession: async () => {
+            // Imita a volta pelo link de recuperação: o cliente cria a sessão e avisa PASSWORD_RECOVERY.
+            if (location.hash.includes("type=recovery") && location.hash.includes("access_token=mock")) {
+              sessionStorage.setItem("mock-sessao", JSON.stringify({ id: "u1", email: "eu@exemplo.com" }));
+              setTimeout(() => ouvintes.forEach((f) => f("PASSWORD_RECOVERY")), 0);
+            }
+            return { data: { session: usuario() ? { user: usuario() } : null } };
+          },
+          resetPasswordForEmail: async (email, opcoes) => {
+            window.__recuperacao = { email, opcoes };
+            return email.startsWith("rapido") ? { data: {}, error: { message: "For security purposes, you can only request this after 52 seconds." } } : { data: {}, error: null };
+          },
+          updateUser: async ({ password }) => {
+            if (!usuario()) return { data: {}, error: { message: "Auth session missing!" } };
+            if (password === "senha-certa") return { data: {}, error: { message: "New password should be different from the old password." } };
+            window.__novaSenha = password;
+            return { data: { user: usuario() }, error: null };
+          },
           signInWithPassword: async ({ email, password }) => {
             if (password !== "senha-certa") return { data: {}, error: { message: "Invalid login credentials" } };
             const user = { id: "u1", email };

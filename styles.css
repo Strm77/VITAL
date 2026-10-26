@@ -745,6 +745,10 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .login-sub { margin: 0 0 4px; font-size: 13px; color: var(--texto-suave); }
 .cartao-login .botao { padding: 10px 14px; font-size: 14px; }
 .aviso.ok { color: var(--progresso); }
+.link-login { all: unset; cursor: pointer; font-size: 13px; color: var(--texto-suave); text-align: center; text-decoration: underline; padding: 2px; }
+.link-login:hover { color: var(--texto); }
+.link-login:focus-visible { outline: 2px solid var(--progresso); outline-offset: 2px; border-radius: 4px; }
+.link-login:disabled { opacity: 0.5; cursor: default; }
 .topo { flex-wrap: wrap; }
 .conta-usuario { margin-left: auto; display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--texto-suave); }
 

@@ -28,7 +28,20 @@
       </label>
       <p class="aviso" id="login-aviso" role="alert" hidden></p>
       <button type="submit" class="botao primario" data-acao="entrar">Entrar</button>
+      <button type="button" class="link-login" id="esqueci-senha">Esqueci minha senha</button>
       <button type="submit" class="botao" data-acao="criar">Primeiro acesso: criar minha conta</button>
+    </form>
+    <form class="cartao-login" id="form-nova-senha" hidden novalidate>
+      <h1>V.I.T.A.L</h1>
+      <p class="login-sub">Crie uma senha nova para a sua conta.</p>
+      <label class="campo">Nova senha
+        <input id="nova-senha" name="senha" type="password" autocomplete="new-password" minlength="6" required>
+      </label>
+      <label class="campo">Repita a nova senha
+        <input id="nova-senha-2" name="senha2" type="password" autocomplete="new-password" minlength="6" required>
+      </label>
+      <p class="aviso" id="nova-senha-aviso" role="alert" hidden></p>
+      <button type="submit" class="botao primario">Salvar nova senha</button>
     </form>
   </div>
 

@@ -38,7 +38,7 @@ test("Sem login, só a tela de entrar aparece", async () => {
   await pagina.waitForSelector("#tela-login:not([hidden])");
   assert.equal(await pagina.isVisible("#lista-dividas"), false);
   assert.equal(await pagina.isVisible(".timeline"), false);
-  assert.deepEqual(await pagina.evaluate(() => window.__opcoes), { db: { schema: "financeiro" } });
+  assert.deepEqual(await pagina.evaluate(() => window.__opcoes), { db: { schema: "financeiro" }, auth: { flowType: "implicit", detectSessionInUrl: true } });
 });
 
 test("Senha errada e cadastro de e-mail não permitido mostram mensagem clara", async () => {
@@ -49,6 +49,63 @@ test("Senha errada e cadastro de e-mail não permitido mostram mensagem clara", 
   assert.equal(await pagina.textContent("#login-aviso"), "E-mail ou senha incorretos.");
   await pagina.click("[data-acao=criar]");
   await pagina.waitForFunction(() => document.querySelector("#login-aviso").textContent.includes("não tem acesso"));
+});
+
+test("Esqueci minha senha: pede o e-mail e envia o link de volta para o site", async () => {
+  await pagina.fill("#login-email", "");
+  await pagina.click("#esqueci-senha");
+  assert.match(await pagina.textContent("#login-aviso"), /Digite seu e-mail acima/);
+  await pagina.fill("#login-email", "eu@exemplo.com");
+  await pagina.click("#esqueci-senha");
+  await pagina.waitForFunction(() => document.querySelector("#login-aviso").textContent.includes("enviamos um link"));
+  const { email, opcoes } = await pagina.evaluate(() => window.__recuperacao);
+  assert.equal(email, "eu@exemplo.com");
+  assert.equal(opcoes.redirectTo, endereco, "o link volta para o próprio site");
+  assert.match(await pagina.getAttribute("#login-aviso", "class"), /ok/);
+  // Pedir de novo logo em seguida: o Supabase pede para esperar
+  await pagina.fill("#login-email", "rapido@exemplo.com");
+  await pagina.click("#esqueci-senha");
+  await pagina.waitForFunction(() => document.querySelector("#login-aviso").textContent.includes("Aguarde um minuto"));
+});
+
+test("Link expirado mostra como pedir outro", async () => {
+  await pagina.goto("about:blank");
+  await pagina.goto(endereco + "#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired");
+  await pagina.waitForSelector("#login-aviso:not([hidden])");
+  assert.match(await pagina.textContent("#login-aviso"), /expirou ou já foi usado/);
+  assert.equal(await pagina.evaluate(() => location.hash), "", "endereço limpo");
+});
+
+test("Voltando pelo link: cria a senha nova e entra no painel", async () => {
+  await pagina.goto("about:blank");
+  await pagina.goto(endereco + "#access_token=mock&expires_in=3600&refresh_token=x&token_type=bearer&type=recovery");
+  await pagina.waitForSelector("#form-nova-senha:not([hidden])");
+  assert.equal(await pagina.isVisible("#form-login"), false);
+  assert.equal(await pagina.evaluate(() => location.hash), "", "os dados do link saem do endereço");
+  await pagina.fill("#nova-senha", "abc");
+  await pagina.fill("#nova-senha-2", "abc");
+  await pagina.click("#form-nova-senha [type=submit]");
+  assert.match(await pagina.textContent("#nova-senha-aviso"), /pelo menos 6/);
+  await pagina.fill("#nova-senha", "minha-nova-1");
+  await pagina.fill("#nova-senha-2", "minha-nova-2");
+  await pagina.click("#form-nova-senha [type=submit]");
+  assert.match(await pagina.textContent("#nova-senha-aviso"), /não são iguais/);
+  await pagina.fill("#nova-senha", "senha-certa");
+  await pagina.fill("#nova-senha-2", "senha-certa");
+  await pagina.click("#form-nova-senha [type=submit]");
+  await pagina.waitForFunction(() => document.querySelector("#nova-senha-aviso").textContent.includes("diferente da anterior"));
+  await pagina.fill("#nova-senha", "minha-nova-1");
+  await pagina.fill("#nova-senha-2", "minha-nova-1");
+  await pagina.click("#form-nova-senha [type=submit]");
+  await pagina.waitForSelector("#tela-login", { state: "hidden" });
+  assert.equal(await pagina.evaluate(() => window.__novaSenha), "minha-nova-1");
+  assert.equal(await pagina.textContent("#usuario-email"), "eu@exemplo.com");
+  await pagina.waitForSelector('main[data-vista="inicio"]:not([hidden])');
+  // Sai para os próximos testes começarem da tela de login
+  await Promise.all([pagina.waitForEvent("load"), pagina.click("#sair")]);
+  await pagina.waitForSelector("#tela-login:not([hidden])");
+  assert.equal(await pagina.isVisible("#form-login"), true);
+  await pagina.fill("#login-email", "eu@exemplo.com");
 });
 
 test("Login certo abre a Visão geral e o painel vazio (sem os exemplos)", async () => {

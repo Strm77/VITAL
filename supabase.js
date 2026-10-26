@@ -3,11 +3,19 @@
  * Aberto como arquivo local (ou com ?local na URL), o painel continua usando o localStorage.
  */
 
+/* Volta do link de "Esqueci minha senha": o Supabase manda os dados no endereço (#...type=recovery).
+ * Lido antes de criar o cliente, que limpa o endereço ao processar o link. */
+const retornoAuth = (() => {
+  const p = new URLSearchParams(location.hash.slice(1));
+  return { recuperacao: p.get("type") === "recovery", erro: p.get("error_code") || p.get("error") || null };
+})();
+
 const supa = (() => {
   const cfg = window.VITAL_SUPABASE;
   const local = location.protocol === "file:" || new URLSearchParams(location.search).has("local");
   if (local || !cfg || !window.supabase) return null;
-  return window.supabase.createClient(cfg.url, cfg.chave, { db: { schema: "financeiro" } });
+  // "implicit": o link do e-mail funciona mesmo aberto em outro aparelho ou navegador.
+  return window.supabase.createClient(cfg.url, cfg.chave, { db: { schema: "financeiro" }, auth: { flowType: "implicit", detectSessionInUrl: true } });
 })();
 
 /* ---------- Login ---------- */
@@ -17,10 +25,13 @@ const MENSAGENS_AUTH = {
   "Email not confirmed": "Confirme seu e-mail pelo link que enviamos antes de entrar.",
   "User already registered": "Esta conta já existe. Use “Entrar”.",
   "Password should be at least 6 characters.": "A senha precisa ter pelo menos 6 caracteres.",
+  "New password should be different from the old password.": "A senha nova precisa ser diferente da anterior.",
+  "Email rate limit exceeded": "Muitos e-mails enviados agora. Tente de novo daqui a uma hora.",
 };
 const traduzirErro = (e) => {
   const msg = e?.message || "";
   if (/cadastro não permitido/i.test(msg) || /Database error saving new user/i.test(msg)) return "Este e-mail não tem acesso ao V.I.T.A.L.";
+  if (/only request this after/i.test(msg)) return "Aguarde um minuto antes de pedir outro link.";
   return MENSAGENS_AUTH[msg] || "Não foi possível entrar agora. Tente de novo.";
 };
 
@@ -44,12 +55,76 @@ const sessaoPronta = !supa ? Promise.resolve(null) : new Promise((resolver) => {
     resolver(sessao.user);
   };
 
+  // Senha nova: aparece quando a pessoa volta pelo link de recuperação.
+  const formNova = document.getElementById("form-nova-senha");
+  const avisoNova = document.getElementById("nova-senha-aviso");
+  let recuperando = retornoAuth.recuperacao;
+  const limparEndereco = () => history.replaceState(null, "", location.pathname + location.search);
+  const mostrarNovaSenha = () => {
+    recuperando = true;
+    limparEndereco();
+    document.body.classList.add("sem-sessao");
+    tela.hidden = false;
+    form.hidden = true;
+    formNova.hidden = false;
+    document.getElementById("nova-senha").focus();
+  };
+
   supa.auth.getSession().then(({ data }) => {
-    if (data.session) entrar(data.session);
+    if (data.session && recuperando) mostrarNovaSenha();
+    else if (data.session) entrar(data.session);
     else {
       document.body.classList.add("sem-sessao");
       tela.hidden = false;
+      if (retornoAuth.erro) {
+        limparEndereco();
+        mostrarAviso("Este link expirou ou já foi usado. Clique em “Esqueci minha senha” para receber outro.");
+      }
       document.getElementById("login-email").focus();
+    }
+  });
+
+  document.getElementById("esqueci-senha").addEventListener("click", async (e) => {
+    const email = form.elements.email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      mostrarAviso("Digite seu e-mail acima e clique de novo em “Esqueci minha senha”.");
+      return form.elements.email.focus();
+    }
+    e.target.disabled = true;
+    try {
+      const { error } = await supa.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      if (error) throw error;
+      // Mesma resposta para qualquer e-mail: não revela quem tem conta.
+      mostrarAviso("Se este e-mail tiver acesso, enviamos um link para criar uma senha nova. Confira a caixa de entrada e o spam.", true);
+    } catch (erro) {
+      mostrarAviso(traduzirErro(erro));
+    } finally {
+      e.target.disabled = false;
+    }
+  });
+
+  formNova.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const senha = formNova.elements.senha.value;
+    const mostrar = (texto, ok) => { avisoNova.textContent = texto; avisoNova.hidden = !texto; avisoNova.classList.toggle("ok", !!ok); };
+    if (senha.length < 6) return mostrar("A senha precisa ter pelo menos 6 caracteres.");
+    if (senha !== formNova.elements.senha2.value) return mostrar("As duas senhas não são iguais.");
+    const botao = formNova.querySelector("[type=submit]");
+    botao.disabled = true;
+    try {
+      const { error } = await supa.auth.updateUser({ password: senha });
+      if (error) throw error;
+      const { data } = await supa.auth.getSession();
+      recuperando = false;
+      formNova.hidden = true;
+      form.hidden = false;
+      formNova.reset();
+      mostrarAviso("");
+      entrar(data.session);
+    } catch (erro) {
+      mostrar(erro?.message && /session/i.test(erro.message) ? "O link expirou. Volte e peça outro em “Esqueci minha senha”." : traduzirErro(erro));
+    } finally {
+      botao.disabled = false;
     }
   });
 
@@ -86,6 +161,7 @@ const sessaoPronta = !supa ? Promise.resolve(null) : new Promise((resolver) => {
   });
   supa.auth.onAuthStateChange((evento) => {
     if (evento === "SIGNED_OUT" && usuarioAtual) location.reload();
+    if (evento === "PASSWORD_RECOVERY" && !usuarioAtual) mostrarNovaSenha();
   });
 });
 
