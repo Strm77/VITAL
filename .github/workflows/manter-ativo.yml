@@ -1,0 +1,24 @@
+# Despertador do banco (reserva do cron da Vercel): chama o Supabase todo dia para o
+# projeto não ser pausado por inatividade no plano gratuito. Usa a chave publicável,
+# que já é pública (config.js), e a função public.manter_ativo(), que só devolve a hora.
+name: Manter o banco ativo
+
+on:
+  schedule:
+    - cron: "41 10 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  chamar-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Chamar public.manter_ativo()
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 20 \
+            -X POST "https://dswjfjziqaufnvxcikac.supabase.co/rest/v1/rpc/manter_ativo" \
+            -H "apikey: sb_publishable_L_mYBTPXL2gNgFmc1_UnHA_k06Tc2D4" \
+            -H "Content-Type: application/json" \
+            -d '{}'
