@@ -425,6 +425,9 @@ main { padding: 32px; }
 .status.atrasada { color: var(--perigo); }
 
 .campo select {
+  /* Opção longa (ex.: nome de dívida no #pag-divida) não pode alargar o campo além da coluna. */
+  min-width: 0;
+  max-width: 100%;
   font: inherit;
   font-size: 14px;
   padding: 8px 10px;
