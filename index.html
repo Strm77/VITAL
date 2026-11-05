@@ -1228,6 +1228,7 @@
         <label class="campo">Cartão
           <select id="previa-cartao" name="cartao"></select>
         </label>
+        <p class="dica largo aviso-cartao" id="previa-cartao-aviso" role="alert" hidden></p>
         <label class="campo" id="previa-novo-rotulo">Nome do novo cartão
           <input id="previa-novo" name="novo" type="text" maxlength="40" placeholder="Ex.: Nubank">
         </label>
@@ -1245,6 +1246,13 @@
           <span class="dica">Lido do PDF quando ele informa o total. Confira com o valor da sua fatura.</span>
         </label>
         <div class="largo previa-resumo" id="previa-resumo"></div>
+        <div class="largo previa-lancamentos" id="previa-lancamentos"></div>
+        <label class="campo-check largo previa-revisao" id="previa-revisao" hidden><input type="checkbox" name="revisado"> <span></span></label>
+        <div class="largo previa-comparacao" id="previa-comparacao" hidden>
+          <div class="comparacao-texto"></div>
+          <label class="campo-check"><input type="checkbox" name="substituir"> Substituir o detalhamento salvo por esta leitura</label>
+        </div>
+        <div class="largo previa-conta" id="previa-conta"></div>
         <details class="largo nao-lidas diagnostico" id="previa-diagnostico" hidden>
           <summary></summary>
           <ul class="paginas"></ul>
