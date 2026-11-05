@@ -59,6 +59,154 @@ function contaPareceParcela(c, d) {
   return !!na && !!nb && (na.includes(nb) || nb.includes(na));
 }
 
+/* ---------- Histórico das contas (V2-08) ----------
+ * Cada mudança feita por esta versão em diante vira um evento numa tabela só de inserção
+ * (financeiro.historico_contas): criação, importação, vinculação, edição, reimportação,
+ * pagamento e exclusão, com os campos antes/depois, a hora e a origem da ação.
+ *   - O evento só é registrado DEPOIS que a ação deu certo (nada de evento de ação que falhou).
+ *   - Se a gravação do evento falhar, ele fica numa fila neste aparelho, com aviso visível, e é
+ *     reenviado com o mesmo id (reenviar não duplica). Nada falha em silêncio.
+ *   - Eventos nunca são alterados nem apagados pelo app. Não há histórico de antes desta versão.
+ */
+const hist = { eventos: [], arm: null, carregado: false, enviando: null, denovo: false, falhaLocal: false, falhaEnvio: false };
+// A fila é de cada usuário: a chave leva o id de quem está logado, e cada evento guarda esse id.
+// Depois de sair e entrar com outra conta, os eventos de um nunca são enviados na conta do outro.
+const usuarioDaFila = () => (typeof usuarioAtual !== "undefined" && usuarioAtual?.id) || "local";
+const chaveFilaHist = () => "vital.historico.pendentes." + usuarioDaFila();
+const CAMPOS_HISTORICO = ["nome", "valor", "mesReferencia", "vencimento", "vencimentoAConfirmar", "pagarEm", "status", "pagoEm",
+  "origemPagamento", "observacao", "tipo", "categoria", "dividaId", "origem", "faturaId", "valorFatura", "valorEditado"];
+const ROTULOS_HIST = { nome: "nome", valor: "valor", mesReferencia: "mês", vencimento: "vencimento", vencimentoAConfirmar: "vencimento a confirmar",
+  pagarEm: "pretendo pagar em", status: "status", pagoEm: "pago em", origemPagamento: "pago com", observacao: "observação", tipo: "tipo",
+  categoria: "categoria", dividaId: "parcela de dívida", origem: "origem", faturaId: "fatura", valorFatura: "valor importado", valorEditado: "valor editado à mão" };
+const EVENTOS_HIST = { criacao: "Criada", importacao: "Criada pela importação", vinculacao: "Vinculada à fatura", edicao: "Alterada",
+  reimportacao: "Fatura reimportada", pagamento: "Marcada como paga", pagamento_desfeito: "Pagamento desfeito", exclusao: "Excluída" };
+const ORIGENS_HIST = { manual: "por você", importacao_fatura: "na importação da fatura", sincronizacao_fatura: "pela sincronização com a fatura" };
+
+const vazioHist = (v) => v === undefined || v === null || v === "";
+function recorteConta(c) {
+  const o = {};
+  for (const k of CAMPOS_HISTORICO) if (c && !vazioHist(c[k])) o[k] = c[k];
+  return o;
+}
+function diferencaConta(antes, depois) {
+  const a = {}, d = {};
+  for (const k of CAMPOS_HISTORICO) {
+    const x = antes?.[k], y = depois?.[k];
+    if (vazioHist(x) && vazioHist(y)) continue;
+    if (JSON.stringify(x ?? null) !== JSON.stringify(y ?? null)) { a[k] = x ?? null; d[k] = y ?? null; }
+  }
+  return { antes: a, depois: d, mudou: Object.keys(d).length > 0 };
+}
+const novoIdEvento = () => "hc-" + (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+
+function lerFilaHist() {
+  try {
+    const fila = JSON.parse(localStorage.getItem(chaveFilaHist()) || "[]");
+    return Array.isArray(fila) ? fila.filter((e) => e && e.id && e.usuarioId === usuarioDaFila()) : [];
+  } catch { return []; }
+}
+/* Devolve false se o aparelho não deixou guardar (modo privado, cota cheia...). */
+function gravarFilaHist(fila) {
+  try { localStorage.setItem(chaveFilaHist(), JSON.stringify(fila)); return true; }
+  catch { return false; }
+}
+function mostrarFilaHist() {
+  const el = document.getElementById("pag-historico-fila");
+  if (!el) return;
+  const n = lerFilaHist().length;
+  const partes = [];
+  if (n) partes.push(`${n} evento${n === 1 ? "" : "s"} do histórico ainda não ${n === 1 ? "foi gravado" : "foram gravados"} no banco; o app tenta de novo sozinho.`);
+  if (hist.falhaLocal) partes.push("Atenção: um evento do histórico não pôde ser gravado no banco nem guardado neste aparelho. A conta foi salva, mas essa mudança ficou sem registro no histórico.");
+  el.hidden = !partes.length;
+  el.textContent = partes.join(" ");
+}
+
+/* Registra um evento depois que a ação já foi salva. Devolve true se gravou no banco. */
+async function registrarEventoConta({ contaId, faturaId, evento, origem, antes, depois, detalhe, mudou }) {
+  if (!contaId || mudou === false) return true;
+  const item = {
+    id: novoIdEvento(), usuarioId: usuarioDaFila(), contaId, faturaId: faturaId || null, evento, origemAcao: origem,
+    antes: antes && Object.keys(antes).length ? antes : null, depois: depois && Object.keys(depois).length ? depois : null,
+    detalhe: detalhe || null, criadoEm: new Date().toISOString(),
+  };
+  // A ação financeira já foi salva. O evento entra primeiro na fila (se a página fechar, não se perde)
+  // e depois é enviado. Se nem a fila local funcionar, tenta enviar direto e avisa se falhar.
+  const naFila = gravarFilaHist([...lerFilaHist(), item]);
+  if (!naFila) {
+    const { id, usuarioId, ...dados } = item;
+    try { await hist.arm.salvar(id, dados); return true; }
+    catch (e) { console.error(e); hist.falhaLocal = true; mostrarFilaHist(); return false; }
+  }
+  mostrarFilaHist();
+  return enviarFilaHist();
+}
+
+async function enviarFilaHist() {
+  if (!hist.arm) return false;
+  // Já enviando: pede mais uma volta ao final e espera ela terminar.
+  if (hist.enviando) { hist.denovo = true; await hist.enviando; return lerFilaHist().length === 0; }
+  let ok = true;
+  let fim;
+  hist.enviando = new Promise((r) => { fim = r; });
+  try {
+    do {
+      hist.denovo = false;
+      // Pega sempre a fila atual: eventos que entram durante o envio também vão.
+      let item;
+      while (ok && (item = lerFilaHist()[0])) {
+        const { id, usuarioId, ...dados } = item;
+        try {
+          await hist.arm.salvar(id, dados);
+          gravarFilaHist(lerFilaHist().filter((x) => x.id !== id));
+        } catch (e) {
+          console.error(e);
+          ok = false;
+        }
+      }
+    } while (ok && hist.denovo);
+  } finally {
+    hist.enviando = null;
+    fim();
+    mostrarFilaHist();
+  }
+  return ok;
+}
+
+function formatarValorHist(k, v) {
+  if (v === null || v === undefined || v === "") return "—";
+  if (k === "valor" || k === "valorFatura") return moeda.format(Number(v));
+  if (k === "vencimento" || k === "pagarEm") return dataBRCurta(String(v).slice(0, 10));
+  if (k === "pagoEm") { const d = new Date(v); return isNaN(d) ? String(v) : `${dataCurta.format(d)} ${horaCurta.format(d)}`; }
+  if (k === "status") return v === "pago" ? "pago" : "pendente";
+  if (k === "origemPagamento") return ORIGENS_PAGAMENTO[v] || v;
+  if (typeof v === "boolean") return v ? "sim" : "não";
+  return String(v);
+}
+
+function renderizarHistoricoConta(contaId) {
+  const caixa = document.getElementById("pag-historico");
+  if (!caixa) return;
+  caixa.hidden = !contaId;
+  if (!contaId) return;
+  const eventos = [...hist.eventos, ...lerFilaHist().map((e) => ({ ...e, pendente: true }))]
+    .filter((e) => e.contaId === contaId)
+    .sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)));
+  const linhaEvento = (e) => {
+    const quando = new Date(e.criadoEm);
+    const campos = Object.keys({ ...(e.depois || {}), ...(e.antes || {}) });
+    const mudancas = e.evento === "edicao" || e.evento === "vinculacao" || e.evento === "pagamento" || e.evento === "pagamento_desfeito"
+      ? campos.map((k) => `${ROTULOS_HIST[k] || k}: ${formatarValorHist(k, e.antes?.[k])} → ${formatarValorHist(k, e.depois?.[k])}`)
+      : [];
+    return `<li${e.pendente ? ' class="pendente"' : ""}><strong>${EVENTOS_HIST[e.evento] || e.evento}</strong> ${ORIGENS_HIST[e.origemAcao] || ""}
+      <span class="sub">${isNaN(quando) ? "" : `${dataCurta.format(quando)} às ${horaCurta.format(quando)}`}${e.pendente ? " · aguardando gravação" : ""}</span>
+      ${mudancas.length ? `<span class="sub">${mudancas.map(escapar).join(" · ")}</span>` : ""}
+      ${e.detalhe ? `<span class="sub">${escapar(e.detalhe)}</span>` : ""}</li>`;
+  };
+  caixa.innerHTML = `<h4>Histórico desta conta</h4>
+    <p class="dica">O histórico começa nesta versão: mudanças feitas antes dela não foram registradas.</p>
+    ${!hist.carregado ? `<p class="estado">Carregando histórico…</p>` : eventos.length ? `<ul class="historico-conta">${eventos.map(linhaEvento).join("")}</ul>` : `<p class="estado">Nenhuma mudança registrada desde esta versão.</p>`}`;
+}
+
 function avisoPag(texto) {
   const aviso = document.getElementById("pag-aviso");
   aviso.textContent = texto;
@@ -151,7 +299,8 @@ function renderizarPagamentos() {
         ? { ...dados, status: "pendente", pagoEm: null }
         : { ...dados, status: "pago", pagoEm: new Date().toISOString() };
       try { await pag.armazenamento.salvar(id, novo); }
-      catch { avisoPag("Não foi possível atualizar o status. Tente de novo."); renderizarPagamentos(); }
+      catch { avisoPag("Não foi possível atualizar o status. Tente de novo."); renderizarPagamentos(); return; }
+      await registrarEventoConta({ contaId: id, faturaId: c.faturaId, evento: novo.status === "pago" ? "pagamento" : "pagamento_desfeito", origem: "manual", ...diferencaConta(c, novo) });
     });
     tr.querySelector("[data-acao=editar]").addEventListener("click", () => abrirFormularioPag(c.id));
     const ex = tr.querySelector("[data-acao=excluir]");
@@ -165,10 +314,11 @@ function renderizarPagamentos() {
       ex.disabled = true;
       try {
         await pag.armazenamento.excluir(c.id);
-        // Conta de fatura excluída à mão: não recriar automaticamente.
-        if (c.origem === "fatura" && typeof marcarFaturaSemConta === "function") await marcarFaturaSemConta(c.faturaId);
-      }
-      catch { ex.disabled = false; avisoPag("Não foi possível excluir. Tente de novo."); }
+      } catch { ex.disabled = false; avisoPag("Não foi possível excluir. Tente de novo."); return; }
+      // Conta de fatura excluída à mão: não recriar automaticamente.
+      if (c.origem === "fatura" && typeof marcarFaturaSemConta === "function") await marcarFaturaSemConta(c.faturaId);
+      // O histórico da conta excluída continua guardado, com o retrato de como ela estava.
+      await registrarEventoConta({ contaId: c.id, faturaId: c.faturaId, evento: "exclusao", origem: "manual", antes: recorteConta(c) });
     });
     corpo.appendChild(tr);
   });
@@ -207,6 +357,7 @@ function abrirFormularioPag(id) {
     origem.textContent = `Criada a partir da fatura do cartão (valor importado: ${moeda.format(Number(conta.valorFatura) || 0)}). ` +
       "Se você mudar o valor, o seu valor é mantido mesmo que a fatura seja importada de novo.";
   }
+  renderizarHistoricoConta(conta ? conta.id : "");
   form.hidden = false;
   document.getElementById("pag-adicionar").hidden = true;
   form.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -255,14 +406,19 @@ async function salvarPag(evento) {
 
   const botao = form.querySelector("[type=submit]");
   botao.disabled = true;
+  let contaId;
   try {
-    await pag.armazenamento.salvar(pag.editandoId || null, conta);
-    fecharFormularioPag();
+    contaId = await pag.armazenamento.salvar(pag.editandoId || null, conta);
   } catch {
     avisoPag("Não foi possível salvar. Verifique sua conexão e tente de novo.");
-  } finally {
     botao.disabled = false;
+    return;
   }
+  fecharFormularioPag();
+  botao.disabled = false;
+  await registrarEventoConta(anterior
+    ? { contaId: anterior.id, faturaId: conta.faturaId, evento: "edicao", origem: "manual", ...diferencaConta(anterior, conta) }
+    : { contaId, evento: "criacao", origem: "manual", depois: recorteConta(conta) });
 }
 
 async function iniciarPagamentos() {
@@ -277,7 +433,18 @@ async function iniciarPagamentos() {
   form.elements.vencimento.addEventListener("change", sincronizarMes);
   renderizarPagamentos();
 
+  mostrarFilaHist();
   pag.armazenamento = await abrirArmazenamento("pagamentos", typeof PAGAMENTOS !== "undefined" ? PAGAMENTOS : []);
+  hist.arm = await abrirArmazenamento("historico_contas", []);
+  hist.arm.observar(
+    (lista) => {
+      hist.eventos = lista;
+      hist.carregado = true;
+      if (pag.editandoId) renderizarHistoricoConta(pag.editandoId);
+      enviarFilaHist(); // reenvia o que ficou pendente numa falha anterior
+    },
+    () => { hist.carregado = false; avisoPag("Não foi possível carregar o histórico das contas. Recarregue a página."); }
+  );
   pag.armazenamento.observar(
     (lista) => {
       pag.contas = lista;

@@ -205,16 +205,21 @@ const COLUNAS = {
   recebimentos: ["cliente_id", "descricao", "valor", "vencimento", "recebido_em", "referencia", "ignorado"],
   movimentos_metas: ["meta_id", "data", "valor", "descricao"],
   faturas: ["cartao_id", "mes", "vencimento", "arquivo", "importado_em", "sem_conta", "total_informado"],
+  // V2-08: histórico das contas, só de inserção (cada evento é uma linha nova).
+  historico_contas: ["conta_id", "fatura_id", "evento", "origem_acao", "antes", "depois", "detalhe"],
   pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado", "tipo", "categoria", "mes_referencia", "vencimento_a_confirmar", "pagar_em", "observacao", "origem_pagamento", "divida_id"],
 };
 // Colunas que podem ficar vazias (quando o campo some do formulário, vira null no banco).
-const ANULAVEIS = new Set(["humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "hora", "recorrencia_meses", "projeto_id", "feito_em", "icone", "area", "valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura", "parcelas_quitadas", "saldo_informado", "saldo_informado_em", "avaliacao", "situacao", "mes_referencia", "pagar_em", "observacao", "origem_pagamento", "divida_id"]);
+const ANULAVEIS = new Set(["humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "hora", "recorrencia_meses", "projeto_id", "feito_em", "icone", "area", "valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura", "parcelas_quitadas", "saldo_informado", "saldo_informado_em", "avaliacao", "situacao", "mes_referencia", "pagar_em", "observacao", "origem_pagamento", "divida_id", "antes", "depois", "detalhe"]);
 const NUMERICAS = new Set(["sono_horas", "meta_sono", "valor_mensal", "valor_por_etapa", "meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura", "saldo_informado"]);
 
-function linhaParaObjeto(linha) {
+// Tabelas em que a hora de criação (criado_em, do servidor) é um dado mostrado no painel.
+const MANTEM_CRIADO_EM = new Set(["historico_contas"]);
+
+function linhaParaObjeto(linha, tabela) {
   const obj = {};
   for (const [chave, valor] of Object.entries(linha)) {
-    if (chave === "usuario_id" || chave === "criado_em" || valor === null) continue;
+    if (chave === "usuario_id" || (chave === "criado_em" && !MANTEM_CRIADO_EM.has(tabela)) || valor === null) continue;
     obj[paraCamel(chave)] = NUMERICAS.has(chave) ? Number(valor) : valor;
   }
   return obj;
@@ -250,7 +255,7 @@ function armazenamentoSupabase(tabela) {
     if (error) throw error;
     return data.map((linha) => {
       const { lancamentos, ...resto } = linha;
-      const obj = linhaParaObjeto(resto);
+      const obj = linhaParaObjeto(resto, tabela);
       if (tabela === "faturas") {
         obj.lancamentos = (lancamentos || [])
           .sort((a, b) => a.ordem - b.ordem)
@@ -283,6 +288,15 @@ function armazenamentoSupabase(tabela) {
 
     async salvar(id, item) {
       const linha = objetoParaLinha(tabela, item);
+      // Histórico é só de inserção, com o id gerado no app. Reenviar um evento que já chegou
+      // dá conflito de chave (23505): conta como gravado, sem duplicar e sem regravar nada.
+      if (tabela === "historico_contas") {
+        if (!id) throw new Error("evento do histórico sem id");
+        const { error } = await banco.from(tabela).insert({ id, ...linha });
+        if (error && error.code !== "23505") throw error;
+        agendar();
+        return id;
+      }
       let novoId = id;
       if (id) {
         const { error } = await banco.from(tabela).upsert({ id, ...linha });
@@ -314,6 +328,7 @@ function armazenamentoSupabase(tabela) {
     },
 
     async excluir(id) {
+      if (tabela === "historico_contas") throw new Error("histórico não pode ser excluído");
       const { error } = await banco.from(tabela).delete().eq("id", id);
       if (error) throw error;
       agendar();

@@ -73,6 +73,15 @@ aparecem como *Atrasada*.
 - **SHARK (V02/V08):** arte avulsa ganha “Editar” (nome, prazo e quantidade, mantendo id, status e
   vínculo); o resumo diz “Sem atrasos” e quantas artes seguem abertas com e sem prazo.
 
+**Histórico das contas (V2-08):** cada criação, importação, vinculação, edição, reimportação,
+pagamento e exclusão feita a partir desta versão vira um evento na tabela `financeiro.historico_contas`
+(só de inserção: o app nunca altera nem apaga eventos), com os campos antes/depois, a hora e a origem
+da ação. O evento só é registrado depois que a ação deu certo; se a gravação falhar, ele espera numa
+fila deste aparelho (separada por usuário), com aviso visível, e é reenviado com o mesmo id, sem
+duplicar. O histórico começa nesta versão: não há eventos de antes dela. A sincronização com as
+faturas nunca exclui contas e não grava valor zero quando a fatura vem vazia ou incompleta. Migração:
+`20261105190000_historico_contas.sql` (proposta, aplicar só depois de revisada).
+
 A migração `20261105120000_melhorias_v4.sql` só **acrescenta** colunas (todas opcionais ou com valor
 padrão); nenhum dado existente é apagado ou alterado.
 
@@ -234,8 +243,8 @@ As categorias são definidas por palavras-chave em `faturas.js` (`REGRAS_CATEGOR
   do controle de pagamentos que vencem no mês (âmbar) e as faturas de cartão (roxos).
 - **Fatura → controle de pagamentos:** cada fatura importada vira a conta
   "Fatura <cartão>" com o valor e o vencimento da fatura. Você pode editar o valor;
-  o valor editado é mantido mesmo que a fatura mude. Excluir a fatura remove a conta
-  (se ainda não estiver paga); excluir a conta à mão não a recria.
+  o valor editado é mantido mesmo que a fatura mude. Excluir a fatura **não** apaga a
+  conta (nenhuma conta é excluída nem fundida automaticamente); excluir a conta à mão não a recria.
 
 ## Compras parceladas e previsão
 
@@ -269,4 +278,5 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
   da fatura, conta automática, recarga e sair.
 - `tests/11-melhorias.test.mjs` — um teste por critério de aceite das melhorias V01 a V16.
 - `tests/12-faturas-v2.test.mjs` — itens V2-01 a V2-09 com PDFs fictícios que imitam os layouts reais.
+- `tests/13-historico-contas.test.mjs` — histórico das contas (V2-08) e nenhuma exclusão automática.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.
