@@ -758,7 +758,7 @@ function atualizarPrevia() {
     } else {
       const opcoes = [
         { v: "nova", t: `Criar a conta “Fatura ${escapar(novo ? form.elements.novo.value.trim() || "cartão" : cartao?.nome || "cartão")}” de ${moeda.format(valorConta)}, vencimento ${form.elements.vencimento.value ? dataBR(form.elements.vencimento.value) : "a confirmar"}` },
-        ...plano.duplicatas.map((c) => ({ v: "ligar:" + c.id, t: `Vincular à conta já cadastrada “${escapar(c.nome)}” de ${moeda.format(Number(c.valor))} (${c.status === "pago" ? "paga — o pagamento é preservado" : "pendente"})` })),
+        ...plano.duplicatas.map((c) => ({ v: "ligar:" + c.id, t: `Vincular à conta já cadastrada “${escapar(c.nome)}” de ${moeda.format(Number(c.valor))} (${c.status === "pago" ? "paga — o pagamento é preservado" : c.valorEditado ? "pendente — o valor editado à mão é mantido" : "pendente"})` })),
         { v: "nenhuma", t: "Não criar conta para esta fatura" },
       ];
       const padrao = plano.tipo === "sem-conta" ? "nenhuma" : "nova";
@@ -824,17 +824,27 @@ async function salvarImportacao(evento) {
     const contaLigada = repetida && typeof pag !== "undefined"
       ? pag.contas.find((c) => c.id === idContaDaFatura(repetida.id) || (c.origem === "fatura" && c.faturaId === repetida.id)) : null;
     if (contaLigada && typeof registrarEventoConta === "function") {
+      // Só fatos da fatura, conhecidos aqui: antes = o que estava salvo, depois = o que foi salvo agora.
+      // A conta é tratada à parte pela sincronização, que registra o próprio evento se algo mudar.
+      const retrato = (lista, totalInf) => ({
+        lancamentosFatura: lista.length,
+        somaLancamentosFatura: Math.round(totalFatura(lista) * 100) / 100,
+        ...(Number(totalInf) > 0 ? { totalInformadoFatura: Number(totalInf) } : {}),
+      });
       await registrarEventoConta({ contaId: contaLigada.id, faturaId, evento: "reimportacao", origem: "importacao_fatura",
-        detalhe: `Detalhamento substituído: ${(repetida.lancamentos || []).length} → ${lancamentos.length} lançamentos. Valor, status e pagamento da conta não foram alterados nesta etapa.` });
+        antes: retrato(repetida.lancamentos || [], repetida.totalInformado), depois: retrato(lancamentos, dados.totalInformado),
+        detalhe: "Detalhamento da fatura substituído por uma nova leitura, com confirmação na prévia." });
     }
     if (ligar) {
       const { id, ...conta } = ligar;
       const valor = total > 0 ? total : totalFatura(lancamentos);
-      const pago = conta.status === "pago";
+      // Conta paga ou com valor editado à mão mantém o valor (e o pagamento); só a pendente sem
+      // ajuste manual passa a acompanhar a fatura.
+      const manter = conta.status === "pago" || !!conta.valorEditado;
       const nova = {
         ...conta, origem: "fatura", faturaId, valorFatura: valor,
-        // Conta paga mantém valor e pagamento; pendente passa a acompanhar a fatura.
-        valor: pago ? conta.valor : valor, valorEditado: pago && Math.abs((Number(conta.valor) || 0) - valor) > 0.004,
+        valor: manter ? conta.valor : valor,
+        valorEditado: !!conta.valorEditado || (manter && Math.abs((Number(conta.valor) || 0) - valor) > 0.004),
       };
       await pag.armazenamento.salvar(id, nova);
       // Só depois da conta gravada: registra a vinculação com antes/depois.

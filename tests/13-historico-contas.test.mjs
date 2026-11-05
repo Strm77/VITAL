@@ -14,12 +14,12 @@ const TIPOS = { ".html": "text/html", ".js": "application/javascript", ".css": "
 const mockDb = (p) => p.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db") || "{}"));
 const linhaConta = (p, nome) => p.locator("#pag-tabela tbody tr", { has: p.locator(".conta-nome", { hasText: nome }) });
 
-async function fatura(nome, total, linhas) {
+async function fatura(nome, total, linhas, final = "8888") {
   const doc = await PDFDocument.create();
   const fonte = await doc.embedFont(StandardFonts.Helvetica);
   const pg = doc.addPage([595, 842]);
   const itens = [
-    [["Nubank", 40]], [["Data de vencimento: 15 NOV 2026", 40]], [["Cartão final 8888", 40]],
+    [["Nubank", 40]], [["Data de vencimento: 15 NOV 2026", 40]], [[`Cartão final ${final}`, 40]],
     [["Total a pagar", 40], [`R$ ${total}`, 200]], [["TRANSAÇÕES", 40]],
     ...linhas.map(([d, desc, v]) => [[d, 40], [desc, 110], [`R$ ${v}`, 520]]),
   ];
@@ -139,6 +139,39 @@ test("Fila isolada por usuário: depois de trocar de conta, eventos de outro usu
   assert.equal(eventos[eventos.length - 1].evento, "pagamento");
 });
 
+test("Fila local que não pode ser regravada depois do INSERT: para, avisa e não reenvia (sem laço infinito)", async () => {
+  const antes = (await mockDb(pub)).historico_contas.length;
+  await pub.evaluate(() => {
+    window.__envios = 0;
+    const salvar = hist.arm.salvar;
+    hist.arm.salvar = async (...a) => { window.__envios++; return salvar(...a); };
+    // Guardar na fila funciona (enfileirar); regravar depois do envio falha (retirar).
+    window.__setItem = Storage.prototype.setItem;
+    let n = 0;
+    Storage.prototype.setItem = function (k, v) {
+      if (String(k).startsWith("vital.historico.pendentes.") && ++n > 1) throw new DOMException("cheio", "QuotaExceededError");
+      return window.__setItem.call(this, k, v);
+    };
+  });
+  await linhaConta(pub, "Conta Ficticia Luz").locator("[data-acao=editar]").click();
+  await pub.fill("#pag-observacao", "nota ficticia");
+  await pub.click("#pag-form [type=submit]");
+  await pub.waitForFunction(() => hist.falhaFila === true);
+  assert.match(await texto(pub, "#pag-historico-fila"), /este aparelho não deixou atualizar a fila local/);
+  assert.equal(await pub.evaluate(() => window.__envios), 1, "um envio só");
+  assert.equal(await pub.evaluate(() => enviarFilaHist()), false);
+  assert.equal(await pub.evaluate(() => enviarFilaHist()), false);
+  assert.equal(await pub.evaluate(() => window.__envios), 1, "não reenvia o evento já confirmado");
+  assert.equal((await mockDb(pub)).historico_contas.length, antes + 1, "gravado uma vez");
+  // O armazenamento volta: a fila guardada é limpa e o aviso some.
+  await pub.evaluate(() => { Storage.prototype.setItem = window.__setItem; });
+  assert.equal(await pub.evaluate(() => enviarFilaHist()), true);
+  assert.equal(await pub.evaluate(() => JSON.parse(localStorage.getItem("vital.historico.pendentes.u1") || "[]").length), 0);
+  assert.equal(await pub.isVisible("#pag-historico-fila"), false);
+  assert.equal(await pub.evaluate(() => window.__envios), 1);
+  assert.equal((await mockDb(pub)).historico_contas.length, antes + 1);
+});
+
 test("Ação que falha não gera evento", async () => {
   const antes = (await mockDb(pub)).historico_contas.length;
   await pub.evaluate(() => { pag.armazenamento.salvar = async () => { throw new Error("falha simulada"); }; });
@@ -234,9 +267,36 @@ test("Importação, edição manual, pagamento e reimportação: eventos só se 
   const depois = await eventosLocal();
   for (const e of antesReimp) assert.ok(depois.some((x) => x.id === e.id && JSON.stringify(x) === JSON.stringify(e)), `evento ${e.evento} preservado igual`);
   assert.ok(depois.length >= antesReimp.length + 2, depois.map((e) => e.evento).join(","));
+  const reimp = depois.find((e) => e.evento === "reimportacao");
+  assert.deepEqual(reimp.antes, { lancamentosFatura: 2, somaLancamentosFatura: 100, totalInformadoFatura: 100 }, "retrato do que estava salvo");
+  assert.deepEqual(reimp.depois, { lancamentosFatura: 3, somaLancamentosFatura: 130, totalInformadoFatura: 130 });
+  assert.doesNotMatch(reimp.detalhe, /não foram alterad/, "sem afirmar o que não foi verificado");
   const sinc = depois.find((e) => e.evento === "edicao" && e.origemAcao === "sincronizacao_fatura");
   assert.deepEqual([sinc.antes.valorFatura, sinc.depois.valorFatura], [100, 130]);
   assert.equal(sinc.depois.valor, undefined, "o valor da conta não foi trocado");
+});
+
+test("Vincular a fatura a uma conta pendente com valor editado à mão mantém o valor manual", async () => {
+  await loc.evaluate(() => {
+    const contas = JSON.parse(localStorage.getItem("vital.pagamentos"));
+    contas.push({ id: "manual-editada", nome: "Cartão Ficticio Pendente", valor: 999, mesReferencia: "2026-11", vencimento: "2026-11-15", status: "pendente", valorEditado: true });
+    localStorage.setItem("vital.pagamentos", JSON.stringify(contas));
+  });
+  await loc.reload();
+  await loc.waitForFunction(() => pag.carregado && hist.carregado);
+  await importar(loc, await fatura("v208-c.pdf", "50,00", [["11 OUT", "Loja Ficticia Z", "50,00"]], "7777"));
+  await loc.fill("#previa-novo", "Cartão Novo Z");
+  assert.match(await texto(loc, "#previa-conta"), /Cartão Ficticio Pendente.*pendente — o valor editado à mão é mantido/);
+  await loc.check("#previa-conta input[value='ligar:manual-editada']");
+  await loc.click("#previa [type=submit]");
+  await loc.waitForSelector("#previa", { state: "hidden" });
+  await loc.waitForFunction(() => pag.contas.find((c) => c.id === "manual-editada")?.origem === "fatura");
+  const conta = await loc.evaluate(() => pag.contas.find((c) => c.id === "manual-editada"));
+  assert.deepEqual([conta.valor, conta.valorEditado, conta.valorFatura, conta.status], [999, true, 50, "pendente"]);
+  const vinc = (await eventosLocal()).find((e) => e.evento === "vinculacao" && e.contaId === "manual-editada");
+  assert.ok(vinc, "vinculação registrada");
+  assert.equal(vinc.depois.valor, undefined, "o valor da conta não mudou");
+  assert.deepEqual([vinc.antes.valorFatura ?? null, vinc.depois.valorFatura], [null, 50]);
 });
 
 test("Nenhum erro de JavaScript", () => {

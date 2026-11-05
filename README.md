@@ -80,7 +80,7 @@ da ação. O evento só é registrado depois que a ação deu certo; se a grava�
 fila deste aparelho (separada por usuário), com aviso visível, e é reenviado com o mesmo id, sem
 duplicar. O histórico começa nesta versão: não há eventos de antes dela. A sincronização com as
 faturas nunca exclui contas e não grava valor zero quando a fatura vem vazia ou incompleta. Migração:
-`20261105190000_historico_contas.sql` (proposta, aplicar só depois de revisada).
+`20261105190000_historico_contas.sql` (aplicada no Supabase em 05/11/2026, versão `20261105192001`).
 
 A migração `20261105120000_melhorias_v4.sql` só **acrescenta** colunas (todas opcionais ou com valor
 padrão); nenhum dado existente é apagado ou alterado.

@@ -68,7 +68,9 @@ function contaPareceParcela(c, d) {
  *     reenviado com o mesmo id (reenviar não duplica). Nada falha em silêncio.
  *   - Eventos nunca são alterados nem apagados pelo app. Não há histórico de antes desta versão.
  */
-const hist = { eventos: [], arm: null, carregado: false, enviando: null, denovo: false, falhaLocal: false, falhaEnvio: false };
+// confirmados: ids que o banco já aceitou nesta página. Se a fila do aparelho não puder ser regravada
+// depois do envio, eles continuam lá, mas não são reenviados (nem mostrados como pendentes).
+const hist = { eventos: [], arm: null, carregado: false, enviando: null, denovo: false, falhaLocal: false, falhaFila: false, confirmados: new Set() };
 // A fila é de cada usuário: a chave leva o id de quem está logado, e cada evento guarda esse id.
 // Depois de sair e entrar com outra conta, os eventos de um nunca são enviados na conta do outro.
 const usuarioDaFila = () => (typeof usuarioAtual !== "undefined" && usuarioAtual?.id) || "local";
@@ -77,7 +79,8 @@ const CAMPOS_HISTORICO = ["nome", "valor", "mesReferencia", "vencimento", "venci
   "origemPagamento", "observacao", "tipo", "categoria", "dividaId", "origem", "faturaId", "valorFatura", "valorEditado"];
 const ROTULOS_HIST = { nome: "nome", valor: "valor", mesReferencia: "mês", vencimento: "vencimento", vencimentoAConfirmar: "vencimento a confirmar",
   pagarEm: "pretendo pagar em", status: "status", pagoEm: "pago em", origemPagamento: "pago com", observacao: "observação", tipo: "tipo",
-  categoria: "categoria", dividaId: "parcela de dívida", origem: "origem", faturaId: "fatura", valorFatura: "valor importado", valorEditado: "valor editado à mão" };
+  categoria: "categoria", dividaId: "parcela de dívida", origem: "origem", faturaId: "fatura", valorFatura: "valor importado", valorEditado: "valor editado à mão",
+  lancamentosFatura: "lançamentos da fatura", somaLancamentosFatura: "soma dos lançamentos", totalInformadoFatura: "total da fatura" };
 const EVENTOS_HIST = { criacao: "Criada", importacao: "Criada pela importação", vinculacao: "Vinculada à fatura", edicao: "Alterada",
   reimportacao: "Fatura reimportada", pagamento: "Marcada como paga", pagamento_desfeito: "Pagamento desfeito", exclusao: "Excluída" };
 const ORIGENS_HIST = { manual: "por você", importacao_fatura: "na importação da fatura", sincronizacao_fatura: "pela sincronização com a fatura" };
@@ -102,13 +105,24 @@ const novoIdEvento = () => "hc-" + (crypto.randomUUID ? crypto.randomUUID() : Da
 function lerFilaHist() {
   try {
     const fila = JSON.parse(localStorage.getItem(chaveFilaHist()) || "[]");
-    return Array.isArray(fila) ? fila.filter((e) => e && e.id && e.usuarioId === usuarioDaFila()) : [];
+    return Array.isArray(fila) ? fila.filter((e) => e && e.id && e.usuarioId === usuarioDaFila() && !hist.confirmados.has(e.id)) : [];
   } catch { return []; }
 }
 /* Devolve false se o aparelho não deixou guardar (modo privado, cota cheia...). */
 function gravarFilaHist(fila) {
   try { localStorage.setItem(chaveFilaHist(), JSON.stringify(fila)); return true; }
   catch { return false; }
+}
+/* Tira da fila guardada os eventos que o banco já confirmou. Devolve false se o aparelho recusou. */
+function limparConfirmadosDaFila() {
+  let bruta;
+  try { bruta = JSON.parse(localStorage.getItem(chaveFilaHist()) || "[]"); } catch { return false; }
+  if (!Array.isArray(bruta)) return false;
+  const resto = bruta.filter((e) => !hist.confirmados.has(e?.id));
+  if (resto.length === bruta.length) return true;
+  const ok = gravarFilaHist(resto);
+  if (ok) for (const e of bruta) if (!resto.includes(e)) hist.confirmados.delete(e.id);
+  return ok;
 }
 function mostrarFilaHist() {
   const el = document.getElementById("pag-historico-fila");
@@ -117,6 +131,7 @@ function mostrarFilaHist() {
   const partes = [];
   if (n) partes.push(`${n} evento${n === 1 ? "" : "s"} do histórico ainda não ${n === 1 ? "foi gravado" : "foram gravados"} no banco; o app tenta de novo sozinho.`);
   if (hist.falhaLocal) partes.push("Atenção: um evento do histórico não pôde ser gravado no banco nem guardado neste aparelho. A conta foi salva, mas essa mudança ficou sem registro no histórico.");
+  if (hist.falhaFila) partes.push("Atenção: o histórico foi gravado no banco, mas este aparelho não deixou atualizar a fila local (armazenamento indisponível). Se a página for recarregada, o app pode reenviar esses eventos — sem duplicar.");
   el.hidden = !partes.length;
   el.textContent = partes.join(" ");
 }
@@ -149,6 +164,8 @@ async function enviarFilaHist() {
   let fim;
   hist.enviando = new Promise((r) => { fim = r; });
   try {
+    // Eventos já confirmados que ficaram guardados (fila não regravada antes): tira agora, se der.
+    if (hist.confirmados.size && limparConfirmadosDaFila()) hist.falhaFila = false;
     do {
       hist.denovo = false;
       // Pega sempre a fila atual: eventos que entram durante o envio também vão.
@@ -157,11 +174,18 @@ async function enviarFilaHist() {
         const { id, usuarioId, ...dados } = item;
         try {
           await hist.arm.salvar(id, dados);
-          gravarFilaHist(lerFilaHist().filter((x) => x.id !== id));
         } catch (e) {
           console.error(e);
           ok = false;
+          break;
         }
+        // Confirmado no banco: não volta a ser enviado nesta página, mesmo se a fila não puder ser regravada.
+        hist.confirmados.add(id);
+        if (!limparConfirmadosDaFila()) {
+          hist.falhaFila = true;
+          break; // sem laço infinito: o próximo item só vai numa próxima chamada
+        }
+        hist.falhaFila = false;
       }
     } while (ok && hist.denovo);
   } finally {
@@ -169,12 +193,12 @@ async function enviarFilaHist() {
     fim();
     mostrarFilaHist();
   }
-  return ok;
+  return ok && !hist.falhaFila;
 }
 
 function formatarValorHist(k, v) {
   if (v === null || v === undefined || v === "") return "—";
-  if (k === "valor" || k === "valorFatura") return moeda.format(Number(v));
+  if (k === "valor" || k === "valorFatura" || k === "somaLancamentosFatura" || k === "totalInformadoFatura") return moeda.format(Number(v));
   if (k === "vencimento" || k === "pagarEm") return dataBRCurta(String(v).slice(0, 10));
   if (k === "pagoEm") { const d = new Date(v); return isNaN(d) ? String(v) : `${dataCurta.format(d)} ${horaCurta.format(d)}`; }
   if (k === "status") return v === "pago" ? "pago" : "pendente";
@@ -194,7 +218,7 @@ function renderizarHistoricoConta(contaId) {
   const linhaEvento = (e) => {
     const quando = new Date(e.criadoEm);
     const campos = Object.keys({ ...(e.depois || {}), ...(e.antes || {}) });
-    const mudancas = e.evento === "edicao" || e.evento === "vinculacao" || e.evento === "pagamento" || e.evento === "pagamento_desfeito"
+    const mudancas = ["edicao", "vinculacao", "pagamento", "pagamento_desfeito", "reimportacao"].includes(e.evento)
       ? campos.map((k) => `${ROTULOS_HIST[k] || k}: ${formatarValorHist(k, e.antes?.[k])} → ${formatarValorHist(k, e.depois?.[k])}`)
       : [];
     return `<li${e.pendente ? ' class="pendente"' : ""}><strong>${EVENTOS_HIST[e.evento] || e.evento}</strong> ${ORIGENS_HIST[e.origemAcao] || ""}
