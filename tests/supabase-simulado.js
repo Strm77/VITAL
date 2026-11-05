@@ -30,6 +30,7 @@
     movimentos_metas: "id meta_id data valor descricao",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
+    historico_contas: "id conta_id fatura_id evento origem_acao antes depois detalhe criado_em",
     pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria mes_referencia vencimento_a_confirmar pagar_em observacao origem_pagamento divida_id",
   };
   const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"] };
@@ -73,15 +74,29 @@
         const linhas = Array.isArray(dados) ? dados : [dados];
         const db = ler();
         let erro = null;
+        // Como a chave primária: inserir um id que já existe dá erro 23505.
+        if (tabela === "historico_contas" && linhas.some((l) => l.id && (db[tabela] || []).some((x) => x.id === l.id))) {
+          const r = { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint" } };
+          return { ...resultado(r), select: () => ({ single: () => resultado(r) }) };
+        }
         const novas = linhas.map((l) => {
           erro = erro || validar(tabela, l, true);
-          return tabela === "lancamentos" ? { ...l } : { id: "id" + Date.now() + (seq++), ...l };
+          if (tabela === "lancamentos") return { ...l };
+          // Como no banco: criado_em vem do servidor (default now()).
+          return { id: "id" + Date.now() + (seq++), ...(tabela === "historico_contas" ? { criado_em: new Date().toISOString() } : {}), ...l };
         });
+        // Falha simulada de gravação do histórico (para testar a fila de reenvio).
+        if (tabela === "historico_contas" && sessionStorage.getItem("mock-falhar-historico")) {
+          const r = { data: null, error: { message: "network error" } };
+          return { ...resultado(r), select: () => ({ single: () => resultado(r) }) };
+        }
         if (!erro) { db[tabela] = [...(db[tabela] || []), ...novas]; gravar(db); }
         const r = { data: novas, error: erro };
         return { ...resultado(r), select: () => ({ single: () => resultado({ data: novas[0], error: erro }) }) };
       },
       upsert(linha) {
+        // Como as políticas RLS da tabela: histórico não aceita UPDATE.
+        if (tabela === "historico_contas") return resultado({ error: { message: "new row violates row-level security policy" } });
         const erro = validar(tabela, linha, false);
         if (!erro) {
           const db = ler();
@@ -94,6 +109,7 @@
         return resultado({ error: erro });
       },
       delete() {
+        window.__exclusoes = [...(window.__exclusoes || []), tabela];
         return {
           eq(coluna, valor) {
             const db = ler();

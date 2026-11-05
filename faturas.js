@@ -758,7 +758,7 @@ function atualizarPrevia() {
     } else {
       const opcoes = [
         { v: "nova", t: `Criar a conta “Fatura ${escapar(novo ? form.elements.novo.value.trim() || "cartão" : cartao?.nome || "cartão")}” de ${moeda.format(valorConta)}, vencimento ${form.elements.vencimento.value ? dataBR(form.elements.vencimento.value) : "a confirmar"}` },
-        ...plano.duplicatas.map((c) => ({ v: "ligar:" + c.id, t: `Vincular à conta já cadastrada “${escapar(c.nome)}” de ${moeda.format(Number(c.valor))} (${c.status === "pago" ? "paga — o pagamento é preservado" : "pendente"})` })),
+        ...plano.duplicatas.map((c) => ({ v: "ligar:" + c.id, t: `Vincular à conta já cadastrada “${escapar(c.nome)}” de ${moeda.format(Number(c.valor))} (${c.status === "pago" ? "paga — o pagamento é preservado" : c.valorEditado ? "pendente — o valor editado à mão é mantido" : "pendente"})` })),
         { v: "nenhuma", t: "Não criar conta para esta fatura" },
       ];
       const padrao = plano.tipo === "sem-conta" ? "nenhuma" : "nova";
@@ -768,8 +768,17 @@ function atualizarPrevia() {
         ${opcoes.map((o) => `<label class="campo-check"><input type="radio" name="destinoConta" value="${escapar(o.v)}"${o.v === escolhido ? " checked" : ""}> ${o.t}</label>`).join("")}`;
     }
   }
-  form.querySelector("[type=submit]").disabled = escolher || !l.lancamentos.length && !(total > 0)
-    || (precisaRevisar && !form.elements.revisado.checked) || (!!repetida && !form.elements.substituir.checked);
+  // Motivos de o Salvar estar desabilitado, ditos em claro para a pessoa.
+  const motivos = [
+    escolher && "escolha o cartão desta fatura",
+    !l.lancamentos.length && !(total > 0) && "inclua ao menos um lançamento ou informe o total",
+    precisaRevisar && !form.elements.revisado.checked && "confira os lançamentos e marque “Conferi”",
+    !!repetida && !form.elements.substituir.checked && "esta fatura já existe: marque “Substituir o detalhamento salvo por esta leitura” para trocar o detalhamento",
+  ].filter(Boolean);
+  form.querySelector("[type=submit]").disabled = motivos.length > 0;
+  const bloqueio = document.getElementById("previa-bloqueio");
+  bloqueio.hidden = !motivos.length;
+  bloqueio.textContent = motivos.length ? `Para salvar: ${motivos.join("; ")}.` : "";
 }
 
 async function salvarImportacao(evento) {
@@ -811,15 +820,38 @@ async function salvarImportacao(evento) {
       lancamentos,
     };
     const faturaId = await fat.armFaturas.salvar(repetida ? repetida.id : null, dados);
+    // Reimportação: registra no histórico da conta ligada (depois que a fatura foi salva).
+    const contaLigada = repetida && typeof pag !== "undefined"
+      ? pag.contas.find((c) => c.id === idContaDaFatura(repetida.id) || (c.origem === "fatura" && c.faturaId === repetida.id)) : null;
+    if (contaLigada && typeof registrarEventoConta === "function") {
+      // Só fatos da fatura, conhecidos aqui: antes = o que estava salvo, depois = o que foi salvo agora.
+      // A conta é tratada à parte pela sincronização, que registra o próprio evento se algo mudar.
+      const retrato = (lista, totalInf) => ({
+        lancamentosFatura: lista.length,
+        somaLancamentosFatura: Math.round(totalFatura(lista) * 100) / 100,
+        ...(Number(totalInf) > 0 ? { totalInformadoFatura: Number(totalInf) } : {}),
+      });
+      await registrarEventoConta({ contaId: contaLigada.id, faturaId, evento: "reimportacao", origem: "importacao_fatura",
+        antes: retrato(repetida.lancamentos || [], repetida.totalInformado), depois: retrato(lancamentos, dados.totalInformado),
+        detalhe: "Detalhamento da fatura substituído por uma nova leitura, com confirmação na prévia." });
+    }
     if (ligar) {
       const { id, ...conta } = ligar;
       const valor = total > 0 ? total : totalFatura(lancamentos);
-      const pago = conta.status === "pago";
-      await pag.armazenamento.salvar(id, {
+      // Conta paga ou com valor editado à mão mantém o valor (e o pagamento); só a pendente sem
+      // ajuste manual passa a acompanhar a fatura.
+      const manter = conta.status === "pago" || !!conta.valorEditado;
+      const nova = {
         ...conta, origem: "fatura", faturaId, valorFatura: valor,
-        // Conta paga mantém valor e pagamento; pendente passa a acompanhar a fatura.
-        valor: pago ? conta.valor : valor, valorEditado: pago && Math.abs((Number(conta.valor) || 0) - valor) > 0.004,
-      });
+        valor: manter ? conta.valor : valor,
+        valorEditado: !!conta.valorEditado || (manter && Math.abs((Number(conta.valor) || 0) - valor) > 0.004),
+      };
+      await pag.armazenamento.salvar(id, nova);
+      // Só depois da conta gravada: registra a vinculação com antes/depois.
+      if (typeof registrarEventoConta === "function") {
+        await registrarEventoConta({ contaId: id, faturaId, evento: "vinculacao", origem: "importacao_fatura", ...diferencaConta(ligar, nova),
+          detalhe: "Conta já cadastrada vinculada à fatura importada, por escolha na prévia." });
+      }
       await fat.armFaturas.salvar(faturaId, { ...dados, semConta: false });
     }
     fat.filtroCartao = cartaoId;
@@ -1283,6 +1315,9 @@ async function sincronizarContasDasFaturas() {
     if (f.semConta || sincronizando.has(id)) continue;
     const cartao = fat.cartoes.find((c) => c.id === f.cartaoId);
     const total = Math.round(valorDaFatura(f) * 100) / 100;
+    // Fatura sem total e sem lançamentos (carga incompleta, falha na consulta): não cria nem
+    // altera conta nenhuma com valor zero.
+    if (!(total > 0)) continue;
     // V2-08: conta vinculada pela importação (faturaId) conta como a conta desta fatura.
     const existente = pag.contas.find((c) => c.id === id) || pag.contas.find((c) => c.origem === "fatura" && c.faturaId === f.id);
     let nova = null;
@@ -1305,22 +1340,29 @@ async function sincronizarContasDasFaturas() {
       };
     } else if (Math.abs((Number(existente.valorFatura) || 0) - total) > 0.004) {
       const { id: _id, ...dados } = existente;
-      nova = { ...dados, valorFatura: total, valor: existente.valorEditado ? existente.valor : total };
+      // Valor editado à mão ou conta já paga: o valor da conta fica; só o valor importado muda.
+      const manter = existente.valorEditado || existente.status === "pago";
+      nova = { ...dados, valorFatura: total, valor: manter ? existente.valor : total, valorEditado: !!existente.valorEditado || (manter && Math.abs((Number(existente.valor) || 0) - total) > 0.004) };
     }
     if (!nova) continue;
+    const contaId = existente ? existente.id : id;
     sincronizando.add(id);
-    try { await pag.armazenamento.salvar(existente ? existente.id : id, nova); } catch {}
-    finally { sincronizando.delete(id); }
+    try {
+      await pag.armazenamento.salvar(contaId, nova);
+      // Histórico só depois que a conta foi gravada de fato.
+      if (typeof registrarEventoConta === "function") {
+        await registrarEventoConta(existente
+          ? { contaId, faturaId: f.id, evento: "edicao", origem: "sincronizacao_fatura", ...diferencaConta(existente, nova), detalhe: "O valor da fatura mudou (reimportação ou correção de lançamentos)." }
+          : { contaId, faturaId: f.id, evento: "importacao", origem: "sincronizacao_fatura", depois: recorteConta(nova), detalhe: "Conta criada a partir da fatura importada." });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally { sincronizando.delete(id); }
   }
 
-  // Fatura excluída: some a conta dela, a não ser que já tenha sido paga (fica no histórico).
-  for (const c of pag.contas) {
-    if (c.origem !== "fatura" || c.status === "pago" || sincronizando.has(c.id)) continue;
-    if (fat.faturas.some((f) => f.id === c.faturaId)) continue;
-    sincronizando.add(c.id);
-    try { await pag.armazenamento.excluir(c.id); } catch {}
-    finally { sincronizando.delete(c.id); }
-  }
+  // V2-08: nenhuma conta é excluída nem fundida por inferência. Uma conta cuja fatura não
+  // aparece (fatura excluída, consulta parcial ou falha) continua como está: valor, status e
+  // pagamento preservados. Só a pessoa pode excluí-la, pelo Controle de pagamentos.
 }
 
 async function marcarFaturaSemConta(faturaId) {

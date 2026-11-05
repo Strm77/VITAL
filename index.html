@@ -214,6 +214,7 @@
       <p class="estado" id="pag-vazio">Carregando contas…</p>
 
       <p class="aviso" id="pag-aviso" role="alert" hidden></p>
+      <p class="aviso" id="pag-historico-fila" role="status" hidden></p>
 
       <form class="formulario" id="pag-form" hidden novalidate>
         <h3 id="pag-form-titulo">Nova conta</h3>
@@ -275,6 +276,7 @@
           <input id="pag-observacao" name="observacao" type="text" maxlength="200">
         </label>
         <p class="dica largo" id="pag-origem" hidden></p>
+        <div class="largo historico-caixa" id="pag-historico" hidden></div>
         <p class="dica largo">A data e a hora do pagamento são registradas sozinhas quando a conta passa para “Pago”.</p>
         <div class="acoes largo">
           <button type="button" class="botao" id="pag-cancelar">Cancelar</button>
@@ -1253,6 +1255,7 @@
           <label class="campo-check"><input type="checkbox" name="substituir"> Substituir o detalhamento salvo por esta leitura</label>
         </div>
         <div class="largo previa-conta" id="previa-conta"></div>
+        <p class="dica largo" id="previa-bloqueio" role="status" hidden></p>
         <details class="largo nao-lidas diagnostico" id="previa-diagnostico" hidden>
           <summary></summary>
           <ul class="paginas"></ul>
