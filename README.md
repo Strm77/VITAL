@@ -15,7 +15,7 @@ e `pagamentos` — veja `supabase/migrations/`).
   num aparelho aparece nos outros.
 - **Tema:** claro, escuro (preto neutro) ou automático, seguindo o sistema; o botão no topo troca e o painel lembra a escolha.
 - `config.js` tem a URL do projeto e a chave publicável (pode ficar no navegador).
-- A Vercel publica a cada push: `vercel.json` copia os arquivos do site para `public/`.
+- A Vercel publica a cada push: `vercel.json` roda `sh scripts/build.sh`, que copia para `public/` só a lista fixa de arquivos do site (um arquivo novo do site precisa entrar nessa lista).
 
 ### Despertador do banco
 
@@ -47,6 +47,53 @@ Embaixo das dívidas, abaixo das dívidas e da pizza, fica o **Controle de pagam
 cadastre cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a data e a
 hora do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
 aparecem como *Atrasada*.
+
+### Melhorias da versão 4 (05/11/2026)
+
+- **Conta sem dia de vencimento (V01):** a conta tem *mês* e *vencimento opcional*. Sem o dia, fica
+  pendente com “vencimento a confirmar” (nunca recebe um dia 10 automático, nem vira atrasada).
+- **Pretendo pagar em (V04):** data prevista e observação opcionais; o vencimento e o status não mudam.
+- **Parcela de dívida (V11):** a conta pode ser ligada à dívida (“Parcela de dívida”). Ligada — ou com o
+  mesmo nome e valor da parcela — ela entra uma vez só no total do mês, e pagá-la paga a parcela.
+- **Pago com (V13):** recursos próprios, cheque especial ou outro crédito. O que foi pago com cheque
+  especial aparece como pago e fica destacado como valor ainda devido ao banco, sem ser somado de novo.
+- **Parcelas da dívida (V10/V12):** na seta de cada dívida dá para marcar a parcela do mês como paga
+  (com data e origem) antes do vencimento e marcar parcelas futuras antecipadas (com valor pago, para o
+  desconto). Antecipadas não são cobradas no mês delas; o “saldo devedor informado pelo banco”, quando
+  preenchido, substitui o cálculo parcela × restantes.
+- **Celular (V14–V16):** contas viram cartões com as ações à vista; a importação diz “Toque para escolher”;
+  o gráfico do mês tem uma cor por fatia, legenda visível e toque mostra nome e valor.
+- **Datas (V07):** todo campo de data tem um texto dd/mm/aaaa ao lado do botão de calendário; o valor
+  continua guardado em ISO (aaaa-mm-dd).
+- **Carregando (V09):** enquanto uma consulta não volta (ou falha), as áreas mostram “Carregando…” ou o
+  erro, em vez de “nenhum cadastro” ou zeros.
+- **Saúde (V03/V05/V06):** refeição *planejada* fica fora do placar até ser confirmada (o mesmo registro vira
+  realizado); “Sem avaliação” aparece no histórico sem contar como acerto ou erro; a intensidade do treino
+  começa como “Não informada”.
+- **SHARK (V02/V08):** arte avulsa ganha “Editar” (nome, prazo e quantidade, mantendo id, status e
+  vínculo); o resumo diz “Sem atrasos” e quantas artes seguem abertas com e sem prazo.
+
+A migração `20261105120000_melhorias_v4.sql` só **acrescenta** colunas (todas opcionais ou com valor
+padrão); nenhum dado existente é apagado ou alterado.
+
+### Melhorias V2 — leitor de faturas, assinaturas e sincronização
+
+- **Leitor (V2-01 a V2-04):** faturas em duas colunas (compras de um lado, avisos ou outra lista do
+  outro) são separadas por coluna; a seção “Compras parceladas - próximas faturas” vira só previsão;
+  o pagamento da fatura anterior fica fora dos lançamentos (e, em faturas já salvas, fora do “À vista”,
+  da conciliação e do relatório); o total vem do cabeçalho principal, ignorando simulações de
+  parcelamento. Se um único lançamento (ou mais de 25% do total) não corresponde à fatura, salvar exige
+  marcar “Conferi”. Diferenças de centavos continuam como “não detalhado”, sem ajuste fictício.
+- **Reparo manual (V2-05):** na prévia e na planilha dá para corrigir data, descrição e valor, remover e
+  incluir lançamentos; a fatura mantém o mesmo id e a conta ligada. Reimportar mostra o que entra, sai e
+  fica igual e só substitui com confirmação (as categorias escolhidas nos lançamentos iguais são mantidas).
+- **Conta do Controle (V2-08):** antes de salvar aparece a conta que será criada, a já ligada (com o que muda)
+  ou possíveis duplicatas para vincular — nada é vinculado, fundido ou excluído sem escolha; pagamento preservado.
+- **Cartão (V2-09):** só é sugerido pelo final; mesmo banco com final diferente pede escolha; o vencimento
+  não se perde ao trocar o cartão e o final aparece no resumo.
+- **Assinaturas (V2-06/07):** a categoria revisada vale (“Não é assinatura” tira da recorrência sem apagar a
+  compra); cobranças com descrições diferentes ficam separadas; só recorrência confirmada (descrição de
+  assinatura ou meses seguidos) entra em “por mês/por ano” — o resto é “soma observada no mês”.
 
 ## Dinheiro do mês
 
@@ -220,4 +267,6 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/03-site-publicado.test.mjs` — modo site publicado com um Supabase simulado
   (`tests/supabase-simulado.js`): login, e-mail não permitido, gravação nas tabelas, lançamentos
   da fatura, conta automática, recarga e sair.
+- `tests/11-melhorias.test.mjs` — um teste por critério de aceite das melhorias V01 a V16.
+- `tests/12-faturas-v2.test.mjs` — itens V2-01 a V2-09 com PDFs fictícios que imitam os layouts reais.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.

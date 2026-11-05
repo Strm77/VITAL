@@ -149,13 +149,53 @@ function usarRecurso(nome) {
 
 async function abrirArmazenamento(nome, exemplos) {
   // Site publicado: espera o login e usa as tabelas do Supabase (supabase.js).
+  let arm;
   if (typeof supa !== "undefined" && supa) {
     await sessaoPronta;
-    return armazenamentoSupabase(nome);
+    arm = armazenamentoSupabase(nome);
+  } else {
+    const db = await usarRecurso("db");
+    arm = db ? armazenamentoNuvem(db, nome) : armazenamentoLocal(nome, exemplos);
   }
-  const db = await usarRecurso("db");
-  return db ? armazenamentoNuvem(db, nome) : armazenamentoLocal(nome, exemplos);
+  return comEstadoDaConsulta(nome, arm);
 }
+
+/* ---------- Estado das consultas (carregando / erro / carregado) ----------
+ * Enquanto a consulta de uma tabela não volta (ou se ela falhar), as mensagens de "nada
+ * cadastrado" e os números marcados com data-depende="tabela1 tabela2" não aparecem como se
+ * estivessem vazios: mostram "Carregando…" ou o aviso de erro. */
+const estadoConsultas = {};
+function consultaPronta(...nomes) { return nomes.every((n) => estadoConsultas[n] === "ok"); }
+function marcarConsulta(nome, estado) {
+  // Depois de carregar uma vez, uma falha no tempo real não esconde os dados já mostrados.
+  if (estado === "erro" && estadoConsultas[nome] === "ok") return;
+  estadoConsultas[nome] = estado;
+  aplicarEstadosConsulta();
+}
+function aplicarEstadosConsulta() {
+  document.querySelectorAll("[data-depende]").forEach((el) => {
+    const nomes = el.dataset.depende.split(/\s+/).filter(Boolean);
+    const erro = nomes.some((n) => estadoConsultas[n] === "erro");
+    const pendente = !erro && nomes.some((n) => estadoConsultas[n] !== "ok");
+    el.classList.toggle("consulta-pendente", pendente);
+    el.classList.toggle("consulta-erro", erro);
+    if (pendente) el.setAttribute("aria-busy", "true");
+    else el.removeAttribute("aria-busy");
+  });
+}
+function comEstadoDaConsulta(nome, arm) {
+  if (!estadoConsultas[nome]) estadoConsultas[nome] = "pendente";
+  return {
+    ...arm,
+    observar(fn, erro) {
+      arm.observar(
+        (lista) => { marcarConsulta(nome, "ok"); fn(lista); },
+        (e) => { marcarConsulta(nome, "erro"); if (erro) erro(e); }
+      );
+    },
+  };
+}
+aplicarEstadosConsulta();
 
 
 /* ---------- Interface ---------- */
@@ -271,3 +311,102 @@ aplicarTema(document.documentElement.dataset.theme || "");
 window.addEventListener("hashchange", mostrarVista);
 mostrarVista();
 iniciarTimeline();
+
+/* ---------- Datas no padrão brasileiro (V07) ----------
+ * Os campos nativos de data mostram o formato da língua do navegador (em inglês, mês/dia/ano).
+ * Cada <input type="date"> ganha ao lado um campo de texto dd/mm/aaaa: é nele que se digita e
+ * se lê a data. O campo nativo vira só o botão do calendário e continua guardando o valor em
+ * ISO (aaaa-mm-dd), que é o que o painel lê e grava — nada muda no armazenamento. */
+const valorNativo = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+
+function isoParaBR(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+function brParaISO(texto) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto || "");
+  if (!m) return null;
+  const [d, mes, a] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const data = new Date(a, mes - 1, d);
+  if (data.getFullYear() !== a || data.getMonth() !== mes - 1 || data.getDate() !== d) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+function mascaraData(texto) {
+  const n = texto.replace(/\D/g, "").slice(0, 8);
+  return [n.slice(0, 2), n.slice(2, 4), n.slice(4, 8)].filter(Boolean).join("/");
+}
+
+function campoDataBR(nativo) {
+  if (nativo.dataset.dataBr || !nativo.parentNode) return;
+  nativo.dataset.dataBr = "1";
+  const caixa = document.createElement("span");
+  caixa.className = "data-br";
+  const texto = document.createElement("input");
+  texto.type = "text";
+  texto.className = "data-br-texto";
+  texto.inputMode = "numeric";
+  texto.autocomplete = "off";
+  texto.maxLength = 10;
+  texto.placeholder = "dd/mm/aaaa";
+  texto.title = "Data no formato dia/mês/ano (dd/mm/aaaa)";
+  texto.lang = "pt-BR";
+  if (nativo.id) texto.id = nativo.id + "-br";
+  const rotulo = nativo.closest("label")?.childNodes[0]?.textContent?.trim();
+  texto.setAttribute("aria-label", `${rotulo || "Data"} (dia/mês/ano)`);
+  nativo.parentNode.insertBefore(caixa, nativo);
+  caixa.append(texto, nativo);
+  nativo.tabIndex = -1;
+  nativo.setAttribute("aria-label", "Abrir calendário");
+  nativo.title = "Abrir calendário";
+
+  let digitando = false;
+  const mostrar = () => {
+    if (digitando) return;
+    const iso = valorNativo.get.call(nativo);
+    if (brParaISO(texto.value) !== iso) texto.value = isoParaBR(iso);
+    texto.disabled = nativo.disabled;
+    texto.removeAttribute("aria-invalid");
+  };
+  // Valor definido pelo código (form.elements.x.value = "2026-11-05") também aparece no texto.
+  Object.defineProperty(nativo, "value", {
+    configurable: true,
+    get() { return valorNativo.get.call(this); },
+    set(v) { valorNativo.set.call(this, v); mostrar(); },
+  });
+  nativo.addEventListener("input", mostrar);
+  nativo.addEventListener("change", mostrar);
+  nativo.addEventListener("click", () => { try { nativo.showPicker?.(); } catch {} });
+  nativo.form?.addEventListener("reset", () => setTimeout(mostrar));
+
+  const definir = (iso) => {
+    if (valorNativo.get.call(nativo) === iso) return;
+    valorNativo.set.call(nativo, iso);
+    digitando = true;
+    try {
+      nativo.dispatchEvent(new Event("input", { bubbles: true }));
+      nativo.dispatchEvent(new Event("change", { bubbles: true }));
+    } finally { digitando = false; }
+  };
+  texto.addEventListener("input", () => {
+    const fim = texto.selectionStart === texto.value.length;
+    const formatado = mascaraData(texto.value);
+    if (formatado !== texto.value) { texto.value = formatado; if (fim) texto.setSelectionRange(formatado.length, formatado.length); }
+    // Data incompleta ou inválida não deixa a data antiga valendo escondida.
+    definir(brParaISO(texto.value) || "");
+  });
+  texto.addEventListener("blur", () => {
+    if (texto.value && !brParaISO(texto.value)) texto.setAttribute("aria-invalid", "true");
+    else mostrar();
+  });
+  // Enter no texto envia o formulário, como no campo nativo.
+  mostrar();
+}
+
+function prepararCamposDeData(raiz = document) {
+  if (raiz.matches?.("input[type=date]")) campoDataBR(raiz);
+  raiz.querySelectorAll?.("input[type=date]").forEach(campoDataBR);
+}
+prepararCamposDeData();
+new MutationObserver((mudancas) => {
+  for (const m of mudancas) m.addedNodes.forEach((n) => { if (n.nodeType === 1) prepararCamposDeData(n); });
+}).observe(document.body, { childList: true, subtree: true });

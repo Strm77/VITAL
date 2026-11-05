@@ -278,7 +278,7 @@ function itensAtencao() {
 
   // Financeiro: contas atrasadas ou vencendo nos próximos 3 dias
   tentar(() => {
-    const contas = pag.contas.filter((c) => c.status !== "pago" && c.vencimento);
+    const contas = pag.contas.filter((c) => c.status !== "pago" && c.vencimento && !c.vencimentoAConfirmar);
     const atras = contas.filter((c) => c.vencimento < hoje);
     if (atras.length) add("alerta", "💸", `${atras.length} conta${atras.length === 1 ? "" : "s"} atrasada${atras.length === 1 ? "" : "s"}`, `${moeda.format(atras.reduce((t, c) => t + Number(c.valor || 0), 0))} — ${atras.slice(0, 3).map((c) => c.nome).join(", ")}`, "#painel");
     contas.filter((c) => c.vencimento >= hoje && c.vencimento <= somarDias(hoje, 3)).sort((a, b) => a.vencimento.localeCompare(b.vencimento))

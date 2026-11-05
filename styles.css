@@ -1526,3 +1526,101 @@ a.botao { text-decoration: none; display: inline-block; }
 .bemestar-bloco .escala-linha { grid-template-columns: auto auto minmax(0, 1fr); }
 .saude-grade .compromisso { grid-template-columns: 82px minmax(0, 1fr); }
 .saude-grade .compromisso-acoes { grid-column: 2; justify-content: flex-start; }
+
+/* ---------- Melhorias V4 (05/11/2026) ---------- */
+
+/* V01/V04/V13: novos selos do controle de pagamentos */
+.status.a-confirmar { color: var(--texto-suave); }
+.status.cheque { color: var(--perigo); white-space: normal; }
+.a-confirmar-tag { font-size: 12px; font-style: italic; color: var(--texto-suave); white-space: normal; }
+.tabela .conta .sub { display: block; font-size: 12px; color: var(--texto-suave); }
+.estado.erro-consulta { color: var(--perigo); }
+
+/* V14: no celular, cada conta vira um cartão com nome, vencimento, valor, status e ações à vista */
+@media (max-width: 640px) {
+  .tabela-contas { min-width: 0; }
+  .tabela-contas thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .tabela-contas, .tabela-contas tbody { display: block; }
+  .tabela-contas tr {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "conta valor"
+      "venc  st"
+      "tipo  pago"
+      "acoes acoes";
+    gap: 4px 12px;
+    padding: 12px 4px;
+    border-bottom: 1px solid var(--borda);
+  }
+  .tabela-contas tr:last-child { border-bottom: none; }
+  .tabela-contas td { display: block; padding: 0; border: none; min-width: 0; }
+  .tabela-contas td.conta { grid-area: conta; font-weight: 600; font-size: 14px; overflow-wrap: normal; word-break: normal; }
+  .tabela-contas td.valor { grid-area: valor; font-weight: 600; font-size: 14px; }
+  .tabela-contas td.venc { grid-area: venc; white-space: normal; }
+  .tabela-contas td.venc::before { content: "Vence "; }
+  .tabela-contas td.st { grid-area: st; text-align: right; }
+  .tabela-contas td.tipo-conta { grid-area: tipo; }
+  .tabela-contas td.pago-em { grid-area: pago; text-align: right; white-space: normal; }
+  .tabela-contas td.pago-em:empty, .tabela-contas td.tipo-conta:empty { display: none; }
+  .tabela-contas tr:not(.conta-pago) td.pago-em { display: none; }
+  .tabela-contas td.conta .sub { font-weight: 400; }
+  .tabela-contas td.acoes-celula { grid-area: acoes; margin-top: 6px; }
+  .tabela-contas .acoes-linha { justify-content: flex-start; flex-wrap: wrap; white-space: normal; }
+  .tabela-contas .acoes-linha .botao { flex: 1 1 auto; min-height: 36px; }
+  .tabela-contas .acoes-linha [data-acao=pagar] { flex-basis: 100%; }
+}
+
+/* V16: legenda do gráfico visível, com toque */
+.legenda.visivel li[data-indice] { cursor: pointer; }
+.legenda.visivel .grupo-legenda { font-weight: 600; color: var(--texto-suave); font-size: 12px; margin-top: 4px; }
+
+/* V10/V12/V13: parcelas da dívida */
+.parcelas-divida { margin-top: 12px; border-top: 1px solid var(--borda); padding-top: 10px; display: grid; gap: 8px; font-size: 13px; }
+.parcelas-divida h4 { margin: 0; font-size: 13px; }
+.parcela-mes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.parcelas-opcoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+.parcelas-lista { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; display: grid; gap: 4px; }
+.parcelas-lista li { display: grid; grid-template-columns: 3.5ch 1fr auto auto; gap: 8px; align-items: center; padding: 3px 4px; border-radius: 6px; }
+.parcelas-lista li.do-mes { background: var(--superficie); }
+.parcelas-lista .num-parcela { color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.parcelas-lista .sub { font-size: 12px; color: var(--texto-suave); }
+.aviso-cheque { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--perigo); color: var(--perigo); font-size: 13px; }
+
+/* V07: campo de data no padrão brasileiro (dd/mm/aaaa) com calendário ao lado */
+.data-br { display: flex; align-items: stretch; gap: 6px; min-width: 0; position: relative; }
+.data-br > input.data-br-texto { flex: 1 1 auto; min-width: 0; }
+.data-br > input[type=date] {
+  flex: 0 0 40px; width: 40px; min-width: 40px; padding: 0; color: transparent; cursor: pointer;
+  background: var(--superficie) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E") center / 18px no-repeat;
+}
+.data-br > input[type=date]::-webkit-datetime-edit { display: none; }
+.data-br > input[type=date]::-webkit-calendar-picker-indicator { opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+.data-br-formato { font-size: 11px; color: var(--texto-suave); }
+
+/* V03/V05: refeições planejadas e registros sem avaliação */
+.registros-saude li.neutro .registro-icone { color: var(--texto-suave); }
+.registros-saude li.planejada { opacity: 0.85; border-style: dashed; }
+.planejadas-saude { display: grid; gap: 8px; margin-top: 12px; }
+.planejadas-saude ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.planejadas-saude li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 8px; border: 1px dashed var(--borda); border-radius: 8px; font-size: 13px; }
+.planejadas-saude li .registro-texto { flex: 1 1 180px; }
+
+/* V15: instrução da importação conforme o aparelho (toque × mouse) */
+.soltar .so-toque { display: none; }
+@media (hover: none) and (pointer: coarse) {
+  .soltar .so-toque { display: block; }
+  .soltar .so-mouse { display: none; }
+}
+
+/* V09: consulta pendente ou com erro — nada de "nenhum cadastro" nem zeros enganosos */
+[data-depende].consulta-pendente, [data-depende].consulta-erro { position: relative; min-height: 2.6em; }
+[data-depende].consulta-pendente > *, [data-depende].consulta-erro > * { visibility: hidden; }
+.estado[data-depende].consulta-pendente, .estado[data-depende].consulta-erro { font-size: 0; }
+[data-depende].consulta-pendente::before, [data-depende].consulta-erro::before {
+  content: "Carregando…";
+  position: absolute; left: 0; top: 0;
+  font-size: 14px; color: var(--texto-suave);
+  padding: 4px 0;
+}
+[data-depende].consulta-erro::before { content: "Não foi possível carregar. Recarregue a página."; color: var(--perigo); }

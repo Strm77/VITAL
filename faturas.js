@@ -29,7 +29,7 @@ const REGRAS_CATEGORIA = [
   ["Alimentação", ["ifood", "i food", "restaurante", "lanchonete", "padaria", "burger", "mcdonald", "mc donald", "bk ", "pizza", "rappi", "bar ", "cafe", "subway", "outback", "starbucks", "sushi", "churrasc", "acai", "lanches", "food", "giraffas", "habib", "spoleto", "coco bambu", "ze delivery"]],
   ["Mercado", ["supermerc", "mercado ", "carrefour", "assai", "atacad", "pao de acucar", "extra ", "hortifruti", "sams club", "big ", "makro", "oba ", "st marche", "dia brasil", "zaffari", "savegnago", "mercadinho", "sacolao"]],
   ["Transporte", ["uber", "99app", "99 app", "99pop", "99 ", "cabify", "posto", "shell", "ipiranga", "petrobras", "br mania", "combust", "estacion", "sem parar", "semparar", "veloe", "conectcar", "metro", "bilhete", "onibus", "pedagio", "zul ", "estapar"]],
-  ["Saúde", ["farmacia", "drogaria", "droga raia", "drogasil", "pague menos", "panvel", "hospital", "clinica", "laborator", "unimed", "amil", "odonto", "dentist", "medic", "smart fit", "smartfit", "academia", "bluefit", "gympass", "wellhub"]],
+  ["Saúde", ["farmacia", "drogaria", "droga raia", "drogasil", "pague menos", "panvel", "hospital", "clinica", "laborator", "unimed", "amil", "odonto", "dentist", "medic", "smart fit", "smartfit", "academia", "bluefit", "gympass"]],
   ["Compras", ["amazon", "mercadolivre", "mercado livre", "mercadopago*", "shopee", "aliexpress", "magalu", "magazine", "americanas", "shein", "renner", "riachuelo", "c&a", "cea ", "zara", "centauro", "netshoes", "kabum", "submarino", "casas bahia", "ponto frio", "fast shop", "decathlon", "nike", "adidas", "temu", "boticario", "natura", "sephora"]],
   ["Casa", ["leroy", "telhanorte", "tok&stok", "tok stok", "camicado", "madeiramadeira", "mobly", "etna", "c&c", "obramax"]],
   ["Lazer", ["cinema", "cinemark", "ingresso", "sympla", "eventim", "steam", "nintendo", "teatro", "show", "parque", "bilheteria"]],
@@ -38,7 +38,7 @@ const REGRAS_CATEGORIA = [
   ["Serviços", ["claro", "vivo", "tim ", "oi ", "net servicos", "internet", "energia", "enel", "cemig", "light ", "copel", "sabesp", "comgas", "condominio"]],
 ];
 
-const BANCOS = ["Nubank", "Itaú", "Bradesco", "Santander", "Banco Inter", "Inter", "C6 Bank", "C6", "Caixa", "Banco do Brasil", "Ourocard", "XP", "BTG", "PicPay", "Mercado Pago", "Neon", "Next", "Will Bank", "PagBank", "Porto Seguro", "Sicredi", "Sicoob", "Credicard", "Original"];
+const BANCOS = ["Nubank", "Itaú", "Bradescard", "Bradesco", "Santander", "Banco Inter", "Inter", "C6 Bank", "C6", "Caixa", "Banco do Brasil", "Ourocard", "XP", "BTG", "PicPay", "Mercado Pago", "Neon", "Next", "Will Bank", "PagBank", "Porto Seguro", "Sicredi", "Sicoob", "Credicard", "Original"];
 
 const MESES = { jan: 1, fev: 2, mar: 3, abr: 4, mai: 5, jun: 6, jul: 7, ago: 8, set: 9, out: 10, nov: 11, dez: 12 };
 const NOMES_MES = Object.keys(MESES).join("|");
@@ -97,16 +97,27 @@ async function lerLinhasDoPdf(arquivo, senha) {
       if (grupo && Math.abs(grupo.y - p.y) <= 3.5) grupo.itens.push(p);
       else grupos.push({ y: p.y, itens: [p] });
     }
+    const largura = pagina.getViewport({ scale: 1 }).width || 600;
     for (const { itens } of grupos) {
       itens.sort((a, b) => a.x - b.x);
       let texto = "";
       let fim = -Infinity;
+      const xs = [itens.length ? itens[0].x / largura : 0];
       for (const p of itens) {
-        const espaco = p.x - fim > 1.5 ? (p.x - fim > 40 ? "   " : " ") : "";
-        texto += (texto ? espaco : "") + p.t;
+        const gap = p.x - fim;
+        // V2-01/02/04: faturas em duas colunas (compras à esquerda, avisos ou outra lista à
+        // direita). Um valor em dinheiro seguido, depois de um vão, de texto ou de uma data
+        // marca a troca de coluna: separa com tabulação para o valor não "grudar" no texto vizinho.
+        const trocaColuna = texto && gap > 6 && /\d,\d{2}$/.test(texto) &&
+          (/^[A-Za-zÀ-ú(]{2}/.test(p.t.trim()) || /^\d{1,2}\/\d{1,2}(\b|\/)/.test(p.t.trim()));
+        if (trocaColuna) { texto += "\t"; xs.push(p.x / largura); }
+        else texto += texto ? (gap > 1.5 ? (gap > 40 ? "   " : " ") : "") : "";
+        texto += p.t;
         fim = p.x + p.w;
       }
       linhas.push(texto.replace(/\s+$/, ""));
+      linhas.xs = linhas.xs || [];
+      linhas.xs[linhas.length - 1] = xs;
     }
     linhas.paginas.push({ numero: n, linhas: linhas.length - inicioPagina, pedacos: items.length });
   }
@@ -118,7 +129,7 @@ async function lerLinhasDoPdf(arquivo, senha) {
 const IGNORAR = /saldo|total|limite|pagamento (minimo|recebido|efetuado|da fatura|em\b)|pagto|pagamento\s*-|valor minimo|fatura anterior|credito rotativo|parcelamento de fatura|proxima fatura|melhor dia|vencimento|fechamento|periodo/;
 // Descrições que não são compras: só "R$", ou um período do tipo "a 01 OUT".
 const NAO_E_COMPRA = new RegExp(`^(r\\$\\s*[\\d.,]*|a\\s+\\d{1,2}\\s*(${NOMES_MES})[a-z]*\\.?(\\s+\\d{2,4})?|ate\\s+.*)$`);
-// Prefixo do cartão virtual que alguns bancos colocam na descrição: "•••• 5636 Loja".
+// Prefixo do cartão virtual que alguns bancos colocam na descrição: "•••• 1234 Loja".
 const PREFIXO_CARTAO = /^(?:[•*xX·.]{2,}\s*)(\d{4})\s+/;
 
 function extrairDaFatura(linhas) {
@@ -131,7 +142,9 @@ function extrairDaFatura(linhas) {
 
   // Final do cartão
   const final = (textoSA.match(/(?:final|terminado em|cartao\s*(?:n[o.]*)?\s*[x*.\d\s]{4,}?)\s*[:\-]?\s*(\d{4})\b/) ||
-    texto.match(/(?:\*{2,}|x{4}|•{2,})\s?(\d{4})\b/i) || [])[1] || "";
+    texto.match(/(?:\*{2,}|x{4}|•{2,})\s?(\d{4})\b/i) ||
+    // Número mascarado em grupos: "4000.12**.****.3333"
+    texto.match(/\b\d{4}[.\s]\d{2}[*xX•]{2}[.\s][*xX•]{4}[.\s](\d{4})\b/) || [])[1] || "";
 
   // Vencimento
   let venc = null;
@@ -140,6 +153,12 @@ function extrairDaFatura(linhas) {
   if (!venc) {
     m = textoSA.match(new RegExp(`venc[a-z]*[^0-9]{0,40}?(\\d{1,2})\\s*(?:de\\s+)?(${NOMES_MES})[a-z]*\\.?\\s*(?:de\\s+)?(\\d{4})`));
     if (m) venc = { d: +m[1], m: MESES[m[2]], a: +m[3] };
+  }
+  // Cabeçalho em tabela ("Total da fatura   Vencimento" e, na linha de baixo, "R$ 15,00   10/11/2026"):
+  // a primeira data completa logo depois da palavra vencimento.
+  if (!venc) {
+    m = textoSA.match(/vencimento[^\n]*\n[^\n]*?\b(\d{2})\/(\d{2})\/(\d{4})\b/);
+    if (m) venc = { d: +m[1], m: +m[2], a: +m[3] };
   }
   const ref = venc || { m: hoje.getMonth() + 1, a: hoje.getFullYear() };
 
@@ -159,34 +178,52 @@ function extrairDaFatura(linhas) {
   const lancamentos = [];
   const naoReconhecidas = [];
   const pagamentos = [];
-  for (const linha of linhas) {
-    re.lastIndex = 0;
-    let r;
-    const antes = lancamentos.length;
-    while ((r = re.exec(linha))) {
-      const [, dia, mes, ano, descBruta, sinal1, sinal2, valorTexto, sufixo] = r;
-      let descricao = descBruta.replace(/\s{2,}/g, " ").trim();
-      const prefixo = descricao.match(PREFIXO_CARTAO);
-      if (prefixo) descricao = descricao.slice(prefixo[0].length);
-      const dsa = semAcento(descricao);
-      // Pagamento da fatura anterior: não é compra, mas entra no acerto com a fatura anterior.
-      if (/^pagamento (em|recebido|efetuado)\b|^pagto\b/.test(dsa) && (sinal1 || sinal2 || (sufixo && /-|c/i.test(sufixo.trim())))) {
-        pagamentos.push({ data: dataISO(dia, mes, ano), valor: numeroBR(valorTexto) });
-        continue;
+  const proximas = []; // V2-02: "Compras parceladas - próximas faturas": só previsão, não entram nesta fatura
+  // Seção atual de cada coluna (0 = esquerda, 1 = direita): "atual", "pagamentos" ou "futuro".
+  const secao = ["atual", "atual"];
+  const SECAO_FUTURA = /^(compras parceladas\s*-?\s*proximas faturas|parcelas? (das|para as) proximas faturas|lancamentos futuros|proximas parcelas)/;
+  const SECAO_PAGAMENTOS = /^pagamentos efetuados/;
+  const SECAO_ATUAL = /^(lancamentos|compras e saques|despesas|transacoes)/;
+  const FIM_FUTURA = /^(total para (as )?proximas faturas|limites? de credito|encargos cobrados)/;
+  linhas.forEach((linha, n) => {
+    const segmentos = String(linha).split("\t");
+    const xs = linhas.xs?.[n] || segmentos.map((_, k) => (k ? 0.6 : 0));
+    const antes = lancamentos.length + pagamentos.length + proximas.length;
+    segmentos.forEach((seg, k) => {
+      const col = (xs[k] ?? 0) >= 0.5 ? 1 : 0;
+      const ssa = semAcento(seg.trim());
+      if (SECAO_FUTURA.test(ssa)) { secao[col] = "futuro"; return; }
+      if (SECAO_PAGAMENTOS.test(ssa)) { secao[col] = "pagamentos"; return; }
+      if (SECAO_ATUAL.test(ssa) || (secao[col] === "futuro" && FIM_FUTURA.test(ssa))) secao[col] = "atual";
+      re.lastIndex = 0;
+      let r;
+      while ((r = re.exec(seg))) {
+        const [, dia, mes, ano, descBruta, sinal1, sinal2, valorTexto, sufixo] = r;
+        let descricao = descBruta.replace(/\s{2,}/g, " ").trim();
+        const prefixo = descricao.match(PREFIXO_CARTAO);
+        if (prefixo) descricao = descricao.slice(prefixo[0].length);
+        const dsa = semAcento(descricao);
+        const negativo = !!(sinal1 || sinal2 || (sufixo && /-|c/i.test(sufixo.trim())));
+        // V2-03: pagamento da fatura anterior não é compra nem crédito desta fatura: fica de fora
+        // dos lançamentos e entra só no acerto com a fatura anterior.
+        if ((/^(pagamento|pagto|pgto)\b/.test(dsa) && negativo) || (secao[col] === "pagamentos" && negativo)) {
+          pagamentos.push({ data: dataISO(dia, mes, ano), descricao, valor: numeroBR(valorTexto) });
+          continue;
+        }
+        if (!/[a-z]{2}/.test(dsa.replace(/r\$/g, "")) || IGNORAR.test(dsa) || NAO_E_COMPRA.test(dsa)) continue;
+        const data = dataISO(dia, mes, ano);
+        if (!data) continue;
+        const valor = numeroBR(valorTexto) * (negativo ? -1 : 1);
+        if (!valor) continue;
+        if (secao[col] === "futuro") { proximas.push({ data, descricao, valor }); continue; }
+        const lanc = { data, descricao, valor, categoria: categorizar(descricao, valor) };
+        if (prefixo) lanc.finalCartao = prefixo[1];
+        lancamentos.push(lanc);
       }
-      if (!/[a-z]{2}/.test(dsa.replace(/r\$/g, "")) || IGNORAR.test(dsa) || NAO_E_COMPRA.test(dsa)) continue;
-      const data = dataISO(dia, mes, ano);
-      if (!data) continue;
-      const negativo = !!(sinal1 || sinal2 || (sufixo && /-|c/i.test(sufixo.trim())));
-      const valor = numeroBR(valorTexto) * (negativo ? -1 : 1);
-      if (!valor) continue;
-      const lanc = { data, descricao, valor, categoria: categorizar(descricao, valor) };
-      if (prefixo) lanc.finalCartao = prefixo[1];
-      lancamentos.push(lanc);
-    }
+    });
     // Linha com valor em dinheiro que não virou lançamento: mostrada na prévia para conferência.
-    if (lancamentos.length === antes && /\d{1,3}(?:\.\d{3})*,\d{2}/.test(linha) && naoReconhecidas.length < 60) naoReconhecidas.push(linha.trim());
-  }
+    if (lancamentos.length + pagamentos.length + proximas.length === antes && /\d{1,3}(?:\.\d{3})*,\d{2}/.test(linha) && naoReconhecidas.length < 60) naoReconhecidas.push(String(linha).replace(/\t/g, "   ").trim());
+  });
 
   // Total oficial da fatura. O PDF pode ter vários "Total a pagar" (ex.: simulações de
   // parcelamento, detalhes do Pix parcelado); fica o valor que mais se repete entre as
@@ -194,9 +231,17 @@ function extrairDaFatura(linhas) {
   const DINHEIRO = /\d{1,3}(?:\.\d{3})*,\d{2}/g;
   const PADRAO_TOTAL = /(total a pagar|total da (?:sua )?fatura(?: atual)?|total desta fatura|valor total (?:da|desta) fatura|valor da fatura|fatura (?:de [a-z]+, )?no valor de|o total da sua fatura (?:e|é)|pagamento total da fatura)\s*:?\s*(?:de\s*)?(?:r\$)?\s*(\d{1,3}(?:\.\d{3})*,\d{2})/;
   const candidatos = new Map();
+  // V2-04: simulações de parcelamento e ofertas ("Valor total a pagar" do plano em 9x, IOF,
+  // total financiado…) não são o total da fatura.
+  const SIMULACAO = /valor da transacao|divididos|parcelar em|entrada|valor total a pagar|financiad|financiar|parcela de|iof|cet |juros/;
   linhas.forEach((linha, i) => {
-    const t = semAcento(linha);
-    if ((t.match(DINHEIRO) || []).length > 1 || /valor da transacao|divididos|parcelar em|entrada/.test(t)) return;
+    const t = semAcento(String(linha).replace(/\t/g, "   "));
+    // Cabeçalho em tabela: "Total da fatura   Vencimento" com os valores na linha de baixo.
+    if (/^(total da fatura|o total da sua fatura (e|é):?|pagamento total)(\s|$)/.test(t) && !(t.match(DINHEIRO) || []).length) {
+      const abaixo = semAcento(String(linhas[i + 1] || "")).match(/^r\$\s*(\d{1,3}(?:\.\d{3})*,\d{2})/);
+      if (abaixo && numeroBR(abaixo[1]) > 0) { const v = numeroBR(abaixo[1]); candidatos.set(v, (candidatos.get(v) || 0) + 2); }
+    }
+    if ((t.match(DINHEIRO) || []).length > 1 || SIMULACAO.test(t)) return;
     let m = t.match(PADRAO_TOTAL);
     // Frase quebrada em duas linhas ("...no valor de" / "R$ 3.572,42").
     if (!m && /(no valor de|total da fatura)\s*$/.test(t)) {
@@ -226,7 +271,7 @@ function extrairDaFatura(linhas) {
 
   const mes = venc ? `${venc.a}-${doisDigitos(venc.m)}` : `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}`;
   const vencimento = venc ? `${venc.a}-${doisDigitos(venc.m)}-${doisDigitos(venc.d)}` : "";
-  return { banco, final, mes, vencimento, totalInformado, naoReconhecidas, lancamentos };
+  return { banco, final, mes, vencimento, totalInformado, naoReconhecidas, lancamentos, pagamentosAnteriores: pagamentos, proximas };
 }
 
 /* Leitura com o Claude (só no claude.ai, quando o leitor automático não basta). */
@@ -393,8 +438,11 @@ const fat = {
   filtroTipo: "todos", // todos | parceladas | avista
 };
 
+/* V2-03: pagamento da fatura anterior ("Pagamento via conta", "Pagamento recebido") não é
+ * compra, estorno nem crédito desta fatura. Vale também para faturas já salvas com essa linha. */
+const ehPagamentoAnterior = (l) => Number(l.valor) < 0 && /^(pagamento|pagto|pgto)\b/.test(semAcento(String(l.descricao || ""))) && !/estorno|devoluc/.test(semAcento(String(l.descricao || "")));
 const totalGastos = (lancs) => lancs.reduce((t, l) => t + (l.valor > 0 ? l.valor : 0), 0);
-const totalFatura = (lancs) => lancs.reduce((t, l) => t + l.valor, 0);
+const totalFatura = (lancs) => lancs.reduce((t, l) => t + (ehPagamentoAnterior(l) ? 0 : l.valor), 0);
 // Valor da fatura: o total oficial (do PDF ou digitado); sem ele, a soma dos lançamentos.
 const valorDaFatura = (f) => (Number(f.totalInformado) > 0 ? Number(f.totalInformado) : totalFatura(f.lancamentos || []));
 
@@ -494,24 +542,45 @@ async function processarArquivo(arquivo, senha) {
   mostrarPrevia(extrairDaFatura(fat.linhas), "leitor");
 }
 
+/* V2-09: cartão sugerido só quando o final confere. Mesmo banco com final diferente (ou
+ * sem final lido) pede escolha explícita: nada é pré-selecionado. */
+function sugerirCartao(leitura) {
+  const porFinal = leitura.final ? fat.cartoes.find((c) => c.final === leitura.final) : null;
+  if (porFinal) return { id: porFinal.id, aviso: "" };
+  const mesmoBanco = leitura.banco ? fat.cartoes.filter((c) => semAcento(c.nome).includes(semAcento(leitura.banco))) : [];
+  if (!mesmoBanco.length) return { id: "", aviso: "" };
+  const lista = mesmoBanco.map((c) => `${c.nome}${c.final ? " •••• " + c.final : ""}`).join(", ");
+  return {
+    id: "__escolher",
+    aviso: leitura.final
+      ? `Já existe ${lista}, mas esta fatura é do final ${leitura.final}. Escolha o cartão certo: um dos existentes ou “+ Novo cartão”.`
+      : `Já existe ${lista} e o final do cartão não foi lido. Escolha o cartão certo antes de salvar.`,
+  };
+}
+
 function mostrarPrevia(leitura, metodo) {
   fat.leitura = leitura;
   const form = document.getElementById("previa");
   const select = document.getElementById("previa-cartao");
+  leitura.lancamentos = leitura.lancamentos.map((l) => ({ ...l }));
 
-  // Escolhe o cartão: mesmo final, ou mesmo nome do banco; senão, um cartão novo.
-  const existente =
-    fat.cartoes.find((c) => leitura.final && c.final === leitura.final) ||
-    fat.cartoes.find((c) => leitura.banco && semAcento(c.nome).includes(semAcento(leitura.banco)));
+  const sugestao = sugerirCartao(leitura);
   select.innerHTML =
+    (sugestao.id === "__escolher" ? `<option value="__escolher">Escolha o cartão…</option>` : "") +
     fat.cartoes.map((c) => `<option value="${c.id}">${escapar(c.nome)}${c.final ? " •••• " + escapar(c.final) : ""}</option>`).join("") +
     `<option value="">+ Novo cartão</option>`;
-  select.value = existente ? existente.id : "";
+  select.value = sugestao.id;
+  const aviso = document.getElementById("previa-cartao-aviso");
+  aviso.textContent = sugestao.aviso;
+  aviso.hidden = !sugestao.aviso;
   form.elements.novo.value = leitura.banco || "";
-  form.elements.final.value = leitura.final || existente?.final || "";
+  form.elements.final.value = leitura.final || "";
   form.elements.mes.value = leitura.mes;
   form.elements.vencimento.value = leitura.vencimento || "";
   form.elements.total.value = leitura.totalInformado ?? "";
+  form.elements.revisado.checked = false;
+  form.elements.substituir.checked = false;
+  leitura.vencimentoEscolhido = leitura.vencimento || "";
   renderizarDiagnostico(leitura);
   const naoLidas = document.getElementById("previa-nao-lidas");
   const lista = leitura.naoReconhecidas || [];
@@ -519,19 +588,253 @@ function mostrarPrevia(leitura, metodo) {
   naoLidas.open = false;
   naoLidas.querySelector("summary").textContent = `${lista.length} linha${lista.length === 1 ? "" : "s"} com valor que não ${lista.length === 1 ? "virou" : "viraram"} lançamento (totais, pagamentos, resumos…)`;
   naoLidas.querySelector("ul").innerHTML = lista.map((t) => `<li>${escapar(t)}</li>`).join("");
-  atualizarPrevia();
 
   const n = leitura.lancamentos.length;
   document.getElementById("previa-titulo").textContent = n
     ? `Encontrei ${n} lançamento${n === 1 ? "" : "s"}${metodo === "claude" ? " com o Claude" : ""}. Confira antes de salvar.`
-    : "Não encontrei lançamentos nesse PDF.";
-  form.querySelector("[type=submit]").disabled = !n;
+    : "Não encontrei lançamentos nesse PDF. Você pode incluí-los à mão abaixo.";
+  renderizarLancamentosPrevia();
   form.hidden = false;
 
   usarRecurso("sample").then((s) => {
     document.getElementById("previa-claude").hidden = !s || metodo === "claude";
   });
   form.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+/* V2-05: os lançamentos da prévia podem ser corrigidos (data, descrição, valor), removidos
+ * ou incluídos à mão antes de salvar; a conciliação com o total se atualiza na hora. */
+function renderizarLancamentosPrevia() {
+  const l = fat.leitura;
+  const caixa = document.getElementById("previa-lancamentos");
+  if (!l) return;
+  const pagos = l.pagamentosAnteriores || [];
+  const prox = l.proximas || [];
+  caixa.innerHTML = `
+    <table class="tabela previa-tabela">
+      <thead><tr><th scope="col">Data</th><th scope="col">Descrição</th><th scope="col" class="num">Valor (R$)</th><th scope="col"><span class="sr">Ações</span></th></tr></thead>
+      <tbody>${l.lancamentos.map((x, i) => `
+        <tr data-i="${i}">
+          <td><input type="date" data-campo="data" value="${escapar(x.data || "")}" aria-label="Data do lançamento ${i + 1}"></td>
+          <td><input type="text" data-campo="descricao" maxlength="120" value="${escapar(x.descricao)}" aria-label="Descrição do lançamento ${i + 1}"></td>
+          <td class="num"><input type="number" step="0.01" inputmode="decimal" data-campo="valor" value="${Number(x.valor).toFixed(2)}" aria-label="Valor do lançamento ${i + 1}"></td>
+          <td><button type="button" class="botao mini" data-remover-previa="${i}">Remover</button></td>
+        </tr>`).join("")}</tbody>
+    </table>
+    <button type="button" class="botao mini" id="previa-incluir">+ Incluir lançamento</button>
+    ${pagos.length ? `<p class="dica">Pagamento da fatura anterior (não é gasto nem crédito desta fatura, fica fora da soma): ${pagos.map((p) => `${dataBR(p.data)} ${escapar(p.descricao || "Pagamento")} ${moeda.format(-p.valor)}`).join(" · ")}</p>` : ""}
+    ${prox.length ? `<details class="nao-lidas"><summary>${prox.length} parcela${prox.length === 1 ? "" : "s"} das próximas faturas (${moeda.format(prox.reduce((t, x) => t + x.valor, 0))}): só previsão, não entra nesta fatura</summary>
+      <ul>${prox.map((x) => `<li>${dataBR(x.data)} ${escapar(x.descricao)} ${moeda.format(x.valor)}</li>`).join("")}</ul></details>` : ""}`;
+  caixa.querySelectorAll("tbody input").forEach((el) => el.addEventListener("change", () => {
+    const i = Number(el.closest("tr").dataset.i);
+    const campo = el.dataset.campo;
+    const item = l.lancamentos[i];
+    if (campo === "valor") {
+      const v = Math.round(Number(String(el.value).replace(",", ".")) * 100) / 100;
+      if (!v) { el.value = Number(item.valor).toFixed(2); return; }
+      item.valor = v;
+      if (v < 0) item.categoria = CREDITO;
+      else if (item.categoria === CREDITO) item.categoria = categorizar(item.descricao, v);
+    } else if (campo === "descricao") {
+      const t = el.value.trim();
+      if (!t) { el.value = item.descricao; return; }
+      item.descricao = t;
+    } else item[campo] = el.value || "";
+    atualizarPrevia();
+  }));
+  caixa.querySelectorAll("[data-remover-previa]").forEach((b) => b.addEventListener("click", () => {
+    l.lancamentos.splice(Number(b.dataset.removerPrevia), 1);
+    renderizarLancamentosPrevia();
+  }));
+  document.getElementById("previa-incluir").addEventListener("click", () => {
+    const form = document.getElementById("previa");
+    l.lancamentos.push({ data: form.elements.vencimento.value || "", descricao: "Lançamento incluído à mão", valor: 0.01, categoria: "Outros", manual: true });
+    renderizarLancamentosPrevia();
+    const campos = caixa.querySelectorAll("tbody tr:last-child input");
+    campos[1]?.select();
+  });
+  atualizarPrevia();
+}
+
+const chaveLanc = (x) => `${x.data || ""}|${semAcento(String(x.descricao)).replace(/\s+/g, " ").trim()}|${Number(x.valor).toFixed(2)}`;
+
+/* V2-05: reimportação compara o detalhamento novo com o salvo antes de substituir. */
+function comparacaoReimportacao(antiga, novos) {
+  const contar = (lista) => { const m = new Map(); lista.forEach((x) => m.set(chaveLanc(x), (m.get(chaveLanc(x)) || 0) + 1)); return m; };
+  const a = contar(antiga.lancamentos || []), b = contar(novos);
+  const sai = [], entra = [];
+  (antiga.lancamentos || []).forEach((x) => { const k = chaveLanc(x); if ((b.get(k) || 0) > 0) b.set(k, b.get(k) - 1); else sai.push(x); });
+  novos.forEach((x) => { const k = chaveLanc(x); if ((a.get(k) || 0) > 0) a.set(k, a.get(k) - 1); else entra.push(x); });
+  return { sai, entra, mantidos: novos.length - entra.length };
+}
+
+/* V2-08: a conta do Controle de pagamentos que a importação vai criar, vincular ou alterar. */
+function planoDaConta(cartaoId, mes, total, vencimento) {
+  const contas = typeof pag !== "undefined" ? pag.contas : [];
+  const repetida = fat.faturas.find((f) => f.cartaoId === cartaoId && f.mes === mes);
+  const ligada = repetida ? contas.find((c) => c.id === idContaDaFatura(repetida.id) || (c.origem === "fatura" && c.faturaId === repetida.id)) : null;
+  if (ligada) return { tipo: "existente", conta: ligada, repetida, duplicatas: [] };
+  const cartao = fat.cartoes.find((c) => c.id === cartaoId);
+  const termos = [cartao?.nome, fat.leitura?.banco, cartao?.final || fat.leitura?.final].filter(Boolean).map((t) => semAcento(String(t)));
+  const mesConta = (c) => (typeof mesDaConta === "function" ? mesDaConta(c) : String(c.vencimento || "").slice(0, 7));
+  const duplicatas = contas.filter((c) => c.origem !== "fatura" && mesConta(c) === mes && (
+    (total > 0 && Math.abs((Number(c.valor) || 0) - total) <= Math.max(1, total * 0.01)) ||
+    termos.some((t) => t.length >= 2 && semAcento(c.nome).includes(t)) || /fatura|cartao/.test(semAcento(c.nome))));
+  return { tipo: repetida?.semConta ? "sem-conta" : "nova", repetida, duplicatas, vencimento };
+}
+
+function atualizarPrevia() {
+  const form = document.getElementById("previa");
+  const l = fat.leitura;
+  if (!l) return;
+  const cartaoValor = form.elements.cartao.value;
+  const novo = !cartaoValor;
+  const escolher = cartaoValor === "__escolher";
+  document.getElementById("previa-novo-rotulo").hidden = !novo;
+  // V2-09: trocar o cartão nunca apaga o vencimento já escolhido.
+  if (!form.elements.vencimento.value && l.vencimentoEscolhido) form.elements.vencimento.value = l.vencimentoEscolhido;
+  const gastos = totalGastos(l.lancamentos);
+  const creditos = l.lancamentos.filter((x) => x.valor < 0).reduce((t, x) => t + x.valor, 0);
+  const soma = Math.round((gastos + creditos) * 100) / 100;
+  const total = Number(String(form.elements.total.value).replace(",", "."));
+  const mes = form.elements.mes.value;
+  const repetida = !novo && !escolher ? fat.faturas.find((f) => f.cartaoId === cartaoValor && f.mes === mes) : null;
+  const cartao = fat.cartoes.find((c) => c.id === cartaoValor);
+  const final = form.elements.final.value.replace(/\D/g, "").slice(-4);
+  const nomeCartao = escolher ? "" : novo ? `${form.elements.novo.value.trim() || "novo cartão"} (novo)` : cartao?.nome;
+  const diferenca = total > 0 ? Math.round((total - soma) * 100) / 100 : 0;
+  // V2-04: lançamentos que não fecham com o total pedem revisão antes de salvar.
+  // Bloqueia: nenhum lançamento, um único lançamento que não bate, ou mais de 25% sem detalhe.
+  const precisaRevisar = total > 0 && (l.lancamentos.length === 0 || (l.lancamentos.length === 1 && Math.abs(diferenca) >= 0.01)
+    || Math.abs(diferenca) > total * 0.25);
+  document.getElementById("previa-resumo").innerHTML = `
+    ${escolher ? `<span class="status atrasada">Escolha o cartão</span>` : `<span>Cartão <strong>${escapar(nomeCartao || "")}${final || cartao?.final ? ` •••• ${escapar(final || cartao.final)}` : ""}</strong></span>`}
+    ${final && cartao?.final && cartao.final !== final ? `<span class="status atrasada">Final lido ${escapar(final)} ≠ final do cartão escolhido ${escapar(cartao.final)}</span>` : ""}
+    ${l.banco ? `<span>Banco <strong>${escapar(l.banco)}</strong></span>` : ""}
+    <span>Vencimento <strong>${form.elements.vencimento.value ? dataBR(form.elements.vencimento.value) : "a confirmar"}</strong></span>
+    <span>Gastos <strong>${moeda.format(gastos)}</strong></span>
+    ${creditos ? `<span>Estornos e créditos <strong>${moeda.format(creditos)}</strong></span>` : ""}
+    <span>Soma dos lançamentos <strong>${moeda.format(soma)}</strong></span>
+    ${!(total > 0) ? `<span class="status pendente">Sem o valor total, a fatura vai usar a soma dos lançamentos.</span>`
+      : `<span>Total da fatura <strong>${moeda.format(total)}</strong></span>` + (Math.abs(diferenca) >= 0.01
+        ? `<span class="status atrasada">${moeda.format(diferenca)} da fatura não ${Math.abs(diferenca) === 1 ? "foi" : "foram"} detalhados em lançamentos</span>`
+        : `<span class="status pago">Lançamentos batem com o total</span>`)}`;
+
+  const revisao = document.getElementById("previa-revisao");
+  revisao.hidden = !precisaRevisar;
+  revisao.querySelector("span").textContent = l.lancamentos.length === 0
+    ? "Nenhum lançamento corresponde à fatura. Conferi e quero salvar mesmo assim."
+    : `Os lançamentos somam ${moeda.format(soma)} e a fatura é de ${moeda.format(total)}. Conferi e quero salvar mesmo assim.`;
+
+  // Reimportação: comparação antes de substituir o detalhamento.
+  const comp = document.getElementById("previa-comparacao");
+  comp.hidden = !repetida;
+  if (repetida) {
+    const c = comparacaoReimportacao(repetida, l.lancamentos);
+    const item = (x) => `<li>${dataBR(x.data)} ${escapar(x.descricao)} ${moeda.format(x.valor)}</li>`;
+    comp.querySelector(".comparacao-texto").innerHTML = `
+      <strong>Já existe a fatura de ${nomeDoMes(repetida.mes)} deste cartão</strong> (${(repetida.lancamentos || []).length} lançamentos, soma ${moeda.format(totalFatura((repetida.lancamentos || []).filter((x) => !ehPagamentoAnterior(x))))}).
+      A nova leitura tem ${l.lancamentos.length} (soma ${moeda.format(soma)}): ${c.mantidos} iguais, ${c.entra.length} novos e ${c.sai.length} que saem.
+      As categorias que você escolheu nos lançamentos iguais são mantidas.
+      ${c.entra.length ? `<details><summary>Entram (${c.entra.length})</summary><ul>${c.entra.slice(0, 30).map(item).join("")}</ul></details>` : ""}
+      ${c.sai.length ? `<details><summary>Saem (${c.sai.length})</summary><ul>${c.sai.slice(0, 30).map(item).join("")}</ul></details>` : ""}`;
+  }
+
+  // Conta no Controle de pagamentos.
+  const contaBox = document.getElementById("previa-conta");
+  const valorConta = total > 0 ? total : soma;
+  if (escolher) { contaBox.innerHTML = `<p class="dica">Escolha o cartão para ver a conta do Controle de pagamentos.</p>`; }
+  else {
+    const plano = planoDaConta(novo ? "" : cartaoValor, mes, valorConta, form.elements.vencimento.value);
+    const marcado = form.querySelector("[name=destinoConta]:checked")?.value;
+    if (plano.tipo === "existente") {
+      const c = plano.conta;
+      contaBox.innerHTML = `<h4>Controle de pagamentos</h4>
+        <p>A conta já ligada a esta fatura, “${escapar(c.nome)}” (${c.status === "pago" ? `paga${c.pagoEm ? " em " + dataBR(String(c.pagoEm).slice(0, 10)) : ""}` : "pendente"}), continua a mesma.
+        ${c.valorEditado ? `O valor que você editou (${moeda.format(Number(c.valor))}) é mantido; só o valor importado passa a ${moeda.format(valorConta)}.`
+          : Math.abs((Number(c.valor) || 0) - valorConta) >= 0.01 ? `O valor muda de ${moeda.format(Number(c.valor))} para ${moeda.format(valorConta)}.` : `O valor continua ${moeda.format(valorConta)}.`}
+        ${c.status === "pago" ? " O pagamento registrado é preservado." : ""}
+        ${form.elements.vencimento.value && c.vencimento !== form.elements.vencimento.value ? ` O vencimento da conta (${dataBR(c.vencimento)}) não é alterado automaticamente; o PDF diz ${dataBR(form.elements.vencimento.value)}.` : ""}</p>`;
+    } else {
+      const opcoes = [
+        { v: "nova", t: `Criar a conta “Fatura ${escapar(novo ? form.elements.novo.value.trim() || "cartão" : cartao?.nome || "cartão")}” de ${moeda.format(valorConta)}, vencimento ${form.elements.vencimento.value ? dataBR(form.elements.vencimento.value) : "a confirmar"}` },
+        ...plano.duplicatas.map((c) => ({ v: "ligar:" + c.id, t: `Vincular à conta já cadastrada “${escapar(c.nome)}” de ${moeda.format(Number(c.valor))} (${c.status === "pago" ? "paga — o pagamento é preservado" : "pendente"})` })),
+        { v: "nenhuma", t: "Não criar conta para esta fatura" },
+      ];
+      const padrao = plano.tipo === "sem-conta" ? "nenhuma" : "nova";
+      const escolhido = opcoes.some((o) => o.v === marcado) ? marcado : padrao;
+      contaBox.innerHTML = `<h4>Controle de pagamentos</h4>
+        ${plano.duplicatas.length ? `<p class="status atrasada">Possível duplicata: já existe ${plano.duplicatas.length === 1 ? "uma conta" : `${plano.duplicatas.length} contas`} neste mês que pode ser esta fatura. Nada é excluído nem juntado sem a sua escolha.</p>` : ""}
+        ${opcoes.map((o) => `<label class="campo-check"><input type="radio" name="destinoConta" value="${escapar(o.v)}"${o.v === escolhido ? " checked" : ""}> ${o.t}</label>`).join("")}`;
+    }
+  }
+  form.querySelector("[type=submit]").disabled = escolher || !l.lancamentos.length && !(total > 0)
+    || (precisaRevisar && !form.elements.revisado.checked) || (!!repetida && !form.elements.substituir.checked);
+}
+
+async function salvarImportacao(evento) {
+  evento.preventDefault();
+  const form = evento.target;
+  const l = fat.leitura;
+  const mes = form.elements.mes.value;
+  const final = form.elements.final.value.replace(/\D/g, "").slice(-4);
+  let cartaoId = form.elements.cartao.value;
+  if (cartaoId === "__escolher") return avisoLeitura("Escolha o cartão desta fatura (um dos existentes ou “+ Novo cartão”).");
+  if (!mes) return avisoLeitura("Informe o mês da fatura.");
+  if (!cartaoId && !form.elements.novo.value.trim()) return avisoLeitura("Dê um nome para o novo cartão.");
+  const destino = form.querySelector("[name=destinoConta]:checked")?.value || "nova";
+
+  const botao = form.querySelector("[type=submit]");
+  botao.disabled = true;
+  try {
+    if (!cartaoId) {
+      cartaoId = await fat.armCartoes.salvar(null, { nome: form.elements.novo.value.trim(), final });
+    } else {
+      const cartao = fat.cartoes.find((c) => c.id === cartaoId);
+      if (final && cartao && !cartao.final) await fat.armCartoes.salvar(cartaoId, { nome: cartao.nome, final });
+    }
+    const repetida = fat.faturas.find((f) => f.cartaoId === cartaoId && f.mes === mes);
+    // Reimportação: mantém as categorias escolhidas à mão nos lançamentos iguais.
+    const categorias = new Map((repetida?.lancamentos || []).map((x) => [chaveLanc(x), x.categoria]));
+    const lancamentos = l.lancamentos.map(({ manual, ...x }) => ({ ...x, categoria: categorias.get(chaveLanc(x)) || x.categoria || categorizar(x.descricao, x.valor) }));
+    const total = Number(String(form.elements.total.value).replace(",", "."));
+    const ligar = destino.startsWith("ligar:") ? pag.contas.find((c) => c.id === destino.slice(6)) : null;
+    const dados = {
+      cartaoId,
+      mes,
+      vencimento: form.elements.vencimento.value || null,
+      totalInformado: total > 0 ? total : null,
+      arquivo: fat.arquivo ? fat.arquivo.name : "",
+      importadoEm: new Date().toISOString(),
+      // Vincular a uma conta existente ou não criar conta: a criação automática fica desligada.
+      semConta: repetida ? !!repetida.semConta : destino !== "nova",
+      lancamentos,
+    };
+    const faturaId = await fat.armFaturas.salvar(repetida ? repetida.id : null, dados);
+    if (ligar) {
+      const { id, ...conta } = ligar;
+      const valor = total > 0 ? total : totalFatura(lancamentos);
+      const pago = conta.status === "pago";
+      await pag.armazenamento.salvar(id, {
+        ...conta, origem: "fatura", faturaId, valorFatura: valor,
+        // Conta paga mantém valor e pagamento; pendente passa a acompanhar a fatura.
+        valor: pago ? conta.valor : valor, valorEditado: pago && Math.abs((Number(conta.valor) || 0) - valor) > 0.004,
+      });
+      await fat.armFaturas.salvar(faturaId, { ...dados, semConta: false });
+    }
+    fat.filtroCartao = cartaoId;
+    fat.filtroMes = mes;
+    fat.todosOsMeses = false;
+    definirMes(mes); // a timeline vai para o mês da fatura importada
+    cancelarImportacao();
+    estadoLeitura(`Fatura de ${nomeDoMes(mes)} salva.`);
+    renderizarFaturas();
+  } catch (e) {
+    console.error(e);
+    avisoLeitura("Não foi possível salvar a fatura. Verifique sua conexão e tente de novo.");
+  } finally {
+    botao.disabled = false;
+  }
 }
 
 /* Diagnóstico da leitura: páginas, linhas e o texto completo extraído do PDF. */
@@ -560,77 +863,6 @@ async function copiarDiagnostico() {
   try { await navigator.clipboard.writeText(campo.value); botao.textContent = "Copiado"; }
   catch { campo.focus(); campo.select(); botao.textContent = "Selecionado: use Ctrl+C"; }
   setTimeout(() => (botao.textContent = "Copiar texto lido"), 2500);
-}
-
-function atualizarPrevia() {
-  const form = document.getElementById("previa");
-  const l = fat.leitura;
-  if (!l) return;
-  const novo = !form.elements.cartao.value;
-  document.getElementById("previa-novo-rotulo").hidden = !novo;
-  const gastos = totalGastos(l.lancamentos);
-  const creditos = l.lancamentos.filter((x) => x.valor < 0).reduce((t, x) => t + x.valor, 0);
-  const repetida = fat.faturas.find((f) => f.cartaoId && f.cartaoId === form.elements.cartao.value && f.mes === form.elements.mes.value);
-  document.getElementById("previa-resumo").innerHTML = `
-    ${l.banco ? `<span>Banco <strong>${escapar(l.banco)}</strong></span>` : ""}
-    <span>Gastos <strong>${moeda.format(gastos)}</strong></span>
-    ${creditos ? `<span>Estornos e créditos <strong>${moeda.format(creditos)}</strong></span>` : ""}
-    <span>Soma dos lançamentos <strong>${moeda.format(gastos + creditos)}</strong></span>
-    ${(() => {
-      const total = Number(String(form.elements.total.value).replace(",", "."));
-      if (!(total > 0)) return `<span class="status pendente">Sem o valor total, a fatura vai usar a soma dos lançamentos.</span>`;
-      const diferenca = Math.round((total - gastos - creditos) * 100) / 100;
-      return `<span>Total da fatura <strong>${moeda.format(total)}</strong></span>` + (Math.abs(diferenca) >= 0.01
-        ? `<span class="status atrasada">${moeda.format(diferenca)} da fatura não ${Math.abs(diferenca) === 1 ? "foi" : "foram"} detalhados em lançamentos</span>`
-        : `<span class="status pago">Lançamentos batem com o total</span>`);
-    })()}
-    ${repetida ? `<span class="status atrasada">Já existe a fatura de ${nomeDoMes(repetida.mes)} deste cartão; salvar vai substituí-la.</span>` : ""}`;
-}
-
-async function salvarImportacao(evento) {
-  evento.preventDefault();
-  const form = evento.target;
-  const l = fat.leitura;
-  const mes = form.elements.mes.value;
-  const final = form.elements.final.value.replace(/\D/g, "").slice(-4);
-  let cartaoId = form.elements.cartao.value;
-  if (!mes) return avisoLeitura("Informe o mês da fatura.");
-  if (!cartaoId && !form.elements.novo.value.trim()) return avisoLeitura("Dê um nome para o novo cartão.");
-
-  const botao = form.querySelector("[type=submit]");
-  botao.disabled = true;
-  try {
-    if (!cartaoId) {
-      cartaoId = await fat.armCartoes.salvar(null, { nome: form.elements.novo.value.trim(), final });
-    } else {
-      const cartao = fat.cartoes.find((c) => c.id === cartaoId);
-      if (final && cartao && cartao.final !== final) {
-        await fat.armCartoes.salvar(cartaoId, { nome: cartao.nome, final });
-      }
-    }
-    const repetida = fat.faturas.find((f) => f.cartaoId === cartaoId && f.mes === mes);
-    await fat.armFaturas.salvar(repetida ? repetida.id : null, {
-      cartaoId,
-      mes,
-      vencimento: form.elements.vencimento.value || `${mes}-10`,
-      totalInformado: Number(String(form.elements.total.value).replace(",", ".")) > 0 ? Number(String(form.elements.total.value).replace(",", ".")) : null,
-      arquivo: fat.arquivo ? fat.arquivo.name : "",
-      importadoEm: new Date().toISOString(),
-      lancamentos: l.lancamentos,
-    });
-    fat.filtroCartao = cartaoId;
-    fat.filtroMes = mes;
-    fat.todosOsMeses = false;
-    definirMes(mes); // a timeline vai para o mês da fatura importada
-    cancelarImportacao();
-    estadoLeitura(`Fatura de ${nomeDoMes(mes)} salva.`);
-    renderizarFaturas();
-  } catch (e) {
-    console.error(e);
-    avisoLeitura("Não foi possível salvar a fatura. Verifique sua conexão e tente de novo.");
-  } finally {
-    botao.disabled = false;
-  }
 }
 
 function cancelarImportacao() {
@@ -749,12 +981,15 @@ function renderizarPlanilha() {
     : prevista.map((p) => ({ data: "", descricao: p.descricaoOriginal, categoria: p.categoria, valor: p.valor, parcela: p, prevista: true }));
   todas.sort((a, b) => String(a.data).localeCompare(String(b.data)));
 
-  const parceladas = todas.filter((l) => l.parcela);
-  const avista = todas.filter((l) => !l.parcela);
+  // V2-03: pagamentos da fatura anterior ficam à parte: fora do "À vista" e da conciliação.
+  const pagamentosAnt = todas.filter(ehPagamentoAnterior);
+  const compras = todas.filter((l) => !ehPagamentoAnterior(l));
+  const parceladas = compras.filter((l) => l.parcela);
+  const avista = compras.filter((l) => !l.parcela);
   const soma = (lista) => lista.reduce((t, l) => t + l.valor, 0);
   // Total oficial da fatura e o que não apareceu como lançamento (juros, saldo anterior, linhas não lidas…).
-  const totalOficial = faturas.length ? faturas.reduce((t, f) => t + valorDaFatura(f), 0) : soma(todas);
-  const naoDetalhado = Math.round((totalOficial - soma(todas)) * 100) / 100;
+  const totalOficial = faturas.length ? faturas.reduce((t, f) => t + valorDaFatura(f), 0) : soma(compras);
+  const naoDetalhado = Math.round((totalOficial - soma(compras)) * 100) / 100;
   const umaFatura = faturas.length === 1 ? faturas[0] : null;
   const faltaParceladas = parceladas.reduce((t, l) => t + l.valor * l.parcela.restantes, 0);
   const acabando = parceladas.filter((l) => l.parcela.restantes <= 2).length;
@@ -764,6 +999,7 @@ function renderizarPlanilha() {
       ${umaFatura ? `<button type="button" class="botao mini" id="editar-total">${Number(umaFatura.totalInformado) > 0 ? "Corrigir total" : "Informar total"}</button>` : ""}</span>
     <span>À vista <strong>${moeda.format(soma(avista))}</strong> (${avista.length})</span>
     <span>Parceladas <strong>${moeda.format(soma(parceladas))}</strong> (${parceladas.length})</span>
+    ${pagamentosAnt.length ? `<span>Pagamento da fatura anterior <strong>${moeda.format(soma(pagamentosAnt))}</strong> (fora da soma)</span>` : ""}
     ${Math.abs(naoDetalhado) >= 0.01 ? `<span>Não detalhado <strong>${moeda.format(naoDetalhado)}</strong></span>` : ""}
     ${parceladas.length ? `<span>Ainda falta das parceladas <strong>${moeda.format(faltaParceladas)}</strong></span>` : ""}
     ${acabando ? `<span class="status pago">${acabando} terminando em até 2 meses</span>` : ""}`;
@@ -775,27 +1011,31 @@ function renderizarPlanilha() {
     b.classList.toggle("ativo", ativo);
     b.setAttribute("aria-pressed", String(ativo));
   });
-  const linhas = fat.filtroTipo === "parceladas" ? parceladas : fat.filtroTipo === "avista" ? avista : todas;
+  const linhas = fat.filtroTipo === "parceladas" ? parceladas : fat.filtroTipo === "avista" ? avista : [...compras, ...pagamentosAnt];
 
   const corpo = document.querySelector("#planilha tbody");
   corpo.innerHTML = "";
   linhas.forEach((l) => {
     const tr = document.createElement("tr");
-    tr.className = (l.parcela ? "parcelada" : "avista") + (l.prevista ? " prevista" : "");
+    const pagto = ehPagamentoAnterior(l);
+    tr.className = (pagto ? "pagamento-anterior" : l.parcela ? "parcelada" : "avista") + (l.prevista ? " prevista" : "");
     const nome = l.parcela ? semParcela(l.descricao) : l.descricao;
     const valorCompra = l.parcela ? `<span class="sub">compra de ${moeda.format(l.valor * l.parcela.total)}</span>` : "";
     tr.innerHTML = `
       <td class="data">${l.data ? dataBR(l.data) : "—"}</td>
       <td class="conta">${escapar(nome)}</td>
-      <td class="celula-parcelas">${celulaParcelas(l.parcela)}</td>
+      <td class="celula-parcelas">${pagto ? `<span class="tag-vista">pagamento anterior</span><span class="sub">fora da soma</span>` : celulaParcelas(l.parcela)}</td>
       <td>${l.prevista
         ? `<span class="sub">${escapar(l.categoria || "Outros")}</span>`
         : `<select aria-label="Categoria de ${escapar(nome)}">${CATEGORIAS.map((c) => `<option${c === l.categoria ? " selected" : ""}>${c}</option>`).join("")}</select>`}</td>
       <td class="num${l.valor < 0 ? " credito" : ""}">${moeda.format(l.valor)}${valorCompra}</td>
-      <td>${l.prevista ? "" : `<div class="acoes-linha"><button type="button" class="botao mini" aria-label="Remover ${escapar(nome)}">Remover</button></div>`}</td>`;
+      <td>${l.prevista ? "" : `<div class="acoes-linha"><span role="button" tabindex="0" class="botao mini" data-editar-lanc aria-label="Editar ${escapar(nome)}">Editar</span><button type="button" class="botao mini" data-remover-lanc aria-label="Remover ${escapar(nome)}">Remover</button></div>`}</td>`;
     if (!l.prevista) {
       tr.querySelector("select").addEventListener("change", (e) => atualizarLancamento(l.fatura, l.indice, { categoria: e.target.value }));
-      const rem = tr.querySelector("button");
+      const ed = tr.querySelector("[data-editar-lanc]");
+      ed.addEventListener("click", () => editarLinhaPlanilha(tr, l));
+      ed.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); editarLinhaPlanilha(tr, l); } });
+      const rem = tr.querySelector("[data-remover-lanc]");
       rem.addEventListener("click", () => {
         if (rem.dataset.confirmar !== "sim") {
           rem.dataset.confirmar = "sim";
@@ -825,7 +1065,47 @@ function renderizarPlanilha() {
   }
   document.querySelector("#planilha tfoot").innerHTML = `
     <tr><td></td><td>${linhas.length} lançamento${linhas.length === 1 ? "" : "s"}${filtrado ? ` de ${todas.length}` : ""}</td><td></td>
-    <td>${filtrado ? "Subtotal" : "Total da fatura"}</td><td class="num">${moeda.format(filtrado ? soma(linhas) : totalOficial)}</td><td></td></tr>`;
+    <td>${filtrado ? "Subtotal" : "Total da fatura"}</td><td class="num">${moeda.format(filtrado ? soma(linhas) : totalOficial)}</td><td></td></tr>
+    ${umaFatura && !filtrado ? `<tr><td colspan="6"><button type="button" class="botao mini" id="incluir-lancamento">+ Incluir lançamento</button></td></tr>` : ""}`;
+  const incluir = document.getElementById("incluir-lancamento");
+  if (incluir) incluir.addEventListener("click", () => editarLinhaPlanilha(null, { fatura: umaFatura, indice: -1, data: umaFatura.vencimento || "", descricao: "", valor: "" }));
+}
+
+/* V2-05: corrigir data, descrição e valor de um lançamento (ou incluir um) sem excluir a fatura.
+ * A fatura mantém o mesmo id, então a conta ligada a ela no Controle de pagamentos continua ligada. */
+function editarLinhaPlanilha(tr, l) {
+  const novo = l.indice < 0;
+  const linha = tr || document.createElement("tr");
+  linha.className = "editando";
+  linha.innerHTML = `
+    <td><input type="date" name="data" value="${escapar(l.data || "")}" aria-label="Data"></td>
+    <td colspan="2"><input type="text" name="descricao" maxlength="120" value="${escapar(l.descricao || "")}" aria-label="Descrição" placeholder="Descrição"></td>
+    <td><span class="sub">${novo ? "lançamento manual" : escapar(l.categoria || "")}</span></td>
+    <td class="num"><input type="number" name="valor" step="0.01" inputmode="decimal" value="${l.valor === "" ? "" : Number(l.valor).toFixed(2)}" aria-label="Valor"></td>
+    <td><div class="acoes-linha"><button type="button" class="botao mini primario" data-salvar-lanc>Salvar</button><button type="button" class="botao mini" data-cancelar-lanc>Cancelar</button></div></td>`;
+  if (!tr) document.querySelector("#planilha tbody").appendChild(linha);
+  const campo = (n) => linha.querySelector(`[name=${n}]`);
+  campo("descricao").focus();
+  linha.querySelector("[data-cancelar-lanc]").addEventListener("click", renderizarPlanilha);
+  linha.querySelector("[data-salvar-lanc]").addEventListener("click", async (e) => {
+    const descricao = campo("descricao").value.trim();
+    const valor = Math.round(Number(String(campo("valor").value).replace(",", ".")) * 100) / 100;
+    if (!descricao) return campo("descricao").focus();
+    if (!valor) return campo("valor").focus();
+    e.currentTarget.disabled = true;
+    const mudanca = { data: campo("data").value || null, descricao, valor };
+    if (novo) {
+      const { id, ...dados } = l.fatura;
+      try {
+        await fat.armFaturas.salvar(id, { ...dados, lancamentos: [...(l.fatura.lancamentos || []), { ...mudanca, categoria: categorizar(descricao, valor) }] });
+      } catch { avisoLeitura("Não foi possível incluir o lançamento. Tente de novo."); }
+    } else {
+      const anterior = l.fatura.lancamentos[l.indice];
+      if (valor < 0) mudanca.categoria = CREDITO;
+      else if (anterior.categoria === CREDITO) mudanca.categoria = categorizar(descricao, valor);
+      await atualizarLancamento(l.fatura, l.indice, mudanca);
+    }
+  });
 }
 
 /* Corrigir o total oficial da fatura direto na tabela. */
@@ -855,7 +1135,7 @@ function editarTotal(fatura, alvo) {
 
 function renderizarRelatorio() {
   const faturas = faturasSelecionadas();
-  const lancs = faturas.flatMap((f) => f.lancamentos || []).filter((l) => l.valor > 0 && l.categoria !== CREDITO);
+  const lancs = faturas.flatMap((f) => f.lancamentos || []).filter((l) => l.valor > 0 && l.categoria !== CREDITO && !ehPagamentoAnterior(l));
   const lista = document.getElementById("relatorio");
   const vazio = document.getElementById("relatorio-vazio");
   vazio.hidden = lancs.length > 0;
@@ -1003,13 +1283,17 @@ async function sincronizarContasDasFaturas() {
     if (f.semConta || sincronizando.has(id)) continue;
     const cartao = fat.cartoes.find((c) => c.id === f.cartaoId);
     const total = Math.round(valorDaFatura(f) * 100) / 100;
-    const existente = pag.contas.find((c) => c.id === id);
+    // V2-08: conta vinculada pela importação (faturaId) conta como a conta desta fatura.
+    const existente = pag.contas.find((c) => c.id === id) || pag.contas.find((c) => c.origem === "fatura" && c.faturaId === f.id);
     let nova = null;
     if (!existente) {
       nova = {
         nome: `Fatura ${cartao ? cartao.nome : "cartão"}`,
         valor: total,
-        vencimento: f.vencimento || `${f.mes}-10`,
+        // Sem vencimento lido do PDF: a conta fica no mês da fatura com "vencimento a confirmar".
+        vencimento: f.vencimento || ultimoDiaDoMes(f.mes),
+        vencimentoAConfirmar: !f.vencimento,
+        ...(f.vencimento ? {} : { mesReferencia: f.mes }),
         status: "pendente",
         pagoEm: null,
         origem: "fatura",
@@ -1025,7 +1309,7 @@ async function sincronizarContasDasFaturas() {
     }
     if (!nova) continue;
     sincronizando.add(id);
-    try { await pag.armazenamento.salvar(id, nova); } catch {}
+    try { await pag.armazenamento.salvar(existente ? existente.id : id, nova); } catch {}
     finally { sincronizando.delete(id); }
   }
 
@@ -1063,9 +1347,15 @@ async function iniciarFaturas() {
   const previa = document.getElementById("previa");
   previa.addEventListener("submit", salvarImportacao);
   previa.elements.cartao.addEventListener("change", atualizarPrevia);
+  previa.elements.revisado.addEventListener("change", atualizarPrevia);
+  previa.elements.substituir.addEventListener("change", atualizarPrevia);
+  previa.elements.novo.addEventListener("input", atualizarPrevia);
+  previa.elements.final.addEventListener("input", atualizarPrevia);
+  previa.addEventListener("change", (e) => { if (e.target.name === "destinoConta") atualizarPrevia(); });
   previa.elements.mes.addEventListener("change", atualizarPrevia);
   previa.elements.total.addEventListener("input", atualizarPrevia);
   previa.elements.vencimento.addEventListener("change", () => {
+    if (fat.leitura) fat.leitura.vencimentoEscolhido = previa.elements.vencimento.value;
     if (previa.elements.vencimento.value) previa.elements.mes.value = previa.elements.vencimento.value.slice(0, 7);
     atualizarPrevia();
   });

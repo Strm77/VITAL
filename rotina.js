@@ -157,7 +157,7 @@ function itensAgenda(de, ate) {
     itens.push({ data: c.data, hora: c.hora, tipo: c.tipo === "compromisso" ? "compromisso" : "consulta", texto: `${c.tipo !== "compromisso" ? "🩺 " : ""}${c.titulo}`, feito: c.feito, compromisso: c });
   }
   for (const a of vida.afazeres.filter((x) => !x.feitoEm && dentro(x.prazo))) itens.push({ data: a.prazo, tipo: "tarefa", texto: `✅ ${a.titulo}`, link: "#rotina" });
-  tentar(() => pag.contas.filter((c) => c.status !== "pago" && dentro(c.vencimento)).forEach((c) =>
+  tentar(() => pag.contas.filter((c) => c.status !== "pago" && !c.vencimentoAConfirmar && dentro(c.vencimento)).forEach((c) =>
     itens.push({ data: c.vencimento, tipo: "conta", texto: `💸 ${c.nome} ${moeda.format(Number(c.valor || 0))}`, link: "#painel" })));
   tentar(() => {
     const porDia = new Map();

@@ -2,7 +2,7 @@
  * "financeiro" (mesmas colunas da migração) e guarda tudo no sessionStorage. */
 (() => {
   const COLUNAS = {
-    dividas: "id nome valor_parcela total_parcelas primeira_parcela dia_vencimento parcelas_pagas",
+    dividas: "id nome valor_parcela total_parcelas primeira_parcela dia_vencimento parcelas_pagas parcelas_quitadas saldo_informado saldo_informado_em",
     ganhos: "id nome valor recorrente mes",
     gastos: "id nome valor recorrente mes",
     investimentos: "id nome valor_aplicado valor_atual meta",
@@ -11,7 +11,7 @@
     planos: "id tema objetivo data_inicio data_fim meta_horas meta_semanal_horas",
     topicos: "id plano_id materia nome ordem concluido concluido_em",
     sessoes: "id plano_id topico_id data minutos nota",
-    registros: "id data tipo resultado descricao refeicao minutos intensidade nota",
+    registros: "id data tipo resultado descricao refeicao minutos intensidade nota avaliacao situacao",
     objetivos: "id treinos_semana minutos_semana acerto_alimentacao meta_agua meta_sono",
     checkins: "id data humor energia estresse sono_horas sono_qualidade agua_copos nota",
     prioridades: "id semana ordem texto feita",
@@ -30,7 +30,7 @@
     movimentos_metas: "id meta_id data valor descricao",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
-    pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria",
+    pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria mes_referencia vencimento_a_confirmar pagar_em observacao origem_pagamento divida_id",
   };
   const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"] };
   const ler = () => JSON.parse(sessionStorage.getItem("mock-db") || "{}");

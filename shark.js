@@ -259,7 +259,7 @@ function renderizarTopoShark() {
   const entreguesMes = tarefas.filter((t) => t.status === "entregue" && mesDe(t.entregueEm) === mesDe(hoje));
   const dinheiro = sharkNoMes(mesDe(hoje));
   document.getElementById("shark-numeros").innerHTML = `
-    <div class="shark-numero${atrasadas.length ? " alerta" : ""}"><span>Atrasadas</span> <strong>${somaQtd(atrasadas)}</strong> <small>${atrasadas.length ? "entregue o quanto antes" : "nada atrasado ✓"}</small></div>
+    <div class="shark-numero${atrasadas.length ? " alerta" : ""}"><span>Atrasadas</span> <strong>${somaQtd(atrasadas)}</strong> <small>${atrasadas.length ? "entregue o quanto antes" : "sem atrasos ✓"}</small></div>
     <div class="shark-numero"><span>Esta semana</span> <strong>${somaQtd(semana)}</strong> <small>até domingo, ${dataBR(fimSemana).slice(0, 5)}</small></div>
     <div class="shark-numero"><span>Próximos 30 dias</span> <strong>${somaQtd(trinta)}</strong> <small>artes com prazo</small></div>
     <div class="shark-numero"><span>Entregues no mês</span> <strong>${somaQtd(entreguesMes)}</strong> <small>${MESES_CURTOS[paraData(hoje).getMonth()].toLowerCase()}</small></div>
@@ -315,8 +315,13 @@ function renderizarAlertasShark(tarefas, atrasadas) {
   const atrasado = todosRecebimentos().filter((r) => statusReceb(r) === "atrasado");
   if (atrasado.length) m.push({ tom: "alerta", titulo: `${moeda.format(somaValor(atrasado))} a receber em atraso`, texto: [...new Set(atrasado.map((r) => clienteDe(r.clienteId).nome))].join(", ") + " — veja em Recebimentos." });
   if (!m.length) {
+    // V08: "sem atrasos" não quer dizer "sem trabalho": mostra o que ainda está aberto.
+    const futuras = somaQtd(tarefas.filter((t) => pendente(t) && t.prazo && t.prazo >= hoje));
+    const semPrazo = somaQtd(tarefas.filter((t) => pendente(t) && !t.prazo && (t.frente.tipo !== "pacote" || t.extra)));
+    const abertas = [futuras ? `${artes(futuras)} com prazo pela frente` : "", semPrazo ? `${artes(semPrazo)} sem prazo` : ""].filter(Boolean);
     m.push(shk.clientes.length
-      ? { tom: "bom", titulo: "Tudo em dia 🦈", texto: "Nenhuma arte atrasada e nenhuma semana acima do limite." }
+      ? { tom: "bom", titulo: abertas.length ? "Sem atrasos 🦈" : "Sem atrasos e sem pendências 🦈",
+          texto: (abertas.length ? `Pendentes: ${abertas.join(" e ")}. ` : "Nenhuma arte aberta no momento. ") + "Nenhuma arte atrasada e nenhuma semana acima do limite." }
       : { tom: "neutro", titulo: "Comece cadastrando seus clientes", texto: "Em Clientes, crie cada cliente e as frentes de trabalho dele. As artes por etapa aparecem sozinhas a partir do calendário." });
   }
   document.getElementById("shark-alertas").innerHTML = m.slice(0, 6).map((x) => `
@@ -370,7 +375,8 @@ function linhaTarefa(t) {
         <small><span class="ponto-cor"></span>${escapar(sub)}</small>
       </span>
       <span class="tarefa-prazo">${t.prazo ? `${diaCurto(t.prazo)} <small>${feito ? `entregue ${dataBR(t.entregueEm).slice(0, 5)}` : relativo(t.prazo)}</small>` : "<small>sem prazo</small>"}</span>
-      ${t.gerada ? "" : `<button type="button" class="botao mini" data-excluir-tarefa="${escapar(t.id)}" aria-label="Excluir ${escapar(t.nome)}">×</button>`}
+      ${t.gerada ? "" : `<button type="button" class="botao mini" data-editar-tarefa="${escapar(t.id)}" aria-label="Editar ${escapar(t.nome)}">Editar</button>
+      <button type="button" class="botao mini" data-excluir-tarefa="${escapar(t.id)}" aria-label="Excluir ${escapar(t.nome)}">×</button>`}
     </li>`;
 }
 
@@ -381,6 +387,7 @@ function ligarTarefas(raiz, lista) {
     try { await alternarEntrega(t, caixa.checked); }
     catch { caixa.checked = !caixa.checked; caixa.disabled = false; avisoShark("shark-aviso", "Não foi possível salvar. Tente de novo."); }
   }));
+  raiz.querySelectorAll("[data-editar-tarefa]").forEach((b) => b.addEventListener("click", () => abrirFormularioExtra("", "", b.dataset.editarTarefa)));
   raiz.querySelectorAll("[data-excluir-tarefa]").forEach((b) => b.addEventListener("click", async () => {
     if (b.dataset.confirmar !== "sim") { b.dataset.confirmar = "sim"; b.textContent = "Excluir?"; b.classList.add("perigo"); return; }
     b.disabled = true;
@@ -440,13 +447,25 @@ function preencherEventosExtra() {
   document.getElementById("extra-evento").innerHTML = `<option value="">—</option>` + eventos.map((e) => `<option value="${escapar(e.id)}">${escapar(e.nome)} · ${dataBR(e.data).slice(0, 5)}</option>`).join("");
 }
 
-function abrirFormularioExtra(frenteId = "", eventoId = "") {
+/* V02: a mesma ficha edita uma arte avulsa já existente (nome, prazo e quantidade),
+ * mantendo o id, o status, a entrega e o vínculo com a frente/etapa. A meta do pacote não muda. */
+function abrirFormularioExtra(frenteId = "", eventoId = "", tarefaId = "") {
   if (!shk.frentes.length) { irPara("#shark-clientes", () => (shk.clientes.length ? abrirFormularioFrente("") : abrirFormularioCliente(""))); return; }
   const form = document.getElementById("extra-form");
   form.reset();
-  document.getElementById("extra-frente").innerHTML = opcoesFrentes(frenteId || shk.frentes[0].id);
+  const tarefa = tarefaId ? shk.tarefas.find((t) => t.id === tarefaId) : null;
+  shk.editandoTarefa = tarefa ? tarefa.id : null;
+  document.getElementById("extra-titulo").textContent = tarefa ? "Editar arte" : "Nova arte";
+  document.getElementById("extra-frente").innerHTML = opcoesFrentes(tarefa ? tarefa.frenteId : frenteId || shk.frentes[0].id);
   preencherEventosExtra();
-  if (eventoId) {
+  document.getElementById("extra-frente").disabled = !!tarefa;
+  document.getElementById("extra-evento").disabled = !!tarefa;
+  if (tarefa) {
+    document.getElementById("extra-evento").value = tarefa.eventoId || "";
+    document.getElementById("extra-nome").value = tarefa.nome;
+    document.getElementById("extra-prazo").value = tarefa.prazo || "";
+    document.getElementById("extra-quantidade").value = tarefa.quantidade || 1;
+  } else if (eventoId) {
     document.getElementById("extra-evento").value = eventoId;
     const e = eventoDe(eventoId);
     if (e) document.getElementById("extra-prazo").value = e.data;
@@ -458,6 +477,9 @@ function abrirFormularioExtra(frenteId = "", eventoId = "") {
 }
 
 function fecharFormularioExtra() {
+  shk.editandoTarefa = null;
+  document.getElementById("extra-frente").disabled = false;
+  document.getElementById("extra-evento").disabled = false;
   document.getElementById("extra-form").hidden = true;
   document.getElementById("extra-adicionar").hidden = false;
   avisoShark("shark-aviso", "");
@@ -472,6 +494,15 @@ async function salvarExtra(e) {
   if (!f.frenteId.value) return avisoShark("shark-aviso", "Escolha o cliente e a frente.");
   if (!nome) { avisoShark("shark-aviso", "Dê um nome para a arte."); return f.nome.focus(); }
   if (!(quantidade >= 1 && quantidade <= 1000)) return avisoShark("shark-aviso", "A quantidade vai de 1 a 1000.");
+  const anterior = shk.editandoTarefa ? shk.tarefas.find((t) => t.id === shk.editandoTarefa) : null;
+  if (anterior) {
+    try {
+      const { id, ...resto } = anterior;
+      await shk.arm.tarefas.salvar(id, { ...resto, nome, prazo: f.prazo.value || null, quantidade });
+      fecharFormularioExtra();
+    } catch { avisoShark("shark-aviso", "Não foi possível salvar a arte. Tente de novo."); }
+    return;
+  }
   try {
     await shk.arm.tarefas.salvar(null, {
       frenteId: f.frenteId.value, eventoId: evento ? evento.id : null, item: null, nome,

@@ -6,7 +6,9 @@
  */
 
 const sau = {
-  registros: [],
+  registros: [], // só refeições/treinos realizados: é o que entra no placar e nas estatísticas
+  planejadas: [], // refeições planejadas e canceladas (V03): ficam fora das contas
+  todos: [],
   objetivos: [],
   arm: {},
   carregado: false,
@@ -20,9 +22,11 @@ const sau = {
 
 const REFEICOES = { cafe: "Café da manhã", almoco: "Almoço", lanche: "Lanche", jantar: "Jantar", ceia: "Ceia", fora: "Fora de hora" };
 const INTENSIDADES = { leve: "leve", moderada: "moderada", intensa: "intensa" };
+const ICONE_RESULTADO = { acerto: "✓", erro: "✗", neutro: "•" };
+const ROTULO_RESULTADO = { acerto: "Acerto", erro: "Erro", neutro: "Sem avaliação" };
 const DIAS_SEMANA_CURTOS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const EXEMPLOS_SAUDE = {
-  alimentacao: { acerto: "Ex.: salada no almoço, 2 L de água, fruta no lanche", erro: "Ex.: refrigerante, doce depois do almoço, fast food" },
+  alimentacao: { acerto: "Ex.: salada no almoço, 2 L de água, fruta no lanche", erro: "Ex.: refrigerante, doce depois do almoço, fast food", neutro: "Ex.: arroz, feijão e frango no almoço" },
   exercicio: { acerto: "Ex.: musculação, corrida 5 km, caminhada", erro: "Ex.: faltei no treino, fiquei parado o dia todo" },
 };
 const ELOGIOS = ["Mandou bem! 💪", "Isso aí! Mais um acerto ✓", "Boa! Seu placar agradece 🙌", "Constância é tudo. Continue! 🔥", "Excelente escolha! 🌱"];
@@ -48,10 +52,24 @@ const registrosEntre = (de, ate, filtro = () => true) => sau.registros.filter((r
 const registrosDoDia = (dia) => sau.registros.filter((r) => r.data === dia);
 const plural = (n, s, p = s + "s") => `${n} ${n === 1 ? s : p}`;
 
+/* V05: registro "sem avaliação" (resultado "neutro") aparece no histórico, mas não conta
+ * como acerto nem como erro: fica fora do total usado nos percentuais. */
 function placarDe(lista) {
   const acertos = lista.filter((r) => r.resultado === "acerto").length;
-  const erros = lista.length - acertos;
-  return { acertos, erros, total: lista.length, nota: lista.length ? Math.round((acertos / lista.length) * 100) : null };
+  const erros = lista.filter((r) => r.resultado === "erro").length;
+  const total = acertos + erros;
+  return { acertos, erros, total, semAvaliacao: lista.length - total, nota: total ? Math.round((acertos / total) * 100) : null };
+}
+
+/* Banco → painel: "avaliacao" (quando existe) vale no lugar de "resultado"; sem "situacao" = realizada. */
+function normalizarRegistro(r) {
+  const avaliacao = r.avaliacao || r.resultado;
+  return { ...r, resultado: avaliacao === "sem_avaliacao" ? "neutro" : avaliacao, situacao: r.situacao || "realizada" };
+}
+/* Painel → banco: "resultado" só aceita acerto/erro; "sem avaliação" vai em "avaliacao". */
+function registroParaBanco(d) {
+  const ef = d.resultado;
+  return { ...d, resultado: ef === "erro" ? "erro" : "acerto", avaliacao: ef === "neutro" ? "sem_avaliacao" : ef, situacao: d.situacao || "realizada" };
 }
 
 /* Dias seguidos (terminando hoje, ou ontem se hoje ainda não conta) em que ok(dia) vale. */
@@ -78,7 +96,7 @@ function maiorSequencia(ok) {
 
 const treinouNo = (dia) => registrosDoDia(dia).some(ehTreino);
 const alimentacaoDoDia = (dia) => registrosDoDia(dia).filter((r) => r.tipo === "alimentacao");
-const diaLimpo = (dia) => { const a = alimentacaoDoDia(dia); return a.length > 0 && a.every((r) => r.resultado === "acerto"); };
+const diaLimpo = (dia) => { const a = alimentacaoDoDia(dia).filter((r) => r.resultado !== "neutro"); return a.length > 0 && a.every((r) => r.resultado === "acerto"); };
 const errouNaAlimentacao = (dia) => alimentacaoDoDia(dia).some((r) => r.resultado === "erro");
 
 /* Treinos de uma semana = dias com treino; minutos somados. */
@@ -352,7 +370,7 @@ function renderizarCalendarioSaude(s) {
     const d = somarDias(inicio, i);
     if (d > s.hoje) { celulas.push(`<span class="cal-dia futuro"></span>`); continue; }
     const p = porDia.get(d);
-    const classe = !p ? "c-vazio" : p.nota < 50 ? "c-ruim" : p.nota < 70 ? "c-n1" : p.nota < 85 ? "c-n2" : p.nota < 100 ? "c-n3" : "c-n4";
+    const classe = !p || p.nota === null ? "c-vazio" : p.nota < 50 ? "c-ruim" : p.nota < 70 ? "c-n1" : p.nota < 85 ? "c-n2" : p.nota < 100 ? "c-n3" : "c-n4";
     celulas.push(`<span class="cal-dia ${classe}${d === s.hoje ? " hoje" : ""}" data-dica="${escapar(`${diaCurto(d)}: ${p ? `nota ${p.nota} · ${p.acertos} ✓ ${p.erros} ✗` : "sem registros"}`)}"></span>`);
   }
   const ativos = s.placares.filter((p) => p.dia >= inicio).length;
@@ -417,8 +435,8 @@ function renderizarFracosEFortes(s) {
 /* ---------- Histórico ---------- */
 
 function detalheRegistro(r) {
-  if (r.tipo === "exercicio") return ["Exercício", r.minutos ? duracao(r.minutos) : "", r.intensidade ? INTENSIDADES[r.intensidade] : ""].filter(Boolean).join(" · ");
-  return REFEICOES[r.refeicao] || "Alimentação";
+  if (r.tipo === "exercicio") return ["Exercício", r.minutos ? duracao(r.minutos) : "", r.intensidade ? INTENSIDADES[r.intensidade] : "intensidade não informada"].filter(Boolean).join(" · ");
+  return [REFEICOES[r.refeicao] || "Alimentação", r.resultado === "neutro" ? "sem avaliação" : ""].filter(Boolean).join(" · ");
 }
 
 function renderizarHistoricoSaude() {
@@ -433,12 +451,12 @@ function renderizarHistoricoSaude() {
     <div class="dia-saude">
       <div class="dia-saude-topo">
         <strong>${d === hoje ? "Hoje" : d === somarDias(hoje, -1) ? "Ontem" : diaCurto(d)}</strong>
-        <span class="nota-chip ${tomDaNota(p.nota)}">nota ${p.nota}</span>
-        <span class="sub">${p.acertos} ✓ · ${p.erros} ✗</span>
+        <span class="nota-chip ${tomDaNota(p.nota)}">${p.nota === null ? "sem nota" : `nota ${p.nota}`}</span>
+        <span class="sub">${p.acertos} ✓ · ${p.erros} ✗${p.semAvaliacao ? ` · ${p.semAvaliacao} sem avaliação` : ""}</span>
       </div>
       <ul class="registros-saude">${lista.map((r) => `
         <li class="${r.resultado}">
-          <span class="registro-icone" aria-label="${r.resultado === "acerto" ? "Acerto" : "Erro"}">${r.resultado === "acerto" ? "✓" : "✗"}</span>
+          <span class="registro-icone" aria-label="${ROTULO_RESULTADO[r.resultado]}">${ICONE_RESULTADO[r.resultado]}</span>
           <span class="registro-texto"><span>${escapar(r.descricao)}</span> <small>${escapar(detalheRegistro(r))}${r.nota ? ` · ${escapar(r.nota)}` : ""}</small></span>
           <button type="button" class="botao mini" data-editar-registro="${escapar(r.id)}">Editar</button>
           <button type="button" class="botao mini" data-excluir-registro="${escapar(r.id)}">Excluir</button>
@@ -466,10 +484,10 @@ function renderizarRapidos() {
   const top = [...contagem.values()].filter((c) => c.n >= 2).sort((a, b) => b.n - a.n).slice(0, 6);
   document.getElementById("saude-rapidos").innerHTML = top.length ? `
     <span class="rapidos-titulo">Repetir hoje com um clique</span>
-    ${top.map((c, i) => `<button type="button" class="chip-rapido ${c.r.resultado}" data-rapido="${i}">${c.r.resultado === "acerto" ? "✓" : "✗"} ${escapar(c.r.descricao)}${c.r.tipo === "exercicio" && c.r.minutos ? ` · ${duracao(c.r.minutos)}` : ""}</button>`).join("")}` : "";
+    ${top.map((c, i) => `<button type="button" class="chip-rapido ${c.r.resultado}" data-rapido="${i}">${ICONE_RESULTADO[c.r.resultado]} ${escapar(c.r.descricao)}${c.r.tipo === "exercicio" && c.r.minutos ? ` · ${duracao(c.r.minutos)}` : ""}</button>`).join("")}` : "";
   document.querySelectorAll("[data-rapido]").forEach((b) => b.addEventListener("click", () => {
     const { id, ...base } = top[Number(b.dataset.rapido)].r;
-    registrarSaude({ ...base, data: hojeDia(), nota: null }, b);
+    registrarSaude({ ...base, data: hojeDia(), nota: null, situacao: "realizada" }, b);
   }));
 }
 
@@ -478,6 +496,39 @@ function renderizarSugestoes() {
   const tipo = form.elements.tipo.value, resultado = form.elements.resultado.value;
   const nomes = maisFrequentes(sau.registros.filter((r) => r.tipo === tipo && r.resultado === resultado), 30).map((x) => x.descricao);
   document.getElementById("saude-sugestoes").innerHTML = nomes.map((n) => `<option value="${escapar(n)}"></option>`).join("");
+}
+
+/* Refeições planejadas (V03): confirmar vira o mesmo registro "realizada"; cancelar guarda o plano como cancelado. */
+function renderizarPlanejadas() {
+  const el = document.getElementById("saude-planejadas");
+  if (!el) return;
+  const limite = somarDias(hojeDia(), -7);
+  const lista = sau.planejadas.filter((r) => r.situacao === "planejada" || r.data >= limite)
+    .sort((a, b) => a.data.localeCompare(b.data) || (a.situacao === "planejada" ? -1 : 1));
+  el.hidden = lista.length === 0;
+  el.innerHTML = lista.length ? `
+    <span class="rapidos-titulo">Refeições planejadas (fora do placar até confirmar)</span>
+    <ul>${lista.map((r) => `
+      <li class="${r.situacao}">
+        <span class="registro-texto"><strong>${escapar(r.descricao)}</strong> <small>${escapar(REFEICOES[r.refeicao] || "Alimentação")} · ${r.data === hojeDia() ? "hoje" : diaCurto(r.data)}${r.situacao === "cancelada" ? " · cancelada" : ""}</small></span>
+        ${r.situacao === "planejada" ? `
+          <button type="button" class="botao mini primario" data-confirmar-plano="${escapar(r.id)}">Confirmar</button>
+          <button type="button" class="botao mini" data-editar-plano="${escapar(r.id)}">Editar</button>
+          <button type="button" class="botao mini" data-cancelar-plano="${escapar(r.id)}">Cancelar plano</button>`
+        : `<button type="button" class="botao mini" data-reabrir-plano="${escapar(r.id)}">Reabrir</button>`}
+      </li>`).join("")}</ul>` : "";
+  const mudar = async (id, situacao, b) => {
+    const r = sau.todos.find((x) => x.id === id);
+    if (!r) return;
+    const { id: _id, ...dados } = r;
+    b.disabled = true;
+    try { await sau.arm.registros.salvar(id, registroParaBanco({ ...dados, situacao })); }
+    catch { avisoSaude("Não foi possível atualizar o plano.", "erro"); b.disabled = false; }
+  };
+  el.querySelectorAll("[data-confirmar-plano]").forEach((b) => b.addEventListener("click", () => editarRegistro(b.dataset.confirmarPlano, true)));
+  el.querySelectorAll("[data-editar-plano]").forEach((b) => b.addEventListener("click", () => editarRegistro(b.dataset.editarPlano)));
+  el.querySelectorAll("[data-cancelar-plano]").forEach((b) => b.addEventListener("click", () => mudar(b.dataset.cancelarPlano, "cancelada", b)));
+  el.querySelectorAll("[data-reabrir-plano]").forEach((b) => b.addEventListener("click", () => mudar(b.dataset.reabrirPlano, "planejada", b)));
 }
 
 /* ---------- Render geral ---------- */
@@ -493,6 +544,7 @@ function renderizarSaude() {
   renderizarFracosEFortes(s);
   renderizarConquistas(s);
   renderizarHistoricoSaude();
+  renderizarPlanejadas();
   renderizarRapidos();
   renderizarSugestoes();
   preencherMetasSaude();
@@ -502,9 +554,19 @@ function renderizarSaude() {
 
 function ajustarFormularioSaude() {
   const form = document.getElementById("saude-form");
-  const tipo = form.elements.tipo.value, resultado = form.elements.resultado.value;
+  const tipo = form.elements.tipo.value;
   form.querySelectorAll("[data-so]").forEach((el) => { el.hidden = el.dataset.so !== tipo; });
-  form.elements.descricao.placeholder = EXEMPLOS_SAUDE[tipo][resultado];
+  // "Sem avaliação" e "Planejar" são só da alimentação.
+  if (tipo !== "alimentacao") {
+    if (form.elements.resultado.value === "neutro") form.elements.resultado.value = "acerto";
+    form.elements.situacao.value = "realizada";
+  }
+  const planejando = form.elements.situacao.value === "planejada";
+  document.getElementById("saude-resultado").hidden = planejando;
+  document.getElementById("saude-dica-plano").hidden = !planejando;
+  if (!sau.editandoId) document.getElementById("saude-salvar").textContent = planejando ? "Planejar" : "Registrar";
+  const resultado = form.elements.resultado.value || "acerto";
+  form.elements.descricao.placeholder = EXEMPLOS_SAUDE[tipo][resultado] || EXEMPLOS_SAUDE[tipo].acerto;
   form.classList.toggle("modo-erro", resultado === "erro");
   renderizarSugestoes();
 }
@@ -517,26 +579,34 @@ function limparFormularioSaude() {
   form.elements.tipo.value = tipo;
   form.elements.refeicao.value = refeicao;
   form.elements.data.value = hojeDia();
+  form.elements.situacao.value = "realizada";
   sau.editandoId = null;
   document.getElementById("saude-salvar").textContent = "Registrar";
   document.getElementById("saude-cancelar").hidden = true;
   ajustarFormularioSaude();
 }
 
-function editarRegistro(id) {
-  const r = sau.registros.find((x) => x.id === id);
+function editarRegistro(id, confirmar = false) {
+  const r = sau.todos.find((x) => x.id === id);
   if (!r) return;
   const form = document.getElementById("saude-form");
   form.elements.tipo.value = r.tipo;
   form.elements.resultado.value = r.resultado;
+  form.elements.situacao.value = r.situacao === "planejada" ? "planejada" : "realizada";
   form.elements.descricao.value = r.descricao;
   form.elements.refeicao.value = r.refeicao || "almoco";
   form.elements.minutos.value = r.minutos || "";
-  form.elements.intensidade.value = r.intensidade || "moderada";
+  form.elements.intensidade.value = r.intensidade || "";
   form.elements.data.value = r.data;
   form.elements.nota.value = r.nota || "";
   sau.editandoId = id;
-  document.getElementById("saude-salvar").textContent = "Salvar alteração";
+  if (confirmar) {
+    // Confirmar um plano: o mesmo registro passa a "realizada" (nada é duplicado).
+    form.elements.situacao.value = "realizada";
+    if (form.elements.data.value > hojeDia()) form.elements.data.value = hojeDia();
+    if (r.resultado === "neutro") form.elements.resultado.value = "neutro";
+  }
+  document.getElementById("saude-salvar").textContent = confirmar ? "Confirmar refeição" : "Salvar alteração";
   document.getElementById("saude-cancelar").hidden = false;
   ajustarFormularioSaude();
   form.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -545,20 +615,25 @@ function editarRegistro(id) {
 
 function lerFormularioSaude() {
   const f = document.getElementById("saude-form").elements;
-  const tipo = f.tipo.value, resultado = f.resultado.value;
+  const tipo = f.tipo.value;
+  const situacao = tipo === "alimentacao" && f.situacao.value === "planejada" ? "planejada" : "realizada";
+  // Plano ainda sem avaliação: só ganha acerto/erro (se quiser) quando for confirmado.
+  const resultado = situacao === "planejada" ? "neutro" : f.resultado.value || "acerto";
   const minutos = f.minutos.value ? Math.round(Number(f.minutos.value)) : null;
   const dados = {
     data: f.data.value || hojeDia(),
     tipo,
     resultado,
+    situacao,
     descricao: f.descricao.value.trim(),
     refeicao: tipo === "alimentacao" ? f.refeicao.value : null,
     minutos: tipo === "exercicio" ? minutos : null,
-    intensidade: tipo === "exercicio" && resultado === "acerto" ? f.intensidade.value : null,
+    // Intensidade só quando o usuário escolhe: "Não informada" fica vazia (V06).
+    intensidade: tipo === "exercicio" && resultado === "acerto" ? f.intensidade.value || null : null,
     nota: f.nota.value.trim() || null,
   };
   if (!dados.descricao) return { erro: "Descreva o que foi (ex.: salada no almoço, corrida).", campo: f.descricao };
-  if (dados.data > hojeDia()) return { erro: "Não dá para registrar um dia que ainda não chegou.", campo: f.data };
+  if (situacao === "realizada" && dados.data > hojeDia()) return { erro: "Não dá para registrar um dia que ainda não chegou. Para o futuro, use “Planejar”.", campo: f.data };
   if (tipo === "exercicio" && resultado === "acerto" && !(minutos >= 1 && minutos <= 1440)) return { erro: "Informe quantos minutos durou o treino (de 1 a 1440).", campo: f.minutos };
   if (minutos !== null && !(minutos >= 1 && minutos <= 1440)) return { erro: "O tempo precisa ficar entre 1 e 1440 minutos.", campo: f.minutos };
   return { dados };
@@ -569,9 +644,13 @@ async function registrarSaude(dados, botao, id = null) {
   sau.ultimaAcao = Date.now();
   sau.novasConquistas = [];
   try {
-    await sau.arm.registros.salvar(id, dados);
-    if (!sau.novasConquistas.length && !id) {
+    const anterior = id ? sau.todos.find((x) => x.id === id) : null;
+    await sau.arm.registros.salvar(id, registroParaBanco(dados));
+    const confirmouPlano = anterior?.situacao === "planejada" && dados.situacao === "realizada";
+    if (dados.situacao === "planejada") avisoSaude(id ? "Plano atualizado." : "Refeição planejada. Ela não entra no placar até ser confirmada.", "apoio");
+    else if (!sau.novasConquistas.length && (!id || confirmouPlano)) {
       if (dados.resultado === "acerto") { avisoSaude(ELOGIOS[Math.floor(Math.random() * ELOGIOS.length)], "acerto"); confete(); }
+      else if (dados.resultado === "neutro") avisoSaude("Registrado, sem avaliação.", "apoio");
       else avisoSaude(APOIOS[Math.floor(Math.random() * APOIOS.length)], "apoio");
     } else if (id) avisoSaude("Registro atualizado.", "apoio");
     return true;
@@ -680,7 +759,7 @@ function ligarDicasSaude() {
 async function iniciarSaude() {
   const form = document.getElementById("saude-form");
   if (!form) return;
-  form.addEventListener("change", (e) => { if (["tipo", "resultado"].includes(e.target.name)) ajustarFormularioSaude(); });
+  form.addEventListener("change", (e) => { if (["tipo", "resultado", "situacao"].includes(e.target.name)) ajustarFormularioSaude(); });
   form.addEventListener("submit", salvarFormularioSaude);
   document.getElementById("saude-cancelar").addEventListener("click", limparFormularioSaude);
   document.getElementById("saude-metas-form").addEventListener("submit", salvarMetasSaude);
@@ -691,7 +770,13 @@ async function iniciarSaude() {
 
   sau.arm.registros = await abrirArmazenamento("registros", []);
   sau.arm.objetivos = await abrirArmazenamento("objetivos", []);
-  sau.arm.registros.observar((lista) => { sau.registros = lista; sau.carregado = true; renderizarSaude(); },
+  sau.arm.registros.observar((lista) => {
+    sau.todos = lista.map(normalizarRegistro);
+    sau.registros = sau.todos.filter((r) => r.situacao === "realizada");
+    sau.planejadas = sau.todos.filter((r) => r.situacao !== "realizada");
+    sau.carregado = true;
+    renderizarSaude();
+  },
     () => avisoSaude("Não foi possível carregar a saúde. Recarregue a página.", "erro"));
   sau.arm.objetivos.observar((lista) => { sau.objetivos = lista; renderizarSaude(); },
     () => avisoSaude("Não foi possível carregar as metas.", "erro"));
