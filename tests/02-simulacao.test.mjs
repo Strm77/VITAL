@@ -141,12 +141,14 @@ test("4b. Aba Assinaturas: encontra as assinaturas de todas as faturas", async (
     assert.ok(linha, `faltou ${nome} (vieram: ${linhas.map((l) => l[0]).join(", ")})`);
     assert.equal(linha[1], cartao, nome);
     assert.equal(linha[2], brl(valor), nome);
-    assert.equal(linha[3], "Ativa", nome);
+    // V2-06: vista uma vez só, sem "assinatura" na descrição, é possível — não confirmada.
+    assert.equal(linha[3], "Possível assinatura", nome);
   }
   assert.equal(linhas.length, ASSINATURAS.length, `só assinaturas: ${linhas.map((l) => l[0]).join(", ")}`);
   const mensal = ASSINATURAS.reduce((t, a) => t + a[2], 0);
-  assert.ok((await texto(pagina, "#assinaturas-resumo")).includes(`Por mês ${brl(centavos(mensal))}`));
-  assert.ok((await texto(pagina, "#assinaturas-resumo")).includes(`Por ano ${brl(centavos(mensal * 12))}`));
+  // Soma observada no mês, sem anualizar como compromisso confirmado.
+  assert.ok((await texto(pagina, "#assinaturas-resumo")).includes(`soma observada no mês ${brl(centavos(mensal))}`));
+  assert.ok(!(await texto(pagina, "#assinaturas-resumo")).includes(brl(centavos(mensal * 12))));
   await foto("08-assinaturas.png");
   // Em agosto (antes das faturas), não há assinaturas.
   await escolherMes(7);

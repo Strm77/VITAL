@@ -76,6 +76,25 @@ aparecem como *Atrasada*.
 A migração `20261105120000_melhorias_v4.sql` só **acrescenta** colunas (todas opcionais ou com valor
 padrão); nenhum dado existente é apagado ou alterado.
 
+### Melhorias V2 — leitor de faturas, assinaturas e sincronização
+
+- **Leitor (V2-01 a V2-04):** faturas em duas colunas (compras de um lado, avisos ou outra lista do
+  outro) são separadas por coluna; a seção “Compras parceladas - próximas faturas” vira só previsão;
+  o pagamento da fatura anterior fica fora dos lançamentos (e, em faturas já salvas, fora do “À vista”,
+  da conciliação e do relatório); o total vem do cabeçalho principal, ignorando simulações de
+  parcelamento. Se um único lançamento (ou mais de 25% do total) não corresponde à fatura, salvar exige
+  marcar “Conferi”. Diferenças de centavos continuam como “não detalhado”, sem ajuste fictício.
+- **Reparo manual (V2-05):** na prévia e na planilha dá para corrigir data, descrição e valor, remover e
+  incluir lançamentos; a fatura mantém o mesmo id e a conta ligada. Reimportar mostra o que entra, sai e
+  fica igual e só substitui com confirmação (as categorias escolhidas nos lançamentos iguais são mantidas).
+- **Conta do Controle (V2-08):** antes de salvar aparece a conta que será criada, a já ligada (com o que muda)
+  ou possíveis duplicatas para vincular — nada é vinculado, fundido ou excluído sem escolha; pagamento preservado.
+- **Cartão (V2-09):** só é sugerido pelo final; mesmo banco com final diferente pede escolha; o vencimento
+  não se perde ao trocar o cartão e o final aparece no resumo.
+- **Assinaturas (V2-06/07):** a categoria revisada vale (“Não é assinatura” tira da recorrência sem apagar a
+  compra); cobranças com descrições diferentes ficam separadas; só recorrência confirmada (descrição de
+  assinatura ou meses seguidos) entra em “por mês/por ano” — o resto é “soma observada no mês”.
+
 ## Dinheiro do mês
 
 No topo da torre, o bloco **Dinheiro do mês** mostra o fluxo do mês da timeline:
@@ -249,4 +268,5 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
   (`tests/supabase-simulado.js`): login, e-mail não permitido, gravação nas tabelas, lançamentos
   da fatura, conta automática, recarga e sair.
 - `tests/11-melhorias.test.mjs` — um teste por critério de aceite das melhorias V01 a V16.
+- `tests/12-faturas-v2.test.mjs` — itens V2-01 a V2-09 com PDFs fictícios que imitam os layouts reais.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.
