@@ -220,7 +220,8 @@ test("Saúde: registros e metas gravados no schema saude", async () => {
   await pagina.waitForFunction(() => { const db = JSON.parse(sessionStorage.getItem("mock-db")); return (db.registros || []).length === 1 && (db.objetivos || []).length === 1; });
   const db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
   const { id, ...registro } = db.registros[0];
-  assert.deepEqual(registro, { data: "2026-10-08", tipo: "exercicio", resultado: "acerto", descricao: "Corrida", refeicao: null, minutos: 30, intensidade: "moderada", nota: null });
+  // V06: sem escolha, a intensidade fica "não informada" (null), nunca "moderada" por padrão.
+  assert.deepEqual(registro, { data: "2026-10-08", tipo: "exercicio", resultado: "acerto", descricao: "Corrida", refeicao: null, minutos: 30, intensidade: null, nota: null, avaliacao: "acerto", situacao: "realizada" });
   assert.equal(db.objetivos[0].treinos_semana, 4);
   assert.ok((await pagina.evaluate(() => window.__schemas)).includes("saude"), "usa o schema saude");
   await pagina.waitForFunction(() => document.querySelector("#saude-numeros").textContent.includes("de 4"));

@@ -18,8 +18,8 @@ test("Nubank: data DD MMM, R$, prefixo do cartão virtual e parcela", async () =
     "Data de vencimento: 15 OUT 2026",
     "de 01 SET a 01 OUT    R$ 3.991,84",
     "07 SET Pagamento em 07 SET -R$ 3.104,99",
-    "01 SET •••• 5636 Loja Exemplo - Parcela 2/3 R$ 36,00",
-    "04 SET •••• 5636 Google One R$ 24,99",
+    "01 SET •••• 9876 Loja Exemplo - Parcela 2/3 R$ 36,00",
+    "04 SET •••• 9876 Google One R$ 24,99",
     "20 SET Estorno de compra -R$ 30,00",
   ]);
   assert.equal(r.banco, "Nubank");
@@ -30,7 +30,7 @@ test("Nubank: data DD MMM, R$, prefixo do cartão virtual e parcela", async () =
     ["Google One", 24.99],
     ["Estorno de compra", -30],
   ]);
-  assert.equal(r.lancamentos[0].finalCartao, "5636");
+  assert.equal(r.lancamentos[0].finalCartao, "9876");
   assert.equal(r.lancamentos[1].categoria, "Assinaturas");
   assert.equal(r.lancamentos[2].categoria, "Pagamentos e créditos");
 });

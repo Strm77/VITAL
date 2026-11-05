@@ -64,14 +64,21 @@ function resumoDoMes() {
   const gastos = soma(torre.gastos.filter(doMes), "valor");
   let contas = [];
   try { contas = typeof pag !== "undefined" ? pag.contas : []; } catch {}
-  contas = contas.filter((c) => String(c.vencimento || "").startsWith(mesRef));
+  contas = contas.filter((c) => (typeof mesDaConta === "function" ? mesDaConta(c) : String(c.vencimento || "").slice(0, 7)) === mesRef);
   const contasPagas = soma(contas.filter((c) => c.status === "pago"), "valor");
   const contasAPagar = soma(contas.filter((c) => c.status !== "pago"), "valor");
+  // Parcelas das dívidas no mês: cada pagamento conta uma vez só. A parcela que já é uma conta
+  // do controle entra pela conta (V11); a antecipada entra no mês em que foi paga (V10);
+  // a marcada como paga antes do vencimento já sai como paga (V12).
   let dividas = [];
-  try { dividas = typeof dividasCalculadas !== "undefined" ? dividasCalculadas.filter((d) => d.ativaNoMes) : []; } catch {}
-  const parcelasPagas = soma(dividas.filter((d) => d.vencimentoNoMes && d.vencimentoNoMes < hoje), "valorParcela");
-  const parcelas = dividas.length ? soma(dividas, "valorParcela") : torre.parcelasMes;
+  try { dividas = typeof dividasCalculadas !== "undefined" ? dividasCalculadas : []; } catch {}
+  const temDividas = dividas.length > 0;
+  const parcelasPagas = soma(dividas, "pagoNoMes");
+  const parcelas = temDividas ? soma(dividas, "valorNoMes") : torre.parcelasMes;
   const parcelasAPagar = parcelas - parcelasPagas;
+  // V13: pago com cheque especial — saiu do bolso via banco, mas continua devido no saldo do banco.
+  const chequeEspecial = soma(contas.filter((c) => c.status === "pago" && c.origemPagamento === "cheque_especial"), "valor")
+    + soma(dividas, "chequeNoMes");
 
   // Dinheiro guardado nas metas no mês (guardado − retirado) sai do disponível.
   const guardado = typeof guardadoNoMes === "function" ? guardadoNoMes(mesRef) : 0;
@@ -81,7 +88,7 @@ function resumoDoMes() {
   return {
     ganhos, ganhosCadastrados, sharkRecebido: shark.recebido, sharkAReceber: shark.aReceber, sharkItens: shark.itens,
     gastos, parcelas, parcelasPagas, parcelasAPagar,
-    contasPagas, contasAPagar, qtdContas: contas.length, guardado,
+    contasPagas, contasAPagar, qtdContas: contas.length, guardado, chequeEspecial,
     saidas, jaSaiu, aSair,
     disponivel: ganhos - jaSaiu,
     sobra: ganhos - saidas,
@@ -120,6 +127,7 @@ function renderizarFluxo() {
       <span>Disponível agora <strong>${sinal(r.disponivel)}</strong></span>
       <span>Ainda vai sair <strong>${moeda.format(r.aSair)}</strong></span>
     </div>
+    ${r.chequeEspecial ? `<p class="aviso-cheque">Saldo do banco: ${moeda.format(r.chequeEspecial)} pagos com cheque especial neste mês continuam devidos ao banco (já contados uma vez nas saídas).</p>` : ""}
     <button class="linha" aria-expanded="${aberto}" aria-controls="detalhes-fluxo">
       <span class="rotulo">Ver de onde vem e para onde vai</span><span></span>
       <span class="seta" aria-hidden="true"></span>
@@ -132,7 +140,8 @@ function renderizarFluxo() {
         ...(r.sharkAReceber ? [["SHARK a receber (ainda não entrou)", moeda.format(r.sharkAReceber)]] : []),
         ["<strong>Já saiu</strong>", `<strong>− ${moeda.format(r.jaSaiu)}</strong>`],
         ["Contas pagas", "− " + moeda.format(r.contasPagas)],
-        ["Parcelas de dívidas já vencidas", "− " + moeda.format(r.parcelasPagas)],
+        ["Parcelas de dívidas pagas ou já vencidas", "− " + moeda.format(r.parcelasPagas)],
+        ...(r.chequeEspecial ? [["Desse total, via cheque especial (pendente no banco)", moeda.format(r.chequeEspecial)]] : []),
         ["Gastos avulsos", "− " + moeda.format(r.gastos)],
         ...(r.guardado ? [[r.guardado > 0 ? "Guardado nas metas" : "Retirado das metas", (r.guardado > 0 ? "− " : "+ ") + moeda.format(Math.abs(r.guardado))]] : []),
         ["<strong>Disponível agora</strong>", `<strong>${sinal(r.disponivel)}</strong>`],

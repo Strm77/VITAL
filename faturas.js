@@ -29,7 +29,7 @@ const REGRAS_CATEGORIA = [
   ["Alimentação", ["ifood", "i food", "restaurante", "lanchonete", "padaria", "burger", "mcdonald", "mc donald", "bk ", "pizza", "rappi", "bar ", "cafe", "subway", "outback", "starbucks", "sushi", "churrasc", "acai", "lanches", "food", "giraffas", "habib", "spoleto", "coco bambu", "ze delivery"]],
   ["Mercado", ["supermerc", "mercado ", "carrefour", "assai", "atacad", "pao de acucar", "extra ", "hortifruti", "sams club", "big ", "makro", "oba ", "st marche", "dia brasil", "zaffari", "savegnago", "mercadinho", "sacolao"]],
   ["Transporte", ["uber", "99app", "99 app", "99pop", "99 ", "cabify", "posto", "shell", "ipiranga", "petrobras", "br mania", "combust", "estacion", "sem parar", "semparar", "veloe", "conectcar", "metro", "bilhete", "onibus", "pedagio", "zul ", "estapar"]],
-  ["Saúde", ["farmacia", "drogaria", "droga raia", "drogasil", "pague menos", "panvel", "hospital", "clinica", "laborator", "unimed", "amil", "odonto", "dentist", "medic", "smart fit", "smartfit", "academia", "bluefit", "gympass", "wellhub"]],
+  ["Saúde", ["farmacia", "drogaria", "droga raia", "drogasil", "pague menos", "panvel", "hospital", "clinica", "laborator", "unimed", "amil", "odonto", "dentist", "medic", "smart fit", "smartfit", "academia", "bluefit", "gympass"]],
   ["Compras", ["amazon", "mercadolivre", "mercado livre", "mercadopago*", "shopee", "aliexpress", "magalu", "magazine", "americanas", "shein", "renner", "riachuelo", "c&a", "cea ", "zara", "centauro", "netshoes", "kabum", "submarino", "casas bahia", "ponto frio", "fast shop", "decathlon", "nike", "adidas", "temu", "boticario", "natura", "sephora"]],
   ["Casa", ["leroy", "telhanorte", "tok&stok", "tok stok", "camicado", "madeiramadeira", "mobly", "etna", "c&c", "obramax"]],
   ["Lazer", ["cinema", "cinemark", "ingresso", "sympla", "eventim", "steam", "nintendo", "teatro", "show", "parque", "bilheteria"]],
@@ -118,7 +118,7 @@ async function lerLinhasDoPdf(arquivo, senha) {
 const IGNORAR = /saldo|total|limite|pagamento (minimo|recebido|efetuado|da fatura|em\b)|pagto|pagamento\s*-|valor minimo|fatura anterior|credito rotativo|parcelamento de fatura|proxima fatura|melhor dia|vencimento|fechamento|periodo/;
 // Descrições que não são compras: só "R$", ou um período do tipo "a 01 OUT".
 const NAO_E_COMPRA = new RegExp(`^(r\\$\\s*[\\d.,]*|a\\s+\\d{1,2}\\s*(${NOMES_MES})[a-z]*\\.?(\\s+\\d{2,4})?|ate\\s+.*)$`);
-// Prefixo do cartão virtual que alguns bancos colocam na descrição: "•••• 5636 Loja".
+// Prefixo do cartão virtual que alguns bancos colocam na descrição: "•••• 1234 Loja".
 const PREFIXO_CARTAO = /^(?:[•*xX·.]{2,}\s*)(\d{4})\s+/;
 
 function extrairDaFatura(linhas) {
@@ -1009,7 +1009,10 @@ async function sincronizarContasDasFaturas() {
       nova = {
         nome: `Fatura ${cartao ? cartao.nome : "cartão"}`,
         valor: total,
-        vencimento: f.vencimento || `${f.mes}-10`,
+        // Sem vencimento lido do PDF: a conta fica no mês da fatura com "vencimento a confirmar".
+        vencimento: f.vencimento || ultimoDiaDoMes(f.mes),
+        vencimentoAConfirmar: !f.vencimento,
+        ...(f.vencimento ? {} : { mesReferencia: f.mes }),
         status: "pendente",
         pagoEm: null,
         origem: "fatura",

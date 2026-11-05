@@ -48,6 +48,34 @@ cadastre cada conta com valor e vencimento; ao clicar em *Marcar como paga*, a d
 hora do pagamento são registradas sozinhas. Contas pendentes com vencimento passado
 aparecem como *Atrasada*.
 
+### Melhorias da versão 4 (05/11/2026)
+
+- **Conta sem dia de vencimento (V01):** a conta tem *mês* e *vencimento opcional*. Sem o dia, fica
+  pendente com “vencimento a confirmar” (nunca recebe um dia 10 automático, nem vira atrasada).
+- **Pretendo pagar em (V04):** data prevista e observação opcionais; o vencimento e o status não mudam.
+- **Parcela de dívida (V11):** a conta pode ser ligada à dívida (“Parcela de dívida”). Ligada — ou com o
+  mesmo nome e valor da parcela — ela entra uma vez só no total do mês, e pagá-la paga a parcela.
+- **Pago com (V13):** recursos próprios, cheque especial ou outro crédito. O que foi pago com cheque
+  especial aparece como pago e fica destacado como valor ainda devido ao banco, sem ser somado de novo.
+- **Parcelas da dívida (V10/V12):** na seta de cada dívida dá para marcar a parcela do mês como paga
+  (com data e origem) antes do vencimento e marcar parcelas futuras antecipadas (com valor pago, para o
+  desconto). Antecipadas não são cobradas no mês delas; o “saldo devedor informado pelo banco”, quando
+  preenchido, substitui o cálculo parcela × restantes.
+- **Celular (V14–V16):** contas viram cartões com as ações à vista; a importação diz “Toque para escolher”;
+  o gráfico do mês tem uma cor por fatia, legenda visível e toque mostra nome e valor.
+- **Datas (V07):** todo campo de data tem um texto dd/mm/aaaa ao lado do botão de calendário; o valor
+  continua guardado em ISO (aaaa-mm-dd).
+- **Carregando (V09):** enquanto uma consulta não volta (ou falha), as áreas mostram “Carregando…” ou o
+  erro, em vez de “nenhum cadastro” ou zeros.
+- **Saúde (V03/V05/V06):** refeição *planejada* fica fora do placar até ser confirmada (o mesmo registro vira
+  realizado); “Sem avaliação” aparece no histórico sem contar como acerto ou erro; a intensidade do treino
+  começa como “Não informada”.
+- **SHARK (V02/V08):** arte avulsa ganha “Editar” (nome, prazo e quantidade, mantendo id, status e
+  vínculo); o resumo diz “Sem atrasos” e quantas artes seguem abertas com e sem prazo.
+
+A migração `20261105120000_melhorias_v4.sql` só **acrescenta** colunas (todas opcionais ou com valor
+padrão); nenhum dado existente é apagado ou alterado.
+
 ## Dinheiro do mês
 
 No topo da torre, o bloco **Dinheiro do mês** mostra o fluxo do mês da timeline:
@@ -220,4 +248,5 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/03-site-publicado.test.mjs` — modo site publicado com um Supabase simulado
   (`tests/supabase-simulado.js`): login, e-mail não permitido, gravação nas tabelas, lançamentos
   da fatura, conta automática, recarga e sair.
+- `tests/11-melhorias.test.mjs` — um teste por critério de aceite das melhorias V01 a V16.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.

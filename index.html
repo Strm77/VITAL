@@ -110,7 +110,7 @@
       </div>
 
       <p class="estado" id="carregando">Carregando dívidas…</p>
-      <p class="estado" id="vazio" hidden>Nenhuma dívida cadastrada. Use “Adicionar dívida” para registrar a primeira.</p>
+      <p class="estado" id="vazio" data-depende="dividas" hidden>Nenhuma dívida cadastrada. Use “Adicionar dívida” para registrar a primeira.</p>
 
       <ul class="lista" id="lista-dividas"></ul>
 
@@ -133,8 +133,11 @@
         <label class="campo">Dia do vencimento
           <input id="campo-dia" name="diaVencimento" type="number" min="1" max="31" step="1" inputmode="numeric">
         </label>
-        <label class="campo largo">Parcelas já pagas <span class="dica">(opcional — deixe vazio para calcular pela data)</span>
+        <label class="campo largo">Parcelas já pagas <span class="dica">(opcional — as primeiras, em ordem; deixe vazio para calcular pela data. Parcelas antecipadas se marcam uma a uma na lista de parcelas da dívida)</span>
           <input id="campo-pagas" name="parcelasPagas" type="number" min="0" step="1" inputmode="numeric">
+        </label>
+        <label class="campo largo">Saldo devedor informado pelo banco (R$) <span class="dica">(opcional — quando preenchido, substitui o cálculo parcela × restantes)</span>
+          <input id="campo-saldo" name="saldoInformado" type="number" min="0" step="0.01" inputmode="decimal">
         </label>
         <div class="acoes largo">
           <button type="button" class="botao" id="botao-cancelar">Cancelar</button>
@@ -169,17 +172,17 @@
         <svg class="pizza" id="pizza" viewBox="0 0 200 200" role="img" aria-labelledby="titulo-grafico"></svg>
         <div class="dica-grafico" id="dica-grafico" hidden></div>
       </div>
-      <p class="estado" id="grafico-vazio" hidden>Nada para pagar neste mês: sem parcelas de dívidas, contas ou faturas de cartão vencendo.</p>
-      <p class="total-pizza" id="pizza-total"></p>
-      <!-- Legenda escondida da tela (continua disponível para leitores de tela); o nome aparece ao passar o mouse -->
-      <ul class="legenda sr" id="legenda"></ul>
+      <p class="estado" id="grafico-vazio" data-depende="dividas pagamentos faturas cartoes" hidden>Nada para pagar neste mês: sem parcelas de dívidas, contas ou faturas de cartão vencendo.</p>
+      <p class="total-pizza" id="pizza-total" data-depende="dividas pagamentos"></p>
+      <!-- Legenda visível: cor, nome, valor e percentual de cada fatia; tocar destaca a fatia (V16) -->
+      <ul class="legenda visivel" id="legenda"></ul>
     </section>
 
     <section class="torre area-torre" aria-label="Ganhos, gastos e investimentos">
-      <div class="painel bloco bloco-fluxo" id="bloco-fluxo"></div>
-      <div class="painel bloco" id="bloco-ganhos"></div>
-      <div class="painel bloco" id="bloco-gastos"></div>
-      <div class="painel bloco" id="bloco-investimentos"></div>
+      <div class="painel bloco bloco-fluxo" id="bloco-fluxo" data-depende="ganhos gastos dividas pagamentos"></div>
+      <div class="painel bloco" id="bloco-ganhos" data-depende="ganhos"></div>
+      <div class="painel bloco" id="bloco-gastos" data-depende="gastos dividas pagamentos"></div>
+      <div class="painel bloco" id="bloco-investimentos" data-depende="investimentos"></div>
       <div class="painel bloco" id="bloco-metas"></div>
     </section>
 
@@ -189,11 +192,11 @@
         <span class="mes-atual" id="pagamentos-mes"></span>
       </div>
 
-      <div class="pag-resumo" id="pag-resumo"></div>
+      <div class="pag-resumo" id="pag-resumo" data-depende="pagamentos"></div>
       <div class="barra" role="progressbar" aria-label="Contas pagas" id="pag-barra"><div class="preenchimento"></div></div>
 
       <div class="tabela-rolagem">
-        <table class="tabela" id="pag-tabela">
+        <table class="tabela tabela-contas" id="pag-tabela">
           <thead>
             <tr>
               <th scope="col">Conta</th>
@@ -208,7 +211,7 @@
           <tbody></tbody>
         </table>
       </div>
-      <p class="estado" id="pag-vazio" hidden>Nenhuma conta cadastrada. Use “Adicionar conta” para registrar a primeira.</p>
+      <p class="estado" id="pag-vazio">Carregando contas…</p>
 
       <p class="aviso" id="pag-aviso" role="alert" hidden></p>
 
@@ -220,8 +223,16 @@
         <label class="campo">Valor (R$)
           <input id="pag-valor" name="valor" type="number" min="0.01" step="0.01" inputmode="decimal">
         </label>
-        <label class="campo">Vencimento
+        <label class="campo">Mês da conta
+          <input id="pag-mes" name="mesReferencia" type="month">
+        </label>
+        <label class="campo">Vencimento <span class="dica">(opcional)</span>
           <input id="pag-vencimento" name="vencimento" type="date">
+          <span class="dica">Sem o dia, a conta fica com “vencimento a confirmar”.</span>
+        </label>
+        <label class="campo">Pretendo pagar em <span class="dica">(opcional)</span>
+          <input id="pag-pagar-em" name="pagarEm" type="date">
+          <span class="dica">Não muda o vencimento nem o status.</span>
         </label>
         <label class="campo">Tipo
           <select id="pag-tipo" name="tipo">
@@ -242,11 +253,26 @@
             <option value="Transporte"></option>
           </datalist>
         </label>
-        <label class="campo largo">Status
+        <label class="campo">Status
           <select id="pag-status" name="status">
             <option value="pendente">Pendente</option>
             <option value="pago">Pago</option>
           </select>
+        </label>
+        <label class="campo">Pago com
+          <select id="pag-origem-pagamento" name="origemPagamento">
+            <option value="">—</option>
+            <option value="proprio">Recursos próprios</option>
+            <option value="cheque_especial">Cheque especial</option>
+            <option value="outro_credito">Outro crédito</option>
+          </select>
+        </label>
+        <label class="campo largo" id="pag-divida-campo">Parcela de dívida
+          <select id="pag-divida" name="dividaId"></select>
+          <span class="dica">Se a conta é a parcela do mês de uma dívida, ela entra uma vez só no total do mês.</span>
+        </label>
+        <label class="campo largo">Observação <span class="dica">(opcional)</span>
+          <input id="pag-observacao" name="observacao" type="text" maxlength="200">
         </label>
         <p class="dica largo" id="pag-origem" hidden></p>
         <p class="dica largo">A data e a hora do pagamento são registradas sozinhas quando a conta passa para “Pago”.</p>
@@ -278,7 +304,7 @@
       <button type="button" class="botao" id="cronometro-descartar">Descartar</button>
     </div>
 
-    <p class="estado" id="estudos-vazio">Nenhum plano de estudo ainda. Crie um plano com o tema, a meta de horas, o prazo e as matérias que você quer estudar.</p>
+    <p class="estado" id="estudos-vazio" data-depende="planos sessoes">Nenhum plano de estudo ainda. Crie um plano com o tema, a meta de horas, o prazo e as matérias que você quer estudar.</p>
     <div class="planos" id="planos"></div>
 
     <section class="painel">
@@ -322,10 +348,10 @@
         <span class="mes-atual" id="saude-hoje"></span>
       </div>
       <div class="saude-topo">
-        <div class="anel-dia" id="saude-anel"></div>
-        <div class="saude-mensagem" id="saude-mensagem" aria-live="polite"></div>
+        <div class="anel-dia" id="saude-anel" data-depende="registros"></div>
+        <div class="saude-mensagem" id="saude-mensagem" data-depende="registros" aria-live="polite"></div>
       </div>
-      <div class="saude-numeros" id="saude-numeros"></div>
+      <div class="saude-numeros" id="saude-numeros" data-depende="registros objetivos"></div>
     </section>
 
     <section class="painel" aria-labelledby="titulo-registrar">
@@ -339,11 +365,18 @@
           <label><input type="radio" name="tipo" value="alimentacao" checked> <span>🍽️ Alimentação</span></label>
           <label><input type="radio" name="tipo" value="exercicio"> <span>🏃 Exercício</span></label>
         </fieldset>
-        <fieldset class="segmentos resultado largo">
+        <fieldset class="segmentos situacao largo" data-so="alimentacao">
+          <legend class="sr">Situação da refeição</legend>
+          <label><input type="radio" name="situacao" value="realizada" checked> <span>Já comi</span></label>
+          <label><input type="radio" name="situacao" value="planejada"> <span>📝 Planejar</span></label>
+        </fieldset>
+        <fieldset class="segmentos resultado largo" id="saude-resultado">
           <legend class="sr">Resultado</legend>
           <label class="acerto"><input type="radio" name="resultado" value="acerto" checked> <span>✓ Acertei</span></label>
           <label class="erro"><input type="radio" name="resultado" value="erro"> <span>✗ Errei</span></label>
+          <label class="neutro" data-so="alimentacao"><input type="radio" name="resultado" value="neutro"> <span>• Sem avaliação</span></label>
         </fieldset>
+        <p class="dica largo" id="saude-dica-plano" hidden>Refeição planejada não entra no placar nem nas estatísticas. Depois, use “Confirmar” para registrá-la como feita (sem duplicar).</p>
         <label class="campo largo">O que foi
           <input id="saude-descricao" name="descricao" type="text" maxlength="120" list="saude-sugestoes" autocomplete="off">
           <datalist id="saude-sugestoes"></datalist>
@@ -363,8 +396,9 @@
         </label>
         <label class="campo" data-so="exercicio" hidden>Intensidade
           <select name="intensidade" id="saude-intensidade">
+            <option value="" selected>Não informada</option>
             <option value="leve">Leve</option>
-            <option value="moderada" selected>Moderada</option>
+            <option value="moderada">Moderada</option>
             <option value="intensa">Intensa</option>
           </select>
         </label>
@@ -381,6 +415,7 @@
       </form>
       <p class="aviso" id="saude-aviso" role="alert" hidden></p>
       <div class="saude-rapidos" id="saude-rapidos"></div>
+      <div class="planejadas-saude" id="saude-planejadas" hidden></div>
     </section>
 
     <section class="painel" aria-labelledby="titulo-placar">
@@ -443,7 +478,7 @@
       <div class="painel-cabecalho">
         <h2 id="titulo-historico-saude">Histórico</h2>
       </div>
-      <p class="estado" id="saude-vazio">Nada registrado ainda. Use o formulário acima para registrar o que você comeu e os treinos — os acertos e também os erros.</p>
+      <p class="estado" id="saude-vazio" data-depende="registros">Nada registrado ainda. Use o formulário acima para registrar o que você comeu e os treinos — os acertos e também os erros.</p>
       <div class="historico-saude" id="saude-historico"></div>
       <button type="button" class="botao adicionar" id="saude-mais" hidden>Mostrar dias anteriores</button>
     </section>
@@ -479,8 +514,8 @@
         <h2 id="titulo-shark" class="titulo-shark">SHARK</h2>
         <span class="mes-atual" id="shark-hoje"></span>
       </div>
-      <div class="shark-numeros" id="shark-numeros"></div>
-      <div class="shark-alertas" id="shark-alertas" aria-live="polite"></div>
+      <div class="shark-numeros" id="shark-numeros" data-depende="clientes frentes eventos tarefas recebimentos"></div>
+      <div class="shark-alertas" id="shark-alertas" data-depende="clientes frentes eventos tarefas recebimentos" aria-live="polite"></div>
     </section>
 
     <section class="painel" aria-labelledby="titulo-carga">
@@ -500,10 +535,10 @@
         <span class="mes-atual">próximos 60 dias</span>
       </div>
       <div class="filtro-clientes" id="shark-filtro" role="group" aria-label="Filtrar por cliente"></div>
-      <p class="estado" id="shark-sem-tarefas" hidden></p>
+      <p class="estado" id="shark-sem-tarefas" data-depende="clientes frentes eventos tarefas" hidden></p>
       <div class="grupos-tarefas" id="shark-tarefas"></div>
       <form class="formulario" id="extra-form" hidden novalidate>
-        <h3>Nova arte</h3>
+        <h3 id="extra-titulo">Nova arte</h3>
         <label class="campo largo">Cliente e frente
           <select id="extra-frente" name="frenteId"></select>
         </label>
@@ -530,7 +565,7 @@
   </main>
 
   <main class="vista-faturas vista-shark" data-vista="shark-clientes" hidden>
-    <p class="estado" id="clientes-vazio">Nenhum cliente ainda. Cadastre um cliente e depois as frentes de trabalho dele: um pacote de artes (ex.: 100 artes) ou artes por etapa de um calendário (ex.: Stock Car).</p>
+    <p class="estado" id="clientes-vazio" data-depende="clientes">Nenhum cliente ainda. Cadastre um cliente e depois as frentes de trabalho dele: um pacote de artes (ex.: 100 artes) ou artes por etapa de um calendário (ex.: Stock Car).</p>
     <div class="clientes-shark" id="clientes-shark"></div>
     <section class="painel">
       <form class="formulario" id="cliente-form" hidden novalidate>
@@ -624,7 +659,7 @@
         <h2 id="titulo-eventos">Calendários de eventos</h2>
       </div>
       <div class="importar-stock" id="importar-stock"></div>
-      <p class="estado" id="eventos-vazio">Nenhum evento ainda. Importe o calendário da Stock Car ou cadastre as etapas dos seus clientes.</p>
+      <p class="estado" id="eventos-vazio" data-depende="eventos">Nenhum evento ainda. Importe o calendário da Stock Car ou cadastre as etapas dos seus clientes.</p>
       <div id="eventos-lista"></div>
       <form class="formulario" id="evento-form" hidden novalidate>
         <h3 id="evento-form-titulo">Novo evento</h3>
@@ -661,7 +696,7 @@
       <div class="painel-cabecalho">
         <h2 id="titulo-a-receber">A receber</h2>
       </div>
-      <p class="estado" id="a-receber-vazio">Nada a receber agora.</p>
+      <p class="estado" id="a-receber-vazio" data-depende="clientes recebimentos frentes eventos">Nada a receber agora.</p>
       <div class="tabela-rolavel"><table class="tabela-receb" id="a-receber"></table></div>
       <form class="formulario" id="receb-form" hidden novalidate>
         <h3 id="receb-form-titulo">Novo recebimento</h3>
@@ -694,7 +729,7 @@
         <span class="mes-atual">últimos 12 meses</span>
       </div>
       <div class="receb-meses" id="receb-meses" role="img"></div>
-      <p class="estado" id="recebidos-vazio">Nenhum recebimento registrado ainda.</p>
+      <p class="estado" id="recebidos-vazio" data-depende="recebimentos">Nenhum recebimento registrado ainda.</p>
       <div class="tabela-rolavel"><table class="tabela-receb" id="recebidos"></table></div>
     </section>
   </main>
@@ -733,7 +768,7 @@
         <h2 id="titulo-atencao">O que merece atenção hoje</h2>
         <span class="mes-atual" id="atencao-total"></span>
       </div>
-      <ul class="atencao" id="atencao"></ul>
+      <ul class="atencao" id="atencao" data-depende="afazeres compromissos habitos pagamentos tarefas registros planos"></ul>
     </section>
 
     <section class="painel" aria-labelledby="titulo-andamento">
@@ -741,7 +776,7 @@
         <h2 id="titulo-andamento">Metas em andamento</h2>
         <span class="mes-atual" id="andamento-total"></span>
       </div>
-      <div class="andamento" id="andamento"></div>
+      <div class="andamento" id="andamento" data-depende="metas planos registros frentes projetos"></div>
     </section>
 
     <section class="painel" aria-labelledby="titulo-roda">
@@ -814,7 +849,7 @@
     <div class="saude-grade">
       <section class="painel" aria-labelledby="titulo-autocuidado">
         <div class="painel-cabecalho"><h2 id="titulo-autocuidado">Autocuidado</h2><a class="mes-atual" href="#rotina-habitos">todos os hábitos</a></div>
-        <p class="estado" id="autocuidado-vazio">Nenhum hábito de autocuidado ainda. Ex.: meditar, alongar, ler antes de dormir, skincare.</p>
+        <p class="estado" id="autocuidado-vazio" data-depende="habitos">Nenhum hábito de autocuidado ainda. Ex.: meditar, alongar, ler antes de dormir, skincare.</p>
         <ul class="habitos-hoje" id="autocuidado"></ul>
         <form class="linha-form" id="autocuidado-form" novalidate>
           <input name="nome" type="text" maxlength="60" placeholder="Novo hábito de autocuidado" aria-label="Novo hábito de autocuidado">
@@ -826,7 +861,7 @@
       </section>
       <section class="painel" aria-labelledby="titulo-consultas">
         <div class="painel-cabecalho"><h2 id="titulo-consultas">Consultas e prevenção</h2></div>
-        <p class="estado" id="consultas-vazio">Nenhuma consulta ou exame marcado. Cadastre também os preventivos que se repetem (dentista a cada 6 meses, check-up anual).</p>
+        <p class="estado" id="consultas-vazio" data-depende="compromissos">Nenhuma consulta ou exame marcado. Cadastre também os preventivos que se repetem (dentista a cada 6 meses, check-up anual).</p>
         <ul class="compromissos" id="consultas"></ul>
         <button type="button" class="botao adicionar" id="consulta-adicionar">+ Consulta ou exame</button>
       </section>
@@ -865,7 +900,7 @@
       </form>
       <p class="aviso" id="rotina-aviso" role="alert" hidden></p>
       <div class="filtro-clientes" id="afazeres-filtro" role="group" aria-label="Filtrar"></div>
-      <p class="estado" id="afazeres-vazio">Nenhuma tarefa pendente. Anote acima o que precisa ser feito, com prioridade e prazo.</p>
+      <p class="estado" id="afazeres-vazio" data-depende="afazeres">Nenhuma tarefa pendente. Anote acima o que precisa ser feito, com prioridade e prazo.</p>
       <div class="grupos-tarefas" id="afazeres"></div>
     </section>
   </main>
@@ -926,7 +961,7 @@
   </main>
 
   <main class="vista-faturas vista-rotina" data-vista="rotina-projetos" hidden>
-    <p class="estado" id="projetos-vazio">Nenhum projeto ainda. Um projeto junta várias tarefas com um objetivo — o próximo passo aparece sempre no topo.</p>
+    <p class="estado" id="projetos-vazio" data-depende="projetos afazeres">Nenhum projeto ainda. Um projeto junta várias tarefas com um objetivo — o próximo passo aparece sempre no topo.</p>
     <div class="projetos" id="projetos"></div>
     <section class="painel">
       <form class="formulario" id="projeto-form" hidden novalidate>
@@ -962,7 +997,7 @@
         <span class="mes-atual" id="habitos-semana"></span>
       </div>
       <div class="shark-numeros" id="habitos-numeros"></div>
-      <p class="estado" id="habitos-vazio">Nenhum hábito ainda. Comece com um ou dois — beber água, ler 10 páginas, caminhar.</p>
+      <p class="estado" id="habitos-vazio" data-depende="habitos">Nenhum hábito ainda. Comece com um ou dois — beber água, ler 10 páginas, caminhar.</p>
       <div class="tabela-rolavel"><table class="grade-habitos" id="grade-habitos"></table></div>
       <form class="formulario" id="habito-form" hidden novalidate>
         <h3 id="habito-form-titulo">Novo hábito</h3>
@@ -1034,7 +1069,7 @@
         <span class="mes-atual">suas caixinhas</span>
       </div>
       <div class="pag-resumo" id="metas-resumo"></div>
-      <p class="estado" id="metas-vazio">Nenhuma meta ainda. Crie uma caixinha para juntar dinheiro para algo que você quer comprar.</p>
+      <p class="estado" id="metas-vazio" data-depende="metas">Nenhuma meta ainda. Crie uma caixinha para juntar dinheiro para algo que você quer comprar.</p>
       <p class="aviso" id="metas-aviso" role="alert" hidden></p>
       <div class="caixinhas" id="metas-lista"></div>
 
@@ -1070,7 +1105,7 @@
         <h2 id="titulo-assinaturas">Assinaturas</h2>
         <span class="mes-atual" id="assinaturas-mes"></span>
       </div>
-      <p class="estado" id="assinaturas-vazio">As assinaturas aparecem aqui depois que você importar uma fatura na aba Faturas.</p>
+      <p class="estado" id="assinaturas-vazio" data-depende="faturas cartoes">As assinaturas aparecem aqui depois que você importar uma fatura na aba Faturas.</p>
       <div id="assinaturas-conteudo" hidden>
         <div class="pag-resumo" id="assinaturas-resumo"></div>
         <div class="tabela-rolagem">
@@ -1099,7 +1134,7 @@
         <h2 id="titulo-relatorio">Relatório de gastos por categoria</h2>
         <span class="mes-atual" id="relatorio-periodo"></span>
       </div>
-      <p class="estado" id="relatorio-vazio">O relatório aparece aqui depois que você importar uma fatura em “Importar fatura”, logo abaixo.</p>
+      <p class="estado" id="relatorio-vazio" data-depende="faturas cartoes">O relatório aparece aqui depois que você importar uma fatura em “Importar fatura”, logo abaixo.</p>
       <ul class="relatorio" id="relatorio"></ul>
     </section>
 
@@ -1121,7 +1156,7 @@
           <select id="filtro-mes"></select>
         </div>
       </div>
-      <p class="estado" id="planilha-vazia">Nenhuma fatura importada ainda. Importe o PDF de uma fatura em “Importar fatura”, mais abaixo.</p>
+      <p class="estado" id="planilha-vazia" data-depende="faturas cartoes">Nenhuma fatura importada ainda. Importe o PDF de uma fatura em “Importar fatura”, mais abaixo.</p>
       <div id="planilha-conteudo" hidden>
         <div class="pag-resumo" id="planilha-resumo"></div>
         <div class="segmentado" role="group" aria-label="Mostrar">
@@ -1157,7 +1192,7 @@
         <h2 id="titulo-previsao">Previsão das faturas</h2>
         <span class="mes-atual">próximos 12 meses</span>
       </div>
-      <p class="estado" id="previsao-vazia">A previsão aparece depois que você importar uma fatura com compras parceladas.</p>
+      <p class="estado" id="previsao-vazia" data-depende="faturas cartoes">A previsão aparece depois que você importar uma fatura com compras parceladas.</p>
       <div class="previsao" id="previsao" hidden>
         <div class="colunas" id="previsao-colunas"></div>
         <p class="dica">Barras listradas são previsões: meses sem fatura importada mostram só as parcelas já programadas. “−2” embaixo do mês = dois parcelamentos terminam ali. Clique num mês para vê-lo no painel.</p>
@@ -1171,8 +1206,11 @@
 
       <label class="soltar" id="soltar" for="pdf-arquivo">
         <input id="pdf-arquivo" type="file" accept="application/pdf,.pdf">
-        <strong>Arraste o PDF da fatura aqui</strong>
-        <span>ou clique para escolher o arquivo</span>
+        <!-- V15: no celular (toque) a instrução principal é tocar; arrastar só aparece no computador -->
+        <strong class="so-toque">Toque para escolher o PDF da fatura</strong>
+        <span class="so-toque">Abre os arquivos do celular (Arquivos, Downloads, Drive…)</span>
+        <strong class="so-mouse">Arraste o PDF da fatura aqui</strong>
+        <span class="so-mouse">ou clique para escolher o arquivo</span>
       </label>
 
       <form class="senha-pdf" id="senha-pdf" hidden novalidate>
