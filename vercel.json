@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'site estático: sem dependências para instalar'",
-  "buildCommand": "mkdir -p public && cp index.html styles.css *.js favicon.ico site.webmanifest public/ && cp -r icones public/",
+  "buildCommand": "sh scripts/build.sh",
   "outputDirectory": "public",
   "headers": [
     {

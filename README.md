@@ -15,7 +15,7 @@ e `pagamentos` — veja `supabase/migrations/`).
   num aparelho aparece nos outros.
 - **Tema:** claro, escuro (preto neutro) ou automático, seguindo o sistema; o botão no topo troca e o painel lembra a escolha.
 - `config.js` tem a URL do projeto e a chave publicável (pode ficar no navegador).
-- A Vercel publica a cada push: `vercel.json` copia os arquivos do site para `public/`.
+- A Vercel publica a cada push: `vercel.json` roda `sh scripts/build.sh`, que copia para `public/` só a lista fixa de arquivos do site (um arquivo novo do site precisa entrar nessa lista).
 
 ### Despertador do banco
 
