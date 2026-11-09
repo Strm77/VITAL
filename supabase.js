@@ -214,12 +214,27 @@ const COLUNAS = {
 const ANULAVEIS = new Set(["humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "hora", "recorrencia_meses", "projeto_id", "feito_em", "icone", "area", "valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura", "parcelas_quitadas", "saldo_informado", "saldo_informado_em", "avaliacao", "situacao", "mes_referencia", "pagar_em", "observacao", "origem_pagamento", "divida_id", "antes", "depois", "detalhe"]);
 const NUMERICAS = new Set(["sono_horas", "meta_sono", "valor_mensal", "valor_por_etapa", "meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura", "saldo_informado"]);
 
+/* Schema "stefanini" (CRM de vendas). No painel as tabelas têm nome com prefixo (stf_metas não se
+ * confunde com financeiro.metas); no banco usam user_id / created_at / updated_at.
+ * Coluna fora de "obrigatorias" que fica vazia no formulário vira null no banco. */
+const STEFANINI = {
+  stf_contas: { tabela: "contas", colunas: ["nome", "segmento", "status", "contrato_stf", "contrato_sda", "consultor", "relacionamento_desde", "notas"], obrigatorias: ["nome", "status", "contrato_stf", "contrato_sda"] },
+  stf_contatos: { tabela: "contatos", colunas: ["conta_id", "nome", "cargo", "email", "telefone", "temperatura", "notas"], obrigatorias: ["nome"] },
+  stf_oportunidades: { tabela: "oportunidades", colunas: ["conta_id", "contato_id", "nome", "estagio", "valor_estimado", "fechada_em", "notas"], obrigatorias: ["conta_id", "nome", "estagio"] },
+  stf_reunioes: { tabela: "reunioes", colunas: ["conta_id", "data", "titulo", "anotacoes"], obrigatorias: ["data", "titulo"] },
+  stf_atividades: { tabela: "atividades", colunas: ["conta_id", "descricao", "data", "feita", "concluida_em"], obrigatorias: ["descricao", "feita"] },
+  stf_metas: { tabela: "metas", colunas: ["ano", "valor_meta"], obrigatorias: ["ano", "valor_meta"] },
+};
+for (const c of ["valor_estimado", "valor_meta"]) NUMERICAS.add(c);
+const COLUNAS_INTERNAS_STF = new Set(["user_id", "created_at", "updated_at"]);
+
 // Tabelas em que a hora de criação (criado_em, do servidor) é um dado mostrado no painel.
 const MANTEM_CRIADO_EM = new Set(["historico_contas"]);
 
 function linhaParaObjeto(linha, tabela) {
   const obj = {};
   for (const [chave, valor] of Object.entries(linha)) {
+    if (STEFANINI[tabela] && COLUNAS_INTERNAS_STF.has(chave)) continue;
     if (chave === "usuario_id" || (chave === "criado_em" && !MANTEM_CRIADO_EM.has(tabela)) || valor === null) continue;
     obj[paraCamel(chave)] = NUMERICAS.has(chave) ? Number(valor) : valor;
   }
@@ -228,6 +243,16 @@ function linhaParaObjeto(linha, tabela) {
 
 function objetoParaLinha(tabela, item) {
   const linha = {};
+  const stf = STEFANINI[tabela];
+  if (stf) {
+    for (const coluna of stf.colunas) {
+      const valor = item[paraCamel(coluna)];
+      if (valor === undefined || valor === null || valor === "") {
+        if (!stf.obrigatorias.includes(coluna)) linha[coluna] = null;
+      } else linha[coluna] = valor;
+    }
+    return linha;
+  }
   for (const coluna of COLUNAS[tabela]) {
     const valor = item[paraCamel(coluna)];
     if (valor === undefined || valor === "") {
@@ -244,15 +269,17 @@ const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estu
   compromissos: "vida", projetos: "vida", afazeres: "vida", blocos_tempo: "vida" };
 
 function armazenamentoSupabase(tabela) {
-  const schema = SCHEMA_DA_TABELA[tabela] || "financeiro";
+  const schema = STEFANINI[tabela] ? "stefanini" : SCHEMA_DA_TABELA[tabela] || "financeiro";
   const banco = schema === "financeiro" ? supa : supa.schema(schema);
+  const nomeNoBanco = STEFANINI[tabela]?.tabela || tabela;
   let ouvinte = () => {};
   let ouvinteErro = () => {};
   let agendado = null;
 
   async function carregar() {
     const colunas = tabela === "faturas" ? "*, lancamentos(ordem, data, descricao, valor, categoria, final_cartao)" : "*";
-    const { data, error } = await banco.from(tabela).select(colunas).order(tabela === "faturas" ? "importado_em" : "criado_em");
+    const ordem = tabela === "faturas" ? "importado_em" : STEFANINI[tabela] ? "created_at" : "criado_em";
+    const { data, error } = await banco.from(nomeNoBanco).select(colunas).order(ordem);
     if (error) throw error;
     return data.map((linha) => {
       const { lancamentos, ...resto } = linha;
@@ -281,8 +308,8 @@ function armazenamentoSupabase(tabela) {
       if (erro) ouvinteErro = erro;
       atualizar();
       // Tempo real: qualquer mudança nas tabelas (deste ou de outro aparelho) recarrega a seção.
-      const canal = supa.channel("financeiro-" + tabela)
-        .on("postgres_changes", { event: "*", schema, table: tabela }, agendar);
+      const canal = supa.channel((STEFANINI[tabela] ? "stefanini-" : "financeiro-") + tabela)
+        .on("postgres_changes", { event: "*", schema, table: nomeNoBanco }, agendar);
       if (tabela === "faturas") canal.on("postgres_changes", { event: "*", schema: "financeiro", table: "lancamentos" }, agendar);
       canal.subscribe();
     },
@@ -300,10 +327,10 @@ function armazenamentoSupabase(tabela) {
       }
       let novoId = id;
       if (id) {
-        const { error } = await banco.from(tabela).upsert({ id, ...linha });
+        const { error } = await banco.from(nomeNoBanco).upsert({ id, ...linha });
         if (error) throw error;
       } else {
-        const { data, error } = await banco.from(tabela).insert(linha).select("id").single();
+        const { data, error } = await banco.from(nomeNoBanco).insert(linha).select("id").single();
         if (error) throw error;
         novoId = data.id;
       }
@@ -330,7 +357,7 @@ function armazenamentoSupabase(tabela) {
 
     async excluir(id) {
       if (tabela === "historico_contas") throw new Error("histórico não pode ser excluído");
-      const { error } = await banco.from(tabela).delete().eq("id", id);
+      const { error } = await banco.from(nomeNoBanco).delete().eq("id", id);
       if (error) throw error;
       agendar();
     },

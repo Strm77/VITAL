@@ -43,6 +43,8 @@ test("Como estou me sentindo: humor, energia, estresse e uma frase", async () =>
   await pagina.waitForFunction(() => JSON.parse(localStorage.getItem("vital.checkins") || "[]")[0]?.nota === "Dia produtivo");
   const [c] = await local("checkins");
   assert.deepEqual([c.id, c.data, c.humor, c.energia, c.estresse], ["ck-2026-10-08", "2026-10-08", 4, 4, 2]);
+  // O check-in é redesenhado logo depois (agendado); espera em vez de ler na hora.
+  await pagina.waitForFunction(() => /Estresse[\s\S]*Leve/.test(document.querySelector('main[data-vista="inicio"] .checkin').textContent));
   assert.match(await texto(pagina, 'main[data-vista="inicio"] .checkin'), /Energia .*Boa.*Estresse .*Leve/);
   assert.doesNotMatch(await texto(pagina, "#atencao"), /Como você está hoje/);
   assert.match(await pagina.getAttribute("#humor-dias .humor-dia.hoje", "title"), /Bem/);

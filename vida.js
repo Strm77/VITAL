@@ -179,6 +179,10 @@ function ligarCheckin() {
     if (!e.target.matches("[data-checkin-nota]") || !vida.arm.checkins) return;
     try { await salvarCheckin({ nota: e.target.value.trim() || null }); e.target.blur(); } catch {}
   });
+  // Com a frase em edição o check-in não é redesenhado; ao sair do campo, mostra o que mudou nesse meio-tempo.
+  document.addEventListener("focusout", (e) => {
+    if (e.target.matches?.("[data-checkin-nota]")) agendarVida();
+  });
 }
 
 function renderizarHumorDias() {
