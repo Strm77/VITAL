@@ -274,7 +274,8 @@ Check-in semanal: tabelas `stefanini.checkins` (`semana`) e `stefanini.checkin_i
 RLS por usuário, `updated_at` e tempo real. Excluir um check-in leva os itens dele; excluir uma
 conta troca o vínculo dos itens pelo nome dela como rótulo (o histórico não perde o cliente).
 Migração: `20261109200000_stefanini_checkins.sql` — só aditiva (cria as duas tabelas; nada do que
-existe muda).
+existe muda). Aplicada no Supabase em 09/11/2026, versão `20261109221550` (contagem de todas as
+tabelas conferida antes e depois: nada mudou; as duas novas começaram vazias).
 
 ## Visual (design system)
 
