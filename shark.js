@@ -5,7 +5,9 @@
  *     a partir de um modelo ("Race Week -6" = prazo 6 dias antes da corrida).
  * Mostra a carga de artes por semana (para não acumular), as próximas entregas,
  * a agenda do mês e os recebimentos, que entram como ganho no Financeiro.
- * Dados no schema "shark". Usa os helpers de data de estudos.js e diaCurto de saude.js.
+ * Cada cliente e cada frente têm uma lista de materiais (rótulo + link http(s)).
+ * Dados no schema "shark". Usa os helpers de data de estudos.js, diaCurto de saude.js e
+ * linkSeguro/dominio de metas.js.
  */
 
 const shk = {
@@ -14,9 +16,10 @@ const shk = {
   eventos: [],
   tarefas: [],
   recebimentos: [],
+  materiais: [],
   arm: {},
   filtro: "",
-  editando: { cliente: null, frente: null, evento: null, receb: null },
+  editando: { cliente: null, frente: null, evento: null, receb: null, material: null },
   agendaMes: null,
   abertas: new Set(),
   historicos: new Set(),
@@ -512,6 +515,131 @@ async function salvarExtra(e) {
   } catch { avisoShark("shark-aviso", "Não foi possível salvar a arte. Tente de novo."); }
 }
 
+/* ---------- Materiais (links) por cliente e por frente ---------- */
+
+/* Materiais de uma frente, ou (sem frenteId) os gerais do cliente. Um material cuja frente
+ * não existe mais (ex.: frente excluída) volta a aparecer como geral do cliente. */
+function materiaisDe(clienteId, frenteId = "") {
+  return shk.materiais.filter((m) => {
+    if (m.clienteId !== clienteId) return false;
+    const f = m.frenteId ? frenteDe(m.frenteId) : null;
+    const daFrente = f && f.clienteId === clienteId ? f.id : "";
+    return daFrente === frenteId;
+  });
+}
+
+/* Link de um material: só http(s). Sem esquema, vale https:// (como nas metas); com outro
+ * esquema explícito (javascript:, file:, mailto:…) é recusado em vez de virar https://. */
+function urlMaterial(texto) {
+  const t = String(texto || "").trim();
+  const esquema = t.match(/^([a-z][a-z0-9+.-]*):/i);
+  if (esquema && !/^https?$/i.test(esquema[1]) && !esquema[1].includes(".")) return "";
+  return linkSeguro(t);
+}
+
+function htmlMateriais(lista, clienteId, frenteId = "") {
+  const geral = !frenteId;
+  if (!geral && !lista.length) return "";
+  const itens = lista.map((m) => {
+    const url = urlMaterial(m.url);
+    const rotulo = `<span class="material-rotulo">${escapar(m.rotulo)}</span>`;
+    const alvo = url
+      ? `<a class="material-link" href="${escapar(url).replace(/"/g, "&quot;")}" target="_blank" rel="noopener noreferrer">${rotulo}<small>${escapar(dominio(url))}</small></a>`
+      : `<span class="material-link">${rotulo}<small>link inválido</small></span>`;
+    return `
+      <li data-material="${escapar(m.id)}">${alvo}
+        <button type="button" class="botao mini" data-material-acao="editar" aria-label="Editar ${escapar(m.rotulo)}">Editar</button>
+        <button type="button" class="botao mini" data-material-acao="excluir" aria-label="Excluir ${escapar(m.rotulo)}">Excluir</button>
+      </li>`;
+  }).join("");
+  const vazio = geral && consultaPronta("materiais") ? `<li class="sub">Nenhum link ainda.</li>` : "";
+  return `
+    <div class="materiais" data-materiais="${escapar(frenteId || "geral")}">
+      <div class="materiais-topo">
+        <span class="materiais-titulo">🔗 ${geral ? "Materiais do cliente" : "Materiais"}</span>
+        ${geral ? `<button type="button" class="botao mini" data-novo-material="${escapar(clienteId)}" data-frente="">+ Link</button>` : ""}
+      </div>
+      <ul class="materiais-lista">${itens || vazio}</ul>
+    </div>`;
+}
+
+function ligarMateriais(raiz) {
+  raiz.querySelectorAll("[data-novo-material]").forEach((b) => b.addEventListener("click", () =>
+    abrirFormularioMaterial("", b.dataset.novoMaterial, b.dataset.frente || "")));
+  raiz.querySelectorAll("[data-material]").forEach((li) => {
+    const id = li.dataset.material;
+    li.querySelector("[data-material-acao=editar]").addEventListener("click", () => abrirFormularioMaterial(id));
+    const ex = li.querySelector("[data-material-acao=excluir]");
+    ex.addEventListener("click", async () => {
+      if (ex.dataset.confirmar !== "sim") { ex.dataset.confirmar = "sim"; ex.textContent = "Excluir link?"; ex.classList.add("perigo"); return; }
+      ex.disabled = true;
+      try {
+        await shk.arm.materiais.excluir(id);
+        if (shk.editando.material === id) fecharFormularioMaterial();
+      } catch { ex.disabled = false; avisoShark("material-aviso", "Não foi possível excluir o link. Tente de novo."); }
+    });
+  });
+}
+
+function preencherFrentesMaterial(clienteId, selecionada = "") {
+  const frentes = shk.frentes.filter((f) => f.clienteId === clienteId);
+  const sel = document.getElementById("material-frente");
+  sel.innerHTML = `<option value="">Geral do cliente</option>` +
+    frentes.map((f) => `<option value="${escapar(f.id)}">${escapar(f.nome)}</option>`).join("");
+  sel.value = frentes.some((f) => f.id === selecionada) ? selecionada : "";
+}
+
+function abrirFormularioMaterial(id, clienteId = "", frenteId = "") {
+  const painel = document.getElementById("material-painel");
+  const form = document.getElementById("material-form");
+  const m = shk.materiais.find((x) => x.id === id);
+  shk.editando.material = m ? id : null;
+  form.reset();
+  avisoShark("material-aviso", "");
+  const cliente = m ? m.clienteId : clienteId || shk.clientes[0]?.id || "";
+  document.getElementById("material-form-titulo").textContent = m ? `Editar ${m.rotulo}` : "Novo material";
+  const selCliente = document.getElementById("material-cliente");
+  selCliente.innerHTML = shk.clientes.map((c) => `<option value="${escapar(c.id)}">${escapar(c.nome)}</option>`).join("");
+  selCliente.value = cliente;
+  preencherFrentesMaterial(cliente, m ? m.frenteId || "" : frenteId);
+  if (m) {
+    form.elements.rotulo.value = m.rotulo;
+    form.elements.url.value = m.url;
+  }
+  painel.hidden = false;
+  painel.scrollIntoView({ block: "center", behavior: "smooth" });
+  form.elements.rotulo.focus({ preventScroll: true });
+}
+
+function fecharFormularioMaterial() {
+  document.getElementById("material-painel").hidden = true;
+  shk.editando.material = null;
+  avisoShark("material-aviso", "");
+}
+
+async function salvarMaterial(e) {
+  e.preventDefault();
+  const f = e.target.elements;
+  const erro = (t, campo) => { avisoShark("material-aviso", t); campo?.focus(); };
+  const cliente = clienteDe(f.clienteId.value);
+  if (!cliente) return erro("Escolha o cliente.", f.clienteId);
+  const frente = f.frenteId.value ? frenteDe(f.frenteId.value) : null;
+  if (f.frenteId.value && (!frente || frente.clienteId !== cliente.id)) return erro("Escolha uma frente deste cliente.", f.frenteId);
+  const rotulo = f.rotulo.value.trim();
+  if (!rotulo) return erro("Dê um rótulo ao link (ex.: Pasta de referências).", f.rotulo);
+  if (rotulo.length > 80) return erro("O rótulo pode ter até 80 caracteres.", f.rotulo);
+  const url = urlMaterial(f.url.value);
+  if (!url) return erro("Informe um link http(s) válido.", f.url);
+  if (url.length > 2000) return erro("O link pode ter até 2000 caracteres.", f.url);
+  const botao = e.target.querySelector("[type=submit]");
+  botao.disabled = true;
+  try {
+    await shk.arm.materiais.salvar(shk.editando.material, { clienteId: cliente.id, frenteId: frente ? frente.id : null, rotulo, url });
+    fecharFormularioMaterial();
+  } catch { avisoShark("material-aviso", "Não foi possível salvar o link. Tente de novo."); }
+  finally { botao.disabled = false; }
+}
+
 /* ---------- Vista Clientes ---------- */
 
 function htmlPacote(f, c) {
@@ -531,6 +659,7 @@ function htmlPacote(f, c) {
         <button type="button" class="botao primario" data-acao="mais-um">+1 entregue (nº ${p.entregues + 1})</button>
         <button type="button" class="botao" data-acao="varias">Registrar várias</button>
         <button type="button" class="botao" data-acao="historico" aria-expanded="${aberto}">Histórico</button>
+        <button type="button" class="botao" data-novo-material="${escapar(c.id)}" data-frente="${escapar(f.id)}">+ Link</button>
         <button type="button" class="botao" data-acao="editar-frente">Editar</button>
         <button type="button" class="botao" data-acao="excluir-frente">Excluir</button>
       </div>
@@ -543,6 +672,7 @@ function htmlPacote(f, c) {
       <ul class="entregas" ${aberto ? "" : "hidden"}>${entregas.slice(0, 15).map((t) => `
         <li><span>${escapar(t.nome)}</span> <span class="sub">${t.entregueEm ? dataBR(t.entregueEm) : ""}</span>
           <button type="button" class="botao mini" data-excluir-tarefa="${escapar(t.id)}">Desfazer</button></li>`).join("") || `<li class="sub">Nenhuma entrega ainda.</li>`}</ul>
+      ${htmlMateriais(materiaisDe(c.id, f.id), c.id, f.id)}
     </div>`;
 }
 
@@ -581,8 +711,10 @@ function htmlEtapas(f, c) {
       </div>
       <div class="barra" role="progressbar" aria-label="Artes entregues de ${escapar(f.nome)}"><div class="preenchimento"></div></div>
       <div class="etapas">${linhas || `<p class="estado">Nenhum evento no calendário “${escapar(f.calendario || "")}” ainda. Cadastre as datas em Calendário.</p>`}</div>
+      ${htmlMateriais(materiaisDe(c.id, f.id), c.id, f.id)}
       <div class="acoes frente-acoes">
         <button type="button" class="botao" data-acao="extra">+ Arte extra</button>
+        <button type="button" class="botao" data-novo-material="${escapar(c.id)}" data-frente="${escapar(f.id)}">+ Link</button>
         <button type="button" class="botao" data-acao="editar-frente">Editar</button>
         <button type="button" class="botao" data-acao="excluir-frente">Excluir</button>
       </div>
@@ -615,6 +747,7 @@ function renderizarClientesShark() {
         <span>A receber <strong>${moeda.format(aReceber)}</strong></span>
         ${Number(c.valorMensal) > 0 ? `<span>Mensal <strong>${moeda.format(c.valorMensal)}</strong> dia ${c.diaPagamento || 10}</span>` : ""}
       </div>
+      ${htmlMateriais(materiaisDe(c.id), c.id)}
       ${frentes.map((f) => (f.tipo === "pacote" ? htmlPacote(f, c) : htmlEtapas(f, c))).join("") || `<p class="estado">Nenhuma frente de trabalho. Use “+ Frente” para criar um pacote de artes ou artes por etapa.</p>`}
     </section>`;
   }).join("");
@@ -625,11 +758,12 @@ function renderizarClientesShark() {
     sec.querySelector("[data-acao=editar-cliente]").addEventListener("click", () => abrirFormularioCliente(c.id));
     const ex = sec.querySelector("[data-acao=excluir-cliente]");
     ex.addEventListener("click", async () => {
-      if (ex.dataset.confirmar !== "sim") { ex.dataset.confirmar = "sim"; ex.textContent = "Excluir cliente, artes e recebimentos?"; ex.classList.add("perigo"); return; }
+      if (ex.dataset.confirmar !== "sim") { ex.dataset.confirmar = "sim"; ex.textContent = "Excluir cliente, artes, recebimentos e links?"; ex.classList.add("perigo"); return; }
       ex.disabled = true;
       try {
         for (const f of shk.frentes.filter((x) => x.clienteId === c.id)) await excluirFrente(f);
         for (const r of shk.recebimentos.filter((x) => x.clienteId === c.id)) await shk.arm.recebimentos.excluir(r.id);
+        for (const m of shk.materiais.filter((x) => x.clienteId === c.id)) await shk.arm.materiais.excluir(m.id);
         await shk.arm.clientes.excluir(c.id);
       } catch { ex.disabled = false; }
     });
@@ -681,6 +815,7 @@ function renderizarClientesShark() {
       try { await excluirFrente(f); } catch { ex.disabled = false; }
     });
   });
+  ligarMateriais(raiz);
 }
 
 async function registrarEntregaPacote(f, n) {
@@ -1088,6 +1223,9 @@ async function iniciarShark() {
   document.getElementById("frente-cancelar").addEventListener("click", fecharFormularioFrente);
   document.getElementById("frente-form").addEventListener("submit", salvarFrente);
   document.getElementById("frente-form").addEventListener("change", (e) => { if (e.target.name === "tipo") ajustarFormularioFrente(); });
+  document.getElementById("material-cancelar").addEventListener("click", fecharFormularioMaterial);
+  document.getElementById("material-form").addEventListener("submit", salvarMaterial);
+  document.getElementById("material-cliente").addEventListener("change", (e) => preencherFrentesMaterial(e.target.value));
   document.getElementById("evento-adicionar").addEventListener("click", () => abrirFormularioEvento(""));
   document.getElementById("evento-cancelar").addEventListener("click", fecharFormularioEvento);
   document.getElementById("evento-form").addEventListener("submit", salvarEvento);
@@ -1104,7 +1242,7 @@ async function iniciarShark() {
   });
   renderizarShark();
 
-  const nomes = ["clientes", "frentes", "eventos", "tarefas", "recebimentos"];
+  const nomes = ["clientes", "frentes", "eventos", "tarefas", "recebimentos", "materiais"];
   for (const nome of nomes) shk.arm[nome] = await abrirArmazenamento(nome, []);
   for (const nome of nomes) {
     shk.arm[nome].observar((lista) => { shk[nome] = lista; renderizarShark(); },

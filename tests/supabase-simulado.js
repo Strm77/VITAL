@@ -27,13 +27,14 @@
     eventos: "id calendario nome data local",
     tarefas: "id frente_id evento_id item nome prazo quantidade status entregue_em extra",
     recebimentos: "id cliente_id descricao valor vencimento recebido_em referencia ignorado",
+    materiais: "id cliente_id frente_id rotulo url",
     movimentos_metas: "id meta_id data valor descricao",
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
     historico_contas: "id conta_id fatura_id evento origem_acao antes depois detalhe criado_em",
     pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria mes_referencia vencimento_a_confirmar pagar_em observacao origem_pagamento divida_id",
   };
-  const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"] };
+  const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"], materiais: ["cliente_id", "rotulo", "url"] };
   const ler = () => JSON.parse(sessionStorage.getItem("mock-db") || "{}");
   const gravar = (db) => sessionStorage.setItem("mock-db", JSON.stringify(db));
   const usuario = () => JSON.parse(sessionStorage.getItem("mock-sessao") || "null");

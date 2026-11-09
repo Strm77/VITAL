@@ -640,6 +640,29 @@
       <p class="aviso" id="frente-aviso" role="alert" hidden></p>
       <button type="button" class="botao adicionar" id="frente-adicionar">+ Nova frente de trabalho</button>
     </section>
+    <section class="painel" id="material-painel" hidden>
+      <form class="formulario" id="material-form" novalidate>
+        <h3 id="material-form-titulo">Novo material</h3>
+        <label class="campo">Cliente
+          <select id="material-cliente" name="clienteId"></select>
+        </label>
+        <label class="campo">Frente
+          <select id="material-frente" name="frenteId"></select>
+        </label>
+        <label class="campo largo">Rótulo
+          <input id="material-rotulo" name="rotulo" type="text" maxlength="80" placeholder="Ex.: Manual da marca">
+        </label>
+        <label class="campo largo">Link (URL)
+          <input id="material-url" name="url" type="url" maxlength="2000" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://">
+        </label>
+        <p class="dica-saude largo">Só links http(s). O link abre em outra aba.</p>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="material-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar material</button>
+        </div>
+      </form>
+      <p class="aviso" id="material-aviso" role="alert" hidden></p>
+    </section>
     <datalist id="shark-calendarios"></datalist>
   </main>
 

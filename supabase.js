@@ -203,6 +203,7 @@ const COLUNAS = {
   eventos: ["calendario", "nome", "data", "local"],
   tarefas: ["frente_id", "evento_id", "item", "nome", "prazo", "quantidade", "status", "entregue_em", "extra"],
   recebimentos: ["cliente_id", "descricao", "valor", "vencimento", "recebido_em", "referencia", "ignorado"],
+  materiais: ["cliente_id", "frente_id", "rotulo", "url"],
   movimentos_metas: ["meta_id", "data", "valor", "descricao"],
   faturas: ["cartao_id", "mes", "vencimento", "arquivo", "importado_em", "sem_conta", "total_informado"],
   // V2-08: histórico das contas, só de inserção (cada evento é uma linha nova).
@@ -238,7 +239,7 @@ function objetoParaLinha(tabela, item) {
 
 // Tabelas que ficam fora do schema financeiro.
 const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estudos", registros: "saude", objetivos: "saude",
-  clientes: "shark", frentes: "shark", eventos: "shark", tarefas: "shark", recebimentos: "shark",
+  clientes: "shark", frentes: "shark", eventos: "shark", tarefas: "shark", recebimentos: "shark", materiais: "shark",
   checkins: "vida", prioridades: "vida", satisfacao: "vida", habitos: "vida", habitos_feitos: "vida",
   compromissos: "vida", projetos: "vida", afazeres: "vida", blocos_tempo: "vida" };
 
