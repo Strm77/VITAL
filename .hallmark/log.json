@@ -1,0 +1,31 @@
+[
+ {
+  "mode": "redesign",
+  "depth": "restyle",
+  "scope": "app",
+  "shape": "app screen",
+  "theme": "brand",
+  "axes": "neutral/manrope/purple",
+  "nav": "kept",
+  "footer": "none",
+  "hero": "none",
+  "imagery": "none",
+  "photos": [],
+  "entry": "styles.css",
+  "fingerprint": "vital-roxo-foco-manrope",
+  "sections": [
+   "financeiro",
+   "estudos",
+   "saude",
+   "rotina",
+   "shark",
+   "stefanini"
+  ],
+  "signature": "o número do mês em Manrope tabular, roxo só no foco",
+  "waived": [
+   "7b"
+  ],
+  "prompt": "painel pessoal de uso diário: finanças, estudos, saúde, rotina, estúdio de design e CRM de vendas",
+  "date": "2026-11-09"
+ }
+]

@@ -279,6 +279,15 @@ function mostrarVista() {
   }
   document.dispatchEvent(new CustomEvent("vista-mostrada", { detail: vista }));
 }
+
+/* "Pular para o conteúdo": leva o foco do teclado para a área visível, sem mudar o endereço. */
+document.getElementById("pular-conteudo")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  const visivel = document.querySelector("main[data-vista]:not([hidden])");
+  if (!visivel) return;
+  visivel.tabIndex = -1;
+  visivel.focus();
+});
 /* ---------- Tema (automático / escuro / claro) ---------- */
 
 const TEMAS = [

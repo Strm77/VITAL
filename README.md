@@ -254,6 +254,21 @@ pedidas, `oportunidades` tem `fechada_em` (data do Win/Lose), usada no Realizado
 Aplicada no Supabase em 09/11/2026, versão `20261109015145` (tabelas e dados existentes conferidos
 antes e depois: nada mudou).
 
+## Visual (design system)
+
+O sistema visual está em `DESIGN.md` (e a verdade do produto em `PRODUCT.md`). Todas as cores, a fonte, a
+escala tipográfica, o espaçamento (grade de 4px), os raios e o movimento são tokens no `:root` de `styles.css`.
+
+- **Cor:** superfícies em cinza neutro puro (branco no claro, preto #000 no escuro). O **roxo** marca o foco:
+  botão primário, aba e sub-aba ativas, mês ativo, links, marcações e anel de foco (`#9c5eef` no escuro,
+  `#8140d0` no claro). O verde só quer dizer pago/feito; vermelho, atrasado/erro; âmbar, atenção.
+- **Tipo:** Manrope variável (licença OFL) hospedada em `fontes/` e publicada pelo `build.sh`, com algarismos
+  tabulares em todo número.
+- **Celular:** abas das áreas com 44px de toque, rolando de lado com esmaecido na borda e a ativa centralizada;
+  campos em 16px (o iPhone não dá zoom); nada de cartão dentro de cartão.
+- **Acessibilidade:** contraste AA nos dois temas, foco visível, "Pular para o conteúdo" e respeito a
+  "reduzir movimento".
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a
@@ -332,4 +347,6 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
   oportunidades, reuniões, atividades e meta; cálculos do painel (realizado, pipeline, quanto
   falta) e funil; vínculos com a conta; estados vazios, “Carregando…” e erro; tempo real;
   celular a 390px; e a migração (só aditiva, RLS, Realtime) com o build. Dados fictícios.
+- `tests/04-tema.test.mjs` também confere o sistema visual: roxo só no foco nos dois temas, superfícies
+  neutras, Manrope carregada, abas de 44px e campos de 16px no celular e "reduzir movimento".
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.
