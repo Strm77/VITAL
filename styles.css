@@ -1216,6 +1216,18 @@ body.sem-sessao > :not(.tela-login):not(script) { display: none !important; }
 .entregas { list-style: none; margin: 0; padding: 0; font-size: 13px; }
 .entregas li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 5px 0; border-top: 1px solid var(--borda); }
 .entregas .sub, .sub { color: var(--texto-suave); font-size: 12px; }
+/* Materiais (links) do cliente e de cada frente */
+.materiais { display: grid; gap: 4px; font-size: 13px; min-width: 0; }
+.materiais-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.materiais-titulo { font-size: 12px; font-weight: 600; color: var(--texto-suave); }
+.materiais-lista { list-style: none; margin: 0; padding: 0; }
+.materiais-lista li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; padding: 5px 0; border-top: 1px solid var(--borda); }
+.material-link { display: grid; min-width: 0; color: var(--texto); text-decoration: none; padding: 2px 0; }
+a.material-link:hover .material-rotulo, a.material-link:focus-visible .material-rotulo { text-decoration: underline; }
+a.material-link:focus-visible { outline: 2px solid var(--progresso); outline-offset: 2px; border-radius: 4px; }
+.material-rotulo { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.material-link small { font-size: 11px; color: var(--texto-suave); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cliente-shark > .materiais { margin: 6px 0 2px; }
 .etapas { display: grid; gap: 6px; }
 .etapa { border: 1px solid var(--borda); border-radius: 10px; overflow: hidden; }
 .etapa.aberta { border-color: color-mix(in srgb, var(--cor) 50%, var(--borda)); }
@@ -1635,3 +1647,7 @@ a.botao { text-decoration: none; display: inline-block; }
 .historico-conta li { display: grid; gap: 2px; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 8px; }
 .historico-conta li.pendente { border-style: dashed; }
 .historico-conta .sub { font-size: 12px; color: var(--texto-suave); }
+@media (max-width: 600px) {
+  .materiais-lista .botao.mini { padding: 7px 10px; }
+  .material-link { padding: 4px 0; }
+}

@@ -262,6 +262,42 @@ test("SHARK: cliente, frente por etapa, arte gerada e recebimento no schema shar
   await pagina.waitForFunction(() => document.querySelector("#bloco-ganhos").textContent.includes("SENTA O PÉ — Alfredinho — Etapa Goiânia"));
 });
 
+test("SHARK: materiais (links) do cliente e da frente gravam em shark.materiais", async () => {
+  await pagina.click(".aba[data-area=shark]");
+  await pagina.click('.subaba[data-aba="shark-clientes"]');
+  await pagina.click(".cliente-shark [data-materiais=geral] [data-novo-material]");
+  await pagina.fill("#material-rotulo", "Manual fictício");
+  await pagina.fill("#material-url", "https://example.com/manual");
+  await pagina.click("#material-form [type=submit]");
+  await pagina.click(".frente [data-novo-material]");
+  await pagina.fill("#material-rotulo", "Pasta fictícia");
+  await pagina.fill("#material-url", "https://example.org/pasta");
+  await pagina.click("#material-form [type=submit]");
+  await pagina.waitForFunction(() => (JSON.parse(sessionStorage.getItem("mock-db")).materiais || []).length === 2);
+  let db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  const [geral, daFrente] = db.materiais;
+  assert.deepEqual([geral.cliente_id, geral.frente_id, geral.rotulo, geral.url], [db.clientes[0].id, null, "Manual fictício", "https://example.com/manual"]);
+  assert.deepEqual([daFrente.cliente_id, daFrente.frente_id, daFrente.rotulo], [db.clientes[0].id, db.frentes[0].id, "Pasta fictícia"]);
+  await pagina.waitForSelector(".frente .materiais a[href='https://example.org/pasta']");
+  // Editar mantém o id; excluir remove só aquele link.
+  await pagina.click(".cliente-shark [data-materiais=geral] [data-material-acao=editar]");
+  await pagina.fill("#material-rotulo", "Manual fictício v2");
+  await pagina.click("#material-form [type=submit]");
+  await pagina.waitForFunction(() => JSON.parse(sessionStorage.getItem("mock-db")).materiais.some((m) => m.rotulo === "Manual fictício v2"));
+  db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  assert.equal(db.materiais.length, 2);
+  assert.equal(db.materiais.find((m) => m.rotulo === "Manual fictício v2").id, geral.id);
+  await pagina.waitForSelector(".cliente-shark [data-materiais=geral] .material-rotulo:text-is('Manual fictício v2')");
+  const excluir = pagina.locator(".frente [data-material-acao=excluir]");
+  await excluir.click(); await excluir.click();
+  await pagina.waitForFunction(() => JSON.parse(sessionStorage.getItem("mock-db")).materiais.length === 1);
+  db = await pagina.evaluate(() => JSON.parse(sessionStorage.getItem("mock-db")));
+  assert.equal(db.materiais[0].id, geral.id);
+  assert.equal(db.clientes.length, 1, "cliente e frente intactos");
+  assert.equal(db.frentes.length, 1);
+  await pagina.click(".aba[data-area=financeiro]");
+});
+
 test("Visão geral, Bem-estar e Rotina gravam no schema vida", async () => {
   await pagina.click(".aba[data-area=inicio]");
   await pagina.waitForSelector('main[data-vista="inicio"]:not([hidden])');

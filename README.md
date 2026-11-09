@@ -201,11 +201,19 @@ A aba **SHARK** é o gerenciador de tarefas do estúdio de design, com quatro su
   para o prazo. **Por etapa**: segue um calendário (ex.: Stock Car) e um modelo de artes, uma
   por linha, com o prazo em dias em relação à corrida (`Race Week -6`, `Campeões 80kg +1`). As
   artes de cada etapa são geradas sozinhas quando o evento entra no calendário.
+  **Materiais:** cada cliente tem uma lista de links (rótulo + URL), geral ou de uma frente
+  (“+ Link” no cliente ou na frente); dá para cadastrar, editar e remover (com confirmação).
+  Só links http(s), que abrem em outra aba. Excluir uma frente não apaga os links dela: eles
+  voltam para a lista geral do cliente.
 - **Calendário**: agenda do mês com as etapas e as artes de cada dia, e os calendários de
   eventos (importação das etapas restantes da Stock Car 2026 e eventos próprios, como a NKR).
 - **Recebimentos**: mensalidades e valores por etapa aparecem previstos sozinhos; “Recebi”
   registra a data. O que foi recebido entra como ganho do mês no **Financeiro** (Dinheiro do
   mês e bloco de ganhos). No Supabase os dados ficam no schema `shark`.
+
+Migração dos materiais: `20261109120000_shark_materiais.sql` — só cria a tabela `shark.materiais`
+(RLS por usuário, tempo real); nenhuma tabela ou dado existente muda. Aplicada no Supabase em
+09/11/2026, versão `20261109004101`.
 
 ## Navegação e timeline
 
@@ -279,4 +287,6 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/11-melhorias.test.mjs` — um teste por critério de aceite das melhorias V01 a V16.
 - `tests/12-faturas-v2.test.mjs` — itens V2-01 a V2-09 com PDFs fictícios que imitam os layouts reais.
 - `tests/13-historico-contas.test.mjs` — histórico das contas (V2-08) e nenhuma exclusão automática.
+- `tests/14-shark-materiais.test.mjs` — materiais do SHARK por cliente e por frente (cadastrar, editar,
+  remover, só http(s), frente excluída sem perder o link, recarga e celular a 390px), com links fictícios.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.
