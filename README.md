@@ -251,6 +251,8 @@ usuário e tempo real. No painel as tabelas usam o prefixo `stf_` (por exemplo, 
 confunde com `financeiro.metas`). Migração: `20261109180000_stefanini.sql` — só aditiva (cria o
 schema e as tabelas novas; `shark.materiais` e todo o resto ficam como estão). Além das colunas
 pedidas, `oportunidades` tem `fechada_em` (data do Win/Lose), usada no Realizado do ano.
+Aplicada no Supabase em 09/11/2026, versão `20261109015145` (tabelas e dados existentes conferidos
+antes e depois: nada mudou).
 
 ## Navegação e timeline
 
