@@ -1965,6 +1965,44 @@ a.botao { text-decoration: none; display: inline-block; }
   .stf-acoes .botao.mini { padding: 8px 16px; min-height: 36px; }
 }
 
+/* Stefanini › Check-in semanal */
+.stf-ck-editor { margin-bottom: 8px; }
+.stf-ck-aceleradores { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
+.stf-ck-aceleradores > p { margin: 0; }
+.stf-ck-atalhos { justify-content: flex-start; flex-wrap: wrap; }
+.stf-ck-sug-titulo { margin: 4px 0 0; font-size: var(--fs-caption); font-weight: 600; }
+.stf-ck-sug-msg { margin: 0; }
+.stf-ck-sugestoes, .stf-ck-itens { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.stf-ck-sugestao, .stf-ck-item { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--borda); min-width: 0; }
+.stf-ck-sugestao { border-left: 3px solid var(--foco); padding-left: 12px; }
+.stf-ck-sugestao-topo { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; min-width: 0; overflow-wrap: anywhere; }
+.stf-ck-secao { display: grid; gap: 4px; margin-top: 12px; min-width: 0; }
+.stf-ck-secao-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.stf-ck-secao h4 { margin: 0; font-size: var(--fs-body-sm); font-weight: 700; }
+.stf-ck-vazio-secao { margin: 0; padding: 8px 0; border-top: 1px solid var(--borda); }
+.stf-ck-cliente { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px 16px; }
+.stf-ck-cliente .campo[hidden] { display: none; }
+.stf-ck-item-acoes { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.stf-ck-mover-secao { display: flex; align-items: center; gap: 8px; margin-right: auto; font-size: var(--fs-caption); color: var(--texto-suave); min-width: 0; }
+.stf-ck-mover-secao select { font: inherit; font-size: var(--fs-body-sm); padding: 6px 8px; border: 1px solid var(--borda-forte); border-radius: var(--r-control); background: var(--fundo); color: var(--texto); min-width: 0; max-width: 100%; }
+.stf-ck-rodape { justify-content: flex-end; flex-wrap: wrap; }
+.stf-ck-hist-titulo { margin: 20px 0 0; font-size: var(--fs-body-sm); }
+.stf-ck-cartao.aberto h3 { color: var(--foco); }
+.stf-ck-ver { display: grid; gap: 12px; margin: 8px 0 16px; padding: 16px; border: 1px solid var(--borda); border-radius: var(--r-control); background: var(--fundo); min-width: 0; }
+.stf-ck-ver-acoes { justify-content: flex-end; flex-wrap: wrap; }
+/* Prévia fiel ao PDF: título e data em negrito, tabela com bordas. */
+.stf-ck-doc { min-width: 0; overflow-x: auto; }
+.stf-ck-doc-titulo, .stf-ck-doc-data { margin: 0 0 6px; font-weight: 700; }
+.stf-ck-doc-titulo { font-size: var(--fs-body); }
+.stf-ck-doc-data { margin-bottom: 12px; font-size: var(--fs-body-sm); }
+.stf-ck-tabela { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: var(--fs-caption); }
+.stf-ck-tabela th, .stf-ck-tabela td { border: 1px solid var(--texto-suave); padding: 6px 8px; vertical-align: middle; overflow-wrap: anywhere; }
+.stf-ck-tabela thead th { text-align: center; font-weight: 700; }
+.stf-ck-tabela thead th:first-child { width: 28%; }
+.stf-ck-linha-secao th { text-align: center; font-weight: 700; }
+.stf-ck-col-cliente { text-align: center; font-weight: 700; }
+.stf-ck-col-ativ { white-space: pre-wrap; text-align: left; vertical-align: top; }
+
 /* Setas de mês (agendas): chevron desenhado, sem glifo */
 .botao.seta-mes { min-width: 36px; padding: 0; }
 .botao.seta-mes::before {

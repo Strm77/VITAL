@@ -39,12 +39,15 @@
     "stefanini.reunioes": "id conta_id data titulo anotacoes",
     "stefanini.atividades": "id conta_id descricao data feita concluida_em",
     "stefanini.metas": "id ano valor_meta",
+    "stefanini.checkins": "id semana",
+    "stefanini.checkin_itens": "id checkin_id secao ordem conta_id cliente_rotulo atividades",
     pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria mes_referencia vencimento_a_confirmar pagar_em observacao origem_pagamento divida_id",
   };
   const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"], materiais: ["cliente_id", "rotulo", "url"],
     "stefanini.contas": ["nome", "status", "contrato_stf", "contrato_sda"], "stefanini.contatos": ["nome"],
     "stefanini.oportunidades": ["conta_id", "nome", "estagio"], "stefanini.reunioes": ["data", "titulo"],
-    "stefanini.atividades": ["descricao", "feita"], "stefanini.metas": ["ano", "valor_meta"] };
+    "stefanini.atividades": ["descricao", "feita"], "stefanini.metas": ["ano", "valor_meta"],
+    "stefanini.checkins": ["semana"], "stefanini.checkin_itens": ["checkin_id", "secao", "ordem", "atividades"] };
   const ler = () => JSON.parse(sessionStorage.getItem("mock-db") || "{}");
   const gravar = (db) => sessionStorage.setItem("mock-db", JSON.stringify(db));
   const usuario = () => JSON.parse(sessionStorage.getItem("mock-sessao") || "null");
@@ -57,6 +60,11 @@
     }
     if (inserindo) for (const c of OBRIGATORIAS[tabela] || []) {
       if (linha[c] == null) return { message: `null value in column "${c}" violates not-null constraint` };
+    }
+    // Como os checks de stefanini.checkin_itens: conta OU rótulo livre, e só as três seções.
+    if (tabela === "stefanini.checkin_itens") {
+      if (linha.conta_id != null && linha.cliente_rotulo != null) return { message: 'new row violates check constraint "checkin_itens_um_cliente"' };
+      if (linha.secao != null && !["Semana Passada", "Essa Semana", "Pedido de Ajuda"].includes(linha.secao)) return { message: "violates check constraint secao" };
     }
     if (tabela === "pagamentos" && linha.fatura_id && !(ler().faturas || []).some((f) => f.id === linha.fatura_id)) {
       return { message: "insert or update on table \"pagamentos\" violates foreign key constraint" };

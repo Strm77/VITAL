@@ -224,6 +224,9 @@ const STEFANINI = {
   stf_reunioes: { tabela: "reunioes", colunas: ["conta_id", "data", "titulo", "anotacoes"], obrigatorias: ["data", "titulo"] },
   stf_atividades: { tabela: "atividades", colunas: ["conta_id", "descricao", "data", "feita", "concluida_em"], obrigatorias: ["descricao", "feita"] },
   stf_metas: { tabela: "metas", colunas: ["ano", "valor_meta"], obrigatorias: ["ano", "valor_meta"] },
+  // Check-in semanal: o check-in (data de referência) e os itens dele, em ordem.
+  stf_checkins: { tabela: "checkins", colunas: ["semana"], obrigatorias: ["semana"] },
+  stf_checkin_itens: { tabela: "checkin_itens", colunas: ["checkin_id", "secao", "ordem", "conta_id", "cliente_rotulo", "atividades"], obrigatorias: ["checkin_id", "secao", "ordem", "atividades"] },
 };
 for (const c of ["valor_estimado", "valor_meta"]) NUMERICAS.add(c);
 const COLUNAS_INTERNAS_STF = new Set(["user_id", "created_at", "updated_at"]);
