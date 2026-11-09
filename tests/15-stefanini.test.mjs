@@ -61,7 +61,7 @@ test("Aba Stefanini: submenu próprio, schema stefanini e tudo vazio (nada de da
   assert.equal(await pagina.isVisible('.submenu[data-area-de="shark"]'), false);
   assert.equal(await pagina.isVisible("#timeline"), false);
   assert.deepEqual(await pagina.$$eval('.submenu[data-area-de="stefanini"] .subaba', (a) => a.map((x) => x.textContent.trim())),
-    ["Painel", "Oportunidades", "Contas", "Contatos", "Reuniões", "Atividades"]);
+    ["Painel", "Oportunidades", "Contas", "Contatos", "Reuniões", "Atividades", "Check-in"]);
   await pagina.waitForFunction(() => !document.querySelector("#stf-kpis.consulta-pendente"));
   assert.equal(await kpi("meta"), "—");
   assert.equal(await kpi("realizado"), brl(0));
@@ -89,9 +89,9 @@ test("Aba Stefanini: submenu próprio, schema stefanini e tudo vazio (nada de da
   assert.equal(await pagina.isVisible("#stf-feitas"), false, "sem feitas, a seção recolhível some");
 });
 
-test("Tempo real: as seis tabelas do schema stefanini são escutadas", async () => {
+test("Tempo real: as tabelas do schema stefanini são escutadas (CRM e check-in semanal)", async () => {
   const rt = (await pagina.evaluate(() => window.__realtime)).filter((r) => r.schema === "stefanini");
-  assert.deepEqual(rt.map((r) => r.tabela).sort(), ["atividades", "contas", "contatos", "metas", "oportunidades", "reunioes"]);
+  assert.deepEqual(rt.map((r) => r.tabela).sort(), ["atividades", "checkin_itens", "checkins", "contas", "contatos", "metas", "oportunidades", "reunioes"]);
   // financeiro.metas continua sendo escutada no schema dela (sem conflito com stefanini.metas).
   assert.ok((await pagina.evaluate(() => window.__realtime)).some((r) => r.schema === "financeiro" && r.tabela === "metas"));
 });

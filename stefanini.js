@@ -298,6 +298,8 @@ async function stfExcluir(botao, tipo, id) {
     const sem = (lista, campo, nomeArm) => Promise.all(stf[lista].filter((x) => x[campo] === id)
       .map(({ id: idx, ...resto }) => stf.arm[nomeArm].salvar(idx, { ...resto, [campo]: null })));
     if (tipo === "conta") {
+      // Check-ins guardam o nome da conta como rótulo (o histórico não perde o cliente).
+      if (typeof stfCkAntesDeExcluirConta === "function") await stfCkAntesDeExcluirConta(id);
       await sem("contatos", "contaId", "stf_contatos");
       await sem("reunioes", "contaId", "stf_reunioes");
       await sem("atividades", "contaId", "stf_atividades");
@@ -578,6 +580,8 @@ function renderizarStefanini() {
   renderizarContatosStf();
   renderizarReunioesStf();
   renderizarAtividadesStf();
+  // Check-in semanal (stefanini-checkin.js): nomes das contas e sugestões acompanham o CRM.
+  if (typeof renderizarCheckinStf === "function") renderizarCheckinStf();
   // Formulário aberto: as listas de contas/contatos acompanham o que mudou.
   for (const tipo of Object.keys(STF_FORMS)) {
     const form = document.getElementById(STF_FORMS[tipo].form);

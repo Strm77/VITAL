@@ -107,6 +107,7 @@
     <a class="subaba" data-aba="stefanini-contatos" href="#stefanini-contatos">Contatos</a>
     <a class="subaba" data-aba="stefanini-reunioes" href="#stefanini-reunioes">Reuniões</a>
     <a class="subaba" data-aba="stefanini-atividades" href="#stefanini-atividades">Atividades</a>
+    <a class="subaba" data-aba="stefanini-checkin" href="#stefanini-checkin">Check-in</a>
   </nav>
 
   <div class="timeline" id="timeline" role="group" aria-label="Mês de referência" data-area-de="financeiro">
@@ -1009,6 +1010,47 @@
     </section>
   </main>
 
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini-checkin" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-ck">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-ck">Check-in semanal</h2>
+        <span class="sub" id="stf-ck-resumo"></span>
+      </div>
+      <p class="aviso" id="stf-ck-aviso" role="alert" hidden></p>
+
+      <!-- Editor (novo ou edição de qualquer semana) -->
+      <form class="formulario stf-ck-editor" id="stf-ck-form" hidden novalidate>
+        <h3 id="stf-ck-form-titulo">Novo check-in</h3>
+        <label class="campo">Data de referência da semana
+          <input id="stf-ck-semana" name="semana" type="date">
+        </label>
+        <div class="stf-ck-aceleradores largo" id="stf-ck-aceleradores" hidden>
+          <p class="sub">Atalhos opcionais. Nada entra no check-in sem você tocar em <strong>Adicionar</strong> em cada sugestão.</p>
+          <div class="acoes stf-ck-atalhos">
+            <button type="button" class="botao" id="stf-ck-copiar">Trazer “Essa Semana” do último check-in</button>
+            <button type="button" class="botao" id="stf-ck-sugerir">Sugerir das reuniões e atividades</button>
+          </div>
+          <div id="stf-ck-sugestoes" aria-live="polite"></div>
+        </div>
+        <div class="largo" id="stf-ck-secoes"></div>
+        <div class="acoes largo stf-ck-rodape">
+          <button type="button" class="botao" id="stf-ck-cancelar">Cancelar</button>
+          <button type="button" class="botao" id="stf-ck-pdf-rascunho">Gerar PDF</button>
+          <button type="submit" class="botao primario">Salvar check-in</button>
+        </div>
+        <p class="aviso largo" id="stf-ck-form-aviso" role="alert" hidden></p>
+      </form>
+
+      <!-- Visualização de uma semana -->
+      <div class="stf-ck-ver" id="stf-ck-ver" hidden></div>
+
+      <button type="button" class="botao adicionar" id="stf-ck-novo">+ Novo check-in</button>
+      <h3 class="stf-ck-hist-titulo">Histórico</h3>
+      <p class="estado" id="stf-ck-vazio" data-depende="stf_checkins stf_checkin_itens">Nenhum check-in ainda.</p>
+      <ul class="stf-cartoes" id="stf-ck-lista"></ul>
+    </section>
+  </main>
+
   <main class="vista-faturas vista-inicio" data-vista="inicio" hidden>
     <section class="painel saudacao" aria-labelledby="inicio-saudacao">
       <div class="painel-cabecalho">
@@ -1567,6 +1609,7 @@
   <script src="saude.js"></script>
   <script src="shark.js"></script>
   <script src="stefanini.js"></script>
+  <script src="stefanini-checkin.js"></script>
   <script src="vida.js"></script>
   <script src="bemestar.js"></script>
   <script src="rotina.js"></script>

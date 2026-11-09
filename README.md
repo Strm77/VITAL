@@ -217,7 +217,7 @@ Migração dos materiais: `20261109120000_shark_materiais.sql` — só cria a ta
 
 ## Stefanini (CRM de vendas)
 
-A aba **Stefanini** é o CRM de vendas, com seis subpáginas. As tabelas nascem vazias: tudo
+A aba **Stefanini** é o CRM de vendas, com sete subpáginas. As tabelas nascem vazias: tudo
 entra pela interface (o repositório é público, então não há dados de exemplo nem seeds).
 
 - **Painel**: meta anual editável (valor e ano; uma meta por ano, com setas para trocar o ano).
@@ -239,6 +239,21 @@ entra pela interface (o repositório é público, então não há dados de exemp
 - **Reuniões**: data, título, conta (opcional) e anotações livres; mais recentes primeiro.
 - **Atividades**: descrição, data e conta (opcionais) e caixinha de feita (grava `concluida_em`).
   Pendentes no topo (por data, com aviso de atrasada); as feitas ficam numa seção recolhível.
+- **Check-in**: o check-in semanal. Cada check-in tem a data de referência da semana e uma lista
+  ordenada de itens em três seções (*Semana Passada*, *Essa Semana*, *Pedido de Ajuda*). Cada item
+  tem o cliente (opcional: uma conta do CRM **ou** um rótulo livre, para eventos ou times
+  internos) e o texto das atividades, com quebras de linha; dá para subir/descer, trocar de seção
+  e remover. Uma semana só tem um check-in. Ao criar, dois atalhos opcionais montam **sugestões**
+  numa lista à parte: (a) os itens de *Essa Semana* do último check-in, propostos para *Semana
+  Passada*; (b) as reuniões e atividades do CRM — da semana anterior à data (propostas para
+  *Semana Passada*) e da própria semana (para *Essa Semana*), agrupadas por cliente. Nenhuma
+  sugestão entra sozinha: cada uma é editável e só vai para o check-in com “Adicionar” (na seção
+  escolhida) ou sai com “Descartar”. O **Histórico** lista as semanas (da mais recente), com Ver,
+  Editar, Gerar PDF e Excluir. **Gerar PDF** monta no navegador um A4: “Check-in semanal” e a
+  data (DD/MM/AAAA) em negrito, e a tabela com bordas *Cliente | Atividades* (cabeçalho em negrito
+  centralizado, linhas de seção nas duas colunas, cliente em negrito centralizado); item longo
+  continua na página seguinte com o cabeçalho repetido. O PDF usa o jsPDF 2.5.1 (MIT), servido
+  pelo próprio site (`vendor/`) e carregado só na hora — nada sai para um servidor.
 
 Excluir sempre pede confirmação (segundo toque em “Excluir?”). Conta com oportunidades não pode
 ser excluída (o painel avisa); ao excluir uma conta, os contatos, reuniões e atividades dela
@@ -253,6 +268,14 @@ schema e as tabelas novas; `shark.materiais` e todo o resto ficam como estão). 
 pedidas, `oportunidades` tem `fechada_em` (data do Win/Lose), usada no Realizado do ano.
 Aplicada no Supabase em 09/11/2026, versão `20261109015145` (tabelas e dados existentes conferidos
 antes e depois: nada mudou).
+
+Check-in semanal: tabelas `stefanini.checkins` (`semana`) e `stefanini.checkin_itens` (`checkin_id`,
+`secao`, `ordem`, `conta_id` ou `cliente_rotulo` — nunca os dois —, `atividades`), mesmo padrão de
+RLS por usuário, `updated_at` e tempo real. Excluir um check-in leva os itens dele; excluir uma
+conta troca o vínculo dos itens pelo nome dela como rótulo (o histórico não perde o cliente).
+Migração: `20261109200000_stefanini_checkins.sql` — só aditiva (cria as duas tabelas; nada do que
+existe muda). Aplicada no Supabase em 09/11/2026, versão `20261109221550` (contagem de todas as
+tabelas conferida antes e depois: nada mudou; as duas novas começaram vazias).
 
 ## Visual (design system)
 
@@ -347,6 +370,10 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
   oportunidades, reuniões, atividades e meta; cálculos do painel (realizado, pipeline, quanto
   falta) e funil; vínculos com a conta; estados vazios, “Carregando…” e erro; tempo real;
   celular a 390px; e a migração (só aditiva, RLS, Realtime) com o build. Dados fictícios.
+- `tests/16-stefanini-checkin.test.mjs` — check-in semanal: CRUD, cliente por conta ou rótulo livre,
+  ordem, validações, os dois atalhos (nada entra sem confirmação), histórico com edição, PDF A4 lido
+  de volta com o pdf.js (negrito, ordem, centralização, várias páginas), conta excluída sem perder o
+  nome, celular a 390px e a migração. Dados fictícios.
 - `tests/04-tema.test.mjs` também confere o sistema visual: roxo só no foco nos dois temas, superfícies
   neutras, Manrope carregada, abas de 44px e campos de 16px no celular e "reduzir movimento".
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.
