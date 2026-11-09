@@ -271,6 +271,12 @@ function mostrarVista() {
     else aba.removeAttribute("aria-current");
   });
   window.scrollTo(0, 0);
+  // Celular: as áreas rolam de lado; a aba ativa fica centralizada (sem mexer na rolagem da página).
+  const abaAtiva = document.querySelector(".aba.ativa");
+  const trilhoAbas = abaAtiva?.parentElement;
+  if (trilhoAbas && trilhoAbas.scrollWidth > trilhoAbas.clientWidth) {
+    trilhoAbas.scrollLeft = abaAtiva.offsetLeft - trilhoAbas.offsetLeft - (trilhoAbas.clientWidth - abaAtiva.offsetWidth) / 2;
+  }
   document.dispatchEvent(new CustomEvent("vista-mostrada", { detail: vista }));
 }
 /* ---------- Tema (automático / escuro / claro) ---------- */

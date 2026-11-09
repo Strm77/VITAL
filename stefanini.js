@@ -108,7 +108,7 @@ function stfChipTemperatura(t) {
 }
 function stfLinkConta(id) {
   const c = stfConta(id);
-  return c ? `<span class="stf-conta-nome">🏢 ${escapar(c.nome)}</span>` : "";
+  return c ? `<span class="stf-conta-nome">${escapar(c.nome)}</span>` : "";
 }
 function stfAcoes(tipo, id, nome) {
   const confirmando = stf.confirmando === `${tipo}:${id}`;
@@ -399,7 +399,7 @@ function stfCartaoOp(o) {
       <div class="stf-cartao-topo"><h3>${escapar(o.nome)}</h3>${stfChipEstagio(o.estagio)}</div>
       <div class="stf-cartao-info">
         ${stfLinkConta(o.contaId)}
-        ${contato ? `<span>👤 ${escapar(contato.nome)}</span>` : ""}
+        ${contato ? `<span class="stf-contato-nome">${escapar(contato.nome)}</span>` : ""}
         <span class="stf-valor">${o.valorEstimado != null ? moeda.format(stfValor(o)) : "sem valor"}</span>
         ${o.fechadaEm && STF_FECHADOS.includes(o.estagio) ? `<span class="sub">fechada em ${stfData(o.fechadaEm)}</span>` : ""}
       </div>
@@ -486,7 +486,7 @@ function renderizarAtividadesStf() {
   document.getElementById("stf-atividade-lista").innerHTML = pendentes.map((a) => stfCartaoAtividade(a)).join("");
   const vazio = document.getElementById("stf-atividade-vazio");
   vazio.hidden = pendentes.length > 0;
-  vazio.textContent = stf.atividades.length ? "Nenhuma atividade pendente. 🎉" : "Nenhuma atividade ainda.";
+  vazio.textContent = stf.atividades.length ? "Nenhuma atividade pendente." : "Nenhuma atividade ainda.";
   const caixa = document.getElementById("stf-feitas");
   caixa.hidden = feitas.length === 0;
   caixa.open = stf.feitasAbertas;

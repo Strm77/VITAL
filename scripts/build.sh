@@ -10,3 +10,6 @@ rm -rf public
 mkdir -p public
 for f in $ARQUIVOS; do cp "$f" public/; done
 cp -r icones public/
+# Fonte própria (Manrope, OFL): só os arquivos listados.
+mkdir -p public/fontes
+for f in manrope-latin-wght.woff2 OFL.txt; do cp "fontes/$f" public/fontes/; done

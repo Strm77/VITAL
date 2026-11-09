@@ -556,7 +556,7 @@ function htmlMateriais(lista, clienteId, frenteId = "") {
   return `
     <div class="materiais" data-materiais="${escapar(frenteId || "geral")}">
       <div class="materiais-topo">
-        <span class="materiais-titulo">🔗 ${geral ? "Materiais do cliente" : "Materiais"}</span>
+        <span class="materiais-titulo">${geral ? "Materiais do cliente" : "Materiais"}</span>
         ${geral ? `<button type="button" class="botao mini" data-novo-material="${escapar(clienteId)}" data-frente="">+ Link</button>` : ""}
       </div>
       <ul class="materiais-lista">${itens || vazio}</ul>
@@ -650,7 +650,7 @@ function htmlPacote(f, c) {
   return `
     <div class="frente" data-frente="${escapar(f.id)}">
       <div class="frente-topo">
-        <div><h4>📦 ${escapar(f.nome)}</h4> <span class="sub">${f.prazo ? `prazo ${dataBR(f.prazo)}` : "sem prazo"}</span></div>
+        <div><h4>${escapar(f.nome)}</h4> <span class="sub">${f.prazo ? `prazo ${dataBR(f.prazo)}` : "sem prazo"}</span></div>
         <strong class="frente-numero">${p.entregues} <em>de ${p.meta}</em></strong>
       </div>
       <div class="barra" role="progressbar" aria-label="Artes entregues de ${escapar(f.nome)}"><div class="preenchimento"></div></div>
@@ -706,7 +706,7 @@ function htmlEtapas(f, c) {
   return `
     <div class="frente" data-frente="${escapar(f.id)}">
       <div class="frente-topo">
-        <div><h4>🏁 ${escapar(f.nome)}</h4> <span class="sub">calendário ${escapar(f.calendario || "—")} · ${artes((f.modelo || []).length)} por etapa${Number(f.valorPorEtapa) > 0 ? ` · ${moeda.format(f.valorPorEtapa)} por etapa` : ""}</span></div>
+        <div><h4>${escapar(f.nome)}</h4> <span class="sub">calendário ${escapar(f.calendario || "—")} · ${artes((f.modelo || []).length)} por etapa${Number(f.valorPorEtapa) > 0 ? ` · ${moeda.format(f.valorPorEtapa)} por etapa` : ""}</span></div>
         <strong class="frente-numero">${feitas} <em>de ${total}</em></strong>
       </div>
       <div class="barra" role="progressbar" aria-label="Artes entregues de ${escapar(f.nome)}"><div class="preenchimento"></div></div>

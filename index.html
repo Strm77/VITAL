@@ -9,6 +9,8 @@
   <link rel="icon" href="icones/icone-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="icones/apple-touch-icon.png">
   <link rel="manifest" href="site.webmanifest">
+  <meta name="description" content="V.I.T.A.L: painel pessoal de finanças, estudos, saúde, rotina, estúdio de design e CRM de vendas.">
+  <link rel="preload" href="fontes/manrope-latin-wght.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <script>
     // Aplica o tema salvo antes de desenhar a página (evita piscar em branco).
@@ -103,9 +105,9 @@
 
   <div class="timeline" id="timeline" role="group" aria-label="Mês de referência" data-area-de="financeiro">
     <div class="timeline-ano">
-      <button type="button" class="seta-ano" id="timeline-anterior" aria-label="Ano anterior">‹</button>
+      <button type="button" class="seta-ano" id="timeline-anterior" aria-label="Ano anterior"></button>
       <span id="timeline-ano"></span>
-      <button type="button" class="seta-ano" id="timeline-proximo" aria-label="Próximo ano">›</button>
+      <button type="button" class="seta-ano" id="timeline-proximo" aria-label="Próximo ano"></button>
     </div>
     <div class="timeline-meses" id="timeline-meses"></div>
     <button type="button" class="botao mini" id="timeline-hoje" hidden>Voltar ao mês atual</button>
@@ -143,10 +145,10 @@
         <label class="campo">Dia do vencimento
           <input id="campo-dia" name="diaVencimento" type="number" min="1" max="31" step="1" inputmode="numeric">
         </label>
-        <label class="campo largo">Parcelas já pagas <span class="dica">(opcional — as primeiras, em ordem; deixe vazio para calcular pela data. Parcelas antecipadas se marcam uma a uma na lista de parcelas da dívida)</span>
+        <label class="campo largo">Parcelas já pagas <span class="dica">(opcional: as primeiras, em ordem; deixe vazio para calcular pela data. Parcelas antecipadas se marcam uma a uma na lista de parcelas da dívida)</span>
           <input id="campo-pagas" name="parcelasPagas" type="number" min="0" step="1" inputmode="numeric">
         </label>
-        <label class="campo largo">Saldo devedor informado pelo banco (R$) <span class="dica">(opcional — quando preenchido, substitui o cálculo parcela × restantes)</span>
+        <label class="campo largo">Saldo devedor informado pelo banco (R$) <span class="dica">(opcional: quando preenchido, substitui o cálculo parcela × restantes)</span>
           <input id="campo-saldo" name="saldoInformado" type="number" min="0" step="0.01" inputmode="decimal">
         </label>
         <div class="acoes largo">
@@ -170,7 +172,7 @@
       </div>
     </section>
 
-    <a class="botao botao-faturas" href="#faturas">Faturas <span aria-hidden="true">→</span></a>
+    <a class="botao botao-faturas" href="#faturas">Ver faturas</a>
     </div>
 
     <section class="painel grafico" aria-labelledby="titulo-grafico">
@@ -247,7 +249,7 @@
         </label>
         <label class="campo">Tipo
           <select id="pag-tipo" name="tipo">
-            <option value="">—</option>
+            <option value="">Sem tipo</option>
             <option value="fixa">Fixa</option>
             <option value="variavel">Variável</option>
           </select>
@@ -272,7 +274,7 @@
         </label>
         <label class="campo">Pago com
           <select id="pag-origem-pagamento" name="origemPagamento">
-            <option value="">—</option>
+            <option value="">Não informado</option>
             <option value="proprio">Recursos próprios</option>
             <option value="cheque_especial">Cheque especial</option>
             <option value="outro_credito">Outro crédito</option>
@@ -374,18 +376,18 @@
       <form class="formulario saude-form" id="saude-form" novalidate>
         <fieldset class="segmentos largo">
           <legend class="sr">Área</legend>
-          <label><input type="radio" name="tipo" value="alimentacao" checked> <span>🍽️ Alimentação</span></label>
-          <label><input type="radio" name="tipo" value="exercicio"> <span>🏃 Exercício</span></label>
+          <label><input type="radio" name="tipo" value="alimentacao" checked> <span>Alimentação</span></label>
+          <label><input type="radio" name="tipo" value="exercicio"> <span>Exercício</span></label>
         </fieldset>
         <fieldset class="segmentos situacao largo" data-so="alimentacao">
           <legend class="sr">Situação da refeição</legend>
           <label><input type="radio" name="situacao" value="realizada" checked> <span>Já comi</span></label>
-          <label><input type="radio" name="situacao" value="planejada"> <span>📝 Planejar</span></label>
+          <label><input type="radio" name="situacao" value="planejada"> <span>Planejar</span></label>
         </fieldset>
         <fieldset class="segmentos resultado largo" id="saude-resultado">
           <legend class="sr">Resultado</legend>
-          <label class="acerto"><input type="radio" name="resultado" value="acerto" checked> <span>✓ Acertei</span></label>
-          <label class="erro"><input type="radio" name="resultado" value="erro"> <span>✗ Errei</span></label>
+          <label class="acerto"><input type="radio" name="resultado" value="acerto" checked> <span>Acertei</span></label>
+          <label class="erro"><input type="radio" name="resultado" value="erro"> <span>Errei</span></label>
           <label class="neutro" data-so="alimentacao"><input type="radio" name="resultado" value="neutro"> <span>• Sem avaliação</span></label>
         </fieldset>
         <p class="dica largo" id="saude-dica-plano" hidden>Refeição planejada não entra no placar nem nas estatísticas. Depois, use “Confirmar” para registrá-la como feita (sem duplicar).</p>
@@ -490,7 +492,7 @@
       <div class="painel-cabecalho">
         <h2 id="titulo-historico-saude">Histórico</h2>
       </div>
-      <p class="estado" id="saude-vazio" data-depende="registros">Nada registrado ainda. Use o formulário acima para registrar o que você comeu e os treinos — os acertos e também os erros.</p>
+      <p class="estado" id="saude-vazio" data-depende="registros">Nada registrado ainda. Use o formulário acima para registrar o que você comeu e os treinos: os acertos e também os erros.</p>
       <div class="historico-saude" id="saude-historico"></div>
       <button type="button" class="botao adicionar" id="saude-mais" hidden>Mostrar dias anteriores</button>
     </section>
@@ -617,8 +619,8 @@
         </label>
         <fieldset class="segmentos largo">
           <legend class="sr">Tipo</legend>
-          <label><input type="radio" name="tipo" value="pacote" checked> <span>📦 Pacote de artes</span></label>
-          <label><input type="radio" name="tipo" value="etapas"> <span>🏁 Artes por etapa</span></label>
+          <label><input type="radio" name="tipo" value="pacote" checked> <span>Pacote de artes</span></label>
+          <label><input type="radio" name="tipo" value="etapas"> <span>Artes por etapa</span></label>
         </fieldset>
         <label class="campo" data-tipo="pacote">Total de artes
           <input id="frente-meta" name="metaArtes" type="number" min="1" step="1" inputmode="numeric" placeholder="Ex.: 100">
@@ -681,9 +683,9 @@
       <div class="painel-cabecalho">
         <h2 id="titulo-agenda">Agenda de artes</h2>
         <div class="navegar-mes">
-          <button type="button" class="botao mini" id="agenda-anterior" aria-label="Mês anterior">‹</button>
+          <button type="button" class="botao mini seta-mes" id="agenda-anterior" aria-label="Mês anterior"></button>
           <span class="mes-atual" id="agenda-mes"></span>
-          <button type="button" class="botao mini" id="agenda-proximo" aria-label="Próximo mês">›</button>
+          <button type="button" class="botao mini seta-mes" id="agenda-proximo" aria-label="Próximo mês"></button>
         </div>
       </div>
       <div class="agenda" id="agenda"></div>
@@ -705,7 +707,7 @@
           <input id="evento-data" name="data" type="date">
         </label>
         <label class="campo">Nome
-          <input id="evento-nome" name="nome" type="text" maxlength="80" placeholder="Ex.: Etapa 10 — Goiânia">
+          <input id="evento-nome" name="nome" type="text" maxlength="80" placeholder="Ex.: Etapa 10, Goiânia">
         </label>
         <label class="campo">Local (opcional)
           <input id="evento-local" name="local" type="text" maxlength="80">
@@ -739,7 +741,7 @@
           <select id="receb-cliente" name="clienteId"></select>
         </label>
         <label class="campo">Descrição
-          <input id="receb-descricao" name="descricao" type="text" maxlength="120" placeholder="Ex.: Pacote 100 artes — parcela 2">
+          <input id="receb-descricao" name="descricao" type="text" maxlength="120" placeholder="Ex.: Pacote 100 artes, parcela 2">
         </label>
         <label class="campo">Valor (R$)
           <input id="receb-valor" name="valor" type="number" min="0.01" step="0.01" inputmode="decimal">
@@ -775,9 +777,9 @@
       <div class="painel-cabecalho">
         <h2 id="titulo-stf-meta">Meta de vendas</h2>
         <div class="timeline-ano stf-ano" role="group" aria-label="Ano da meta">
-          <button type="button" class="seta-ano" id="stf-ano-anterior" aria-label="Ano anterior">‹</button>
+          <button type="button" class="seta-ano" id="stf-ano-anterior" aria-label="Ano anterior"></button>
           <span id="stf-ano"></span>
-          <button type="button" class="seta-ano" id="stf-ano-proximo" aria-label="Próximo ano">›</button>
+          <button type="button" class="seta-ano" id="stf-ano-proximo" aria-label="Próximo ano"></button>
         </div>
       </div>
       <div class="stf-kpis" id="stf-kpis" data-depende="stf_metas stf_oportunidades" aria-live="polite"></div>
@@ -1072,7 +1074,7 @@
       </div>
       <div class="bemestar-grade">
         <div class="bemestar-bloco">
-          <h3>😴 Sono</h3>
+          <h3>Sono</h3>
           <label class="campo">Horas dormidas
             <input id="sono-horas" type="number" min="0" max="24" step="0.5" inputmode="decimal" placeholder="Ex.: 7.5">
           </label>
@@ -1080,7 +1082,7 @@
           <div class="escala" data-escala="sonoQualidade"></div>
         </div>
         <div class="bemestar-bloco">
-          <h3>💧 Água</h3>
+          <h3>Água</h3>
           <div class="agua">
             <button type="button" class="botao" id="agua-menos" aria-label="Tirar um copo">−</button>
             <div class="agua-numero"><strong id="agua-copos">0</strong> <span id="agua-meta">de 8 copos</span></div>
@@ -1089,7 +1091,7 @@
           <div class="copos" id="copos" aria-hidden="true"></div>
         </div>
         <div class="bemestar-bloco largo-2">
-          <h3>🙂 Humor, energia e estresse</h3>
+          <h3>Humor, energia e estresse</h3>
           <div class="checkin" data-checkin-raiz></div>
         </div>
       </div>
@@ -1158,7 +1160,7 @@
       <form class="tarefa-rapida" id="afazer-form" novalidate>
         <input id="afazer-titulo" name="titulo" type="text" maxlength="140" placeholder="O que precisa ser feito?" aria-label="Nova tarefa">
         <select id="afazer-prioridade" name="prioridade" aria-label="Prioridade">
-          <option value="alta">🔴 Alta</option><option value="media" selected>🟡 Média</option><option value="baixa">⚪ Baixa</option>
+          <option value="alta">Alta</option><option value="media" selected>Média</option><option value="baixa">Baixa</option>
         </select>
         <input id="afazer-prazo" name="prazo" type="date" aria-label="Prazo">
         <select id="afazer-projeto" name="projetoId" aria-label="Projeto"></select>
@@ -1177,9 +1179,9 @@
       <div class="painel-cabecalho">
         <h2 id="titulo-agenda-vida">Agenda</h2>
         <div class="navegar-mes">
-          <button type="button" class="botao mini" id="agenda-vida-anterior" aria-label="Mês anterior">‹</button>
+          <button type="button" class="botao mini seta-mes" id="agenda-vida-anterior" aria-label="Mês anterior"></button>
           <span class="mes-atual" id="agenda-vida-mes"></span>
-          <button type="button" class="botao mini" id="agenda-vida-proximo" aria-label="Próximo mês">›</button>
+          <button type="button" class="botao mini seta-mes" id="agenda-vida-proximo" aria-label="Próximo mês"></button>
         </div>
       </div>
       <div class="legenda-agenda" aria-hidden="true">
@@ -1228,7 +1230,7 @@
   </main>
 
   <main class="vista-faturas vista-rotina" data-vista="rotina-projetos" hidden>
-    <p class="estado" id="projetos-vazio" data-depende="projetos afazeres">Nenhum projeto ainda. Um projeto junta várias tarefas com um objetivo — o próximo passo aparece sempre no topo.</p>
+    <p class="estado" id="projetos-vazio" data-depende="projetos afazeres">Nenhum projeto ainda. Um projeto junta várias tarefas com um objetivo; o próximo passo aparece sempre no topo.</p>
     <div class="projetos" id="projetos"></div>
     <section class="painel">
       <form class="formulario" id="projeto-form" hidden novalidate>
@@ -1264,7 +1266,7 @@
         <span class="mes-atual" id="habitos-semana"></span>
       </div>
       <div class="shark-numeros" id="habitos-numeros"></div>
-      <p class="estado" id="habitos-vazio" data-depende="habitos">Nenhum hábito ainda. Comece com um ou dois — beber água, ler 10 páginas, caminhar.</p>
+      <p class="estado" id="habitos-vazio" data-depende="habitos">Nenhum hábito ainda. Comece com um ou dois: beber água, ler 10 páginas, caminhar.</p>
       <div class="tabela-rolavel"><table class="grade-habitos" id="grade-habitos"></table></div>
       <form class="formulario" id="habito-form" hidden novalidate>
         <h3 id="habito-form-titulo">Novo hábito</h3>
@@ -1272,7 +1274,7 @@
           <input id="habito-nome" name="nome" type="text" maxlength="60" placeholder="Ex.: Ler 10 páginas">
         </label>
         <label class="campo">Ícone (opcional)
-          <input id="habito-icone" name="icone" type="text" maxlength="8" placeholder="📖">
+          <input id="habito-icone" name="icone" type="text" maxlength="8" placeholder="Ex.: um emoji">
         </label>
         <label class="campo">Frequência
           <select id="habito-vezes" name="vezesSemana">
