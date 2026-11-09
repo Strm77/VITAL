@@ -215,6 +215,43 @@ Migração dos materiais: `20261109120000_shark_materiais.sql` — só cria a ta
 (RLS por usuário, tempo real); nenhuma tabela ou dado existente muda. Aplicada no Supabase em
 09/11/2026, versão `20261109004101`.
 
+## Stefanini (CRM de vendas)
+
+A aba **Stefanini** é o CRM de vendas, com seis subpáginas. As tabelas nascem vazias: tudo
+entra pela interface (o repositório é público, então não há dados de exemplo nem seeds).
+
+- **Painel**: meta anual editável (valor e ano; uma meta por ano, com setas para trocar o ano).
+  **Realizado** = soma das oportunidades em *Win* fechadas no ano; **Pipeline** = soma das
+  oportunidades em aberto (todos os estágios menos *Win* e *Lose*); **Quanto falta** = meta −
+  realizado (quando passa da meta, mostra quanto ficou acima). Abaixo, o **funil por estágio**
+  com a quantidade e a soma de valor de cada estágio, em barras.
+- **Oportunidades**: nome, conta (obrigatória), contato (só os da conta escolhida), estágio
+  (Identifying Opportunity → … → Win / Lose) e valor estimado; filtro por estágio. Ao virar
+  *Win* ou *Lose* a oportunidade guarda a data de fechamento (dá para ajustar, em dd/mm/aaaa);
+  é por ela que o Realizado entra no ano certo. Reaberta, a data sai.
+- **Contas**: nome, status (Prospect / Potencial, Bloqueado, Inativo, Adormecido, Em implantação,
+  Em negociação, Em renovação, Em risco, Em Manutenção, Em Expansão, Perdido / Churn,
+  Ativo/Saudável), segmento, consultor, contratos STF/SDA, relacionamento desde e notas. Tocar
+  no nome abre a conta com os contatos, oportunidades, reuniões e atividades ligados a ela, com
+  atalhos “+ Contato / + Oportunidade / + Reunião / + Atividade” já ligados à conta.
+- **Contatos**: nome, cargo, conta, e-mail, telefone e temperatura (Prospect, Contato Frio,
+  Contato Morno, Contato Quente, Quase amigos, Amigos) visível no cartão; filtro por temperatura.
+- **Reuniões**: data, título, conta (opcional) e anotações livres; mais recentes primeiro.
+- **Atividades**: descrição, data e conta (opcionais) e caixinha de feita (grava `concluida_em`).
+  Pendentes no topo (por data, com aviso de atrasada); as feitas ficam numa seção recolhível.
+
+Excluir sempre pede confirmação (segundo toque em “Excluir?”). Conta com oportunidades não pode
+ser excluída (o painel avisa); ao excluir uma conta, os contatos, reuniões e atividades dela
+ficam sem conta, e ao excluir um contato a oportunidade fica sem contato — nada mais é apagado.
+No celular a área usa cartões em uma coluna com Editar/Excluir sempre à vista.
+
+No Supabase os dados ficam no schema **`stefanini`** (`contas`, `contatos`, `oportunidades`,
+`reunioes`, `atividades` e `metas`, com `user_id`, `created_at` e `updated_at`), com RLS por
+usuário e tempo real. No painel as tabelas usam o prefixo `stf_` (por exemplo, `stf_metas` não se
+confunde com `financeiro.metas`). Migração: `20261109180000_stefanini.sql` — só aditiva (cria o
+schema e as tabelas novas; `shark.materiais` e todo o resto ficam como estão). Além das colunas
+pedidas, `oportunidades` tem `fechada_em` (data do Win/Lose), usada no Realizado do ano.
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a
@@ -289,4 +326,8 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
 - `tests/13-historico-contas.test.mjs` — histórico das contas (V2-08) e nenhuma exclusão automática.
 - `tests/14-shark-materiais.test.mjs` — materiais do SHARK por cliente e por frente (cadastrar, editar,
   remover, só http(s), frente excluída sem perder o link, recarga e celular a 390px), com links fictícios.
+- `tests/15-stefanini.test.mjs` — CRM Stefanini com o Supabase simulado: CRUD de contas, contatos,
+  oportunidades, reuniões, atividades e meta; cálculos do painel (realizado, pipeline, quanto
+  falta) e funil; vínculos com a conta; estados vazios, “Carregando…” e erro; tempo real;
+  celular a 390px; e a migração (só aditiva, RLS, Realtime) com o build. Dados fictícios.
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.

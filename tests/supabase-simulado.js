@@ -32,9 +32,19 @@
     faturas: "id cartao_id mes vencimento arquivo importado_em sem_conta total_informado",
     lancamentos: "fatura_id ordem data descricao valor categoria final_cartao",
     historico_contas: "id conta_id fatura_id evento origem_acao antes depois detalhe criado_em",
+    // schema stefanini (chave "stefanini.<tabela>": não se mistura com financeiro.metas)
+    "stefanini.contas": "id nome segmento status contrato_stf contrato_sda consultor relacionamento_desde notas",
+    "stefanini.contatos": "id conta_id nome cargo email telefone temperatura notas",
+    "stefanini.oportunidades": "id conta_id contato_id nome estagio valor_estimado fechada_em notas",
+    "stefanini.reunioes": "id conta_id data titulo anotacoes",
+    "stefanini.atividades": "id conta_id descricao data feita concluida_em",
+    "stefanini.metas": "id ano valor_meta",
     pagamentos: "id nome valor vencimento status pago_em origem fatura_id valor_fatura valor_editado tipo categoria mes_referencia vencimento_a_confirmar pagar_em observacao origem_pagamento divida_id",
   };
-  const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"], materiais: ["cliente_id", "rotulo", "url"] };
+  const OBRIGATORIAS = { pagamentos: ["nome", "valor", "vencimento"], faturas: ["cartao_id", "mes"], dividas: ["nome", "valor_parcela", "total_parcelas", "primeira_parcela"], materiais: ["cliente_id", "rotulo", "url"],
+    "stefanini.contas": ["nome", "status", "contrato_stf", "contrato_sda"], "stefanini.contatos": ["nome"],
+    "stefanini.oportunidades": ["conta_id", "nome", "estagio"], "stefanini.reunioes": ["data", "titulo"],
+    "stefanini.atividades": ["descricao", "feita"], "stefanini.metas": ["ano", "valor_meta"] };
   const ler = () => JSON.parse(sessionStorage.getItem("mock-db") || "{}");
   const gravar = (db) => sessionStorage.setItem("mock-db", JSON.stringify(db));
   const usuario = () => JSON.parse(sessionStorage.getItem("mock-sessao") || "null");
@@ -55,15 +65,29 @@
   }
   const resultado = (valor) => ({ then: (ok, erro) => Promise.resolve(valor).then(ok, erro) });
 
-  function de(tabela) {
+  function de(nome, schema) {
     if (!usuario()) throw new Error("sem sessão");
+    // Tabelas do schema stefanini usam user_id/created_at/updated_at e ficam em "stefanini.<tabela>".
+    const stf = schema === "stefanini";
+    const tabela = stf ? "stefanini." + nome : nome;
     window.__chamadas.push(tabela);
     return {
       select(colunas) {
         return {
-          order() {
+          order(coluna) {
+            if (stf) window.__ordemStefanini = coluna;
+            // Falha simulada de consulta do CRM (para testar o aviso de erro).
+            if (stf && sessionStorage.getItem("mock-falhar-stefanini")) return resultado({ data: null, error: { message: "network error" } });
+            // Consulta lenta simulada (para ver o "Carregando…").
+            if (stf && sessionStorage.getItem("mock-atrasar-stefanini")) {
+              const ms = Number(sessionStorage.getItem("mock-atrasar-stefanini"));
+              const atrasado = new Promise((ok) => setTimeout(() => ok({ data: (ler()[tabela] || []).map((l) => ({ ...l, user_id: usuario().id })), error: null }), ms));
+              return { then: (ok, erro) => atrasado.then(ok, erro) };
+            }
             const db = ler();
-            let linhas = (db[tabela] || []).map((l) => ({ ...l, usuario_id: usuario().id }));
+            let linhas = (db[tabela] || []).map((l) => (stf
+              ? { ...l, user_id: usuario().id, created_at: "2026-10-08T12:00:00Z", updated_at: "2026-10-08T12:00:00Z" }
+              : { ...l, usuario_id: usuario().id }));
             if (colunas.includes("lancamentos(")) {
               linhas = linhas.map((f) => ({ ...f, lancamentos: (db.lancamentos || []).filter((l) => l.fatura_id === f.id) }));
             }
@@ -130,9 +154,13 @@
     createClient: (url, chave, opcoes) => {
       window.__opcoes = opcoes;
       return {
-        from: de,
-        schema: (nome) => { window.__schemas = [...(window.__schemas || []), nome]; return { from: de }; },
-        channel: () => ({ on() { return this; }, subscribe() { return this; } }),
+        from: (t) => de(t, "financeiro"),
+        schema: (nome) => { window.__schemas = [...(window.__schemas || []), nome]; return { from: (t) => de(t, nome) }; },
+        // Registra as assinaturas do tempo real (schema + tabela) para os testes conferirem.
+        channel: (nome) => ({
+          on(evento, filtro) { window.__realtime = [...(window.__realtime || []), { canal: nome, schema: filtro?.schema, tabela: filtro?.table }]; return this; },
+          subscribe() { return this; },
+        }),
         auth: {
           getSession: async () => {
             // Imita a volta pelo link de recuperação: o cliente cria a sessão e avisa PASSWORD_RECOVERY.

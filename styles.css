@@ -1651,3 +1651,92 @@ a.botao { text-decoration: none; display: inline-block; }
   .materiais-lista .botao.mini { padding: 7px 10px; }
   .material-link { padding: 4px 0; }
 }
+
+/* Stefanini (CRM de vendas) — cartões com ações sempre à vista, uma coluna no celular */
+.aba-stefanini { font-weight: 600; }
+.vista-stefanini { gap: 16px; }
+.vista-stefanini > section { min-width: 0; }
+.vista-stefanini .campo textarea {
+  font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px;
+  background: var(--fundo); color: var(--texto); min-width: 0; width: 100%; resize: vertical;
+}
+.vista-stefanini .campo textarea:focus { outline: 2px solid var(--progresso); outline-offset: 0; border-color: transparent; }
+.vista-stefanini .sub { font-size: 12px; color: var(--texto-suave); }
+.stf-ano { font-size: 14px; }
+.stf-filtro { max-width: 320px; margin: 4px 0 8px; }
+
+.stf-kpi-grade { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 12px 0; }
+.stf-kpi { display: grid; gap: 2px; align-content: start; padding: 12px; border: 1px solid var(--borda); border-radius: 10px; min-width: 0; }
+.stf-kpi-rotulo { font-size: 12px; color: var(--texto-suave); }
+.stf-kpi-valor { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.stf-kpi-sub { font-size: 12px; color: var(--texto-suave); }
+.stf-kpi[data-kpi=realizado] .stf-kpi-valor { color: var(--progresso); }
+.stf-barra { margin: 0 0 8px; }
+
+.stf-funil { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.stf-funil li { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr) auto; gap: 10px; align-items: center; font-size: 13px; }
+.stf-funil-nome { overflow-wrap: anywhere; }
+.stf-funil-barra { height: 14px; border-radius: 4px; background: var(--superficie); overflow: hidden; }
+.stf-funil-barra span { display: block; height: 100%; border-radius: 4px; background: var(--serie-1); }
+.stf-funil li.fechado.bom .stf-funil-barra span { background: var(--progresso); }
+.stf-funil li.fechado.ruim .stf-funil-barra span { background: var(--perigo); }
+.stf-funil li.fechado:first-of-type, .stf-funil li[data-estagio="Win"] { border-top: 1px dashed var(--borda); padding-top: 8px; }
+.stf-funil-num { font-variant-numeric: tabular-nums; color: var(--texto-suave); white-space: nowrap; }
+.stf-funil-num strong { color: var(--texto); }
+
+.stf-cartoes { list-style: none; margin: 8px 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 10px; }
+.stf-cartao { display: grid; gap: 6px; align-content: start; padding: 12px; border: 1px solid var(--borda); border-radius: 10px; min-width: 0; font-size: 13px; }
+.stf-cartao h3 { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.stf-cartao-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-width: 0; }
+.stf-cartao-info { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--texto-suave); min-width: 0; }
+.stf-cartao-info:empty { display: none; }
+.stf-cartao-info > * { overflow-wrap: anywhere; min-width: 0; }
+.stf-cartao a { color: inherit; }
+.stf-valor { color: var(--texto); font-weight: 600; font-variant-numeric: tabular-nums; }
+.stf-notas { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--texto); }
+.stf-acoes { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.stf-acoes .botao.mini { padding: 6px 12px; min-height: 32px; }
+
+.stf-chip { display: inline-block; flex: none; max-width: 100%; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--borda); font-size: 11px; color: var(--texto-suave); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stf-chip.bom { color: var(--progresso); border-color: color-mix(in srgb, var(--progresso) 45%, transparent); }
+.stf-chip.atencao { color: var(--serie-4); border-color: color-mix(in srgb, var(--serie-4) 45%, transparent); }
+.stf-chip.ruim { color: var(--perigo); border-color: color-mix(in srgb, var(--perigo) 45%, transparent); }
+.stf-temp[data-temp="0"] { color: var(--texto-suave); }
+.stf-temp[data-temp="1"] { color: var(--serie-1); border-color: color-mix(in srgb, var(--serie-1) 45%, transparent); }
+.stf-temp[data-temp="2"] { color: var(--serie-4); border-color: color-mix(in srgb, var(--serie-4) 45%, transparent); }
+.stf-temp[data-temp="3"] { color: var(--serie-2); border-color: color-mix(in srgb, var(--serie-2) 45%, transparent); }
+.stf-temp[data-temp="4"], .stf-temp[data-temp="5"] { color: var(--progresso); border-color: color-mix(in srgb, var(--progresso) 45%, transparent); }
+.stf-contrato { color: var(--texto); }
+
+.stf-abrir { all: unset; cursor: pointer; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.stf-abrir:focus-visible { outline: 2px solid var(--progresso); outline-offset: 2px; border-radius: 4px; }
+.stf-abrir .seta { flex: none; }
+.stf-conta.aberta { grid-column: 1 / -1; }
+.stf-detalhe { display: grid; gap: 10px; border-top: 1px solid var(--borda); padding-top: 10px; }
+.stf-dados-conta { margin: 0; }
+.stf-grupo { display: grid; gap: 4px; }
+.stf-grupo-topo { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.stf-grupo h4 { margin: 0; font-size: 13px; }
+.stf-grupo .sub { margin: 0; }
+.stf-mini { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.stf-mini li { padding: 4px 0; border-top: 1px solid var(--borda); overflow-wrap: anywhere; }
+.stf-mini li.feita { color: var(--texto-suave); text-decoration: line-through; }
+
+.stf-check { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; min-width: 0; }
+.stf-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--progresso); }
+.stf-descricao { font-size: 14px; overflow-wrap: anywhere; }
+.stf-atividade.feita .stf-descricao { text-decoration: line-through; color: var(--texto-suave); }
+.stf-data { font-variant-numeric: tabular-nums; color: var(--texto-suave); white-space: nowrap; }
+.stf-data.atrasada { color: var(--perigo); }
+.stf-feitas { margin-top: 8px; }
+.stf-feitas summary { cursor: pointer; font-size: 13px; color: var(--texto-suave); padding: 6px 0; }
+
+@media (max-width: 600px) {
+  .stf-kpi-grade { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .stf-kpi { padding: 10px; }
+  .stf-kpi-valor { font-size: 16px; }
+  .stf-funil li { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; }
+  .stf-funil-barra { grid-column: 1 / -1; grid-row: 2; }
+  .stf-filtro { max-width: none; }
+  .stf-acoes .botao.mini { padding: 7px 14px; min-height: 36px; }
+}

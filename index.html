@@ -54,6 +54,7 @@
       <a class="aba" data-area="saude" href="#saude">Saúde</a>
       <a class="aba" data-area="rotina" href="#rotina">Rotina</a>
       <a class="aba aba-shark" data-area="shark" href="#shark">SHARK</a>
+      <a class="aba aba-stefanini" data-area="stefanini" href="#stefanini">Stefanini</a>
     </nav>
     <div class="acoes-topo">
       <button type="button" class="tema" id="botao-tema" aria-label="Tema"></button>
@@ -89,6 +90,15 @@
     <a class="subaba" data-aba="shark-clientes" href="#shark-clientes">Clientes</a>
     <a class="subaba" data-aba="shark-calendario" href="#shark-calendario">Calendário</a>
     <a class="subaba" data-aba="shark-recebimentos" href="#shark-recebimentos">Recebimentos</a>
+  </nav>
+
+  <nav class="submenu" aria-label="Stefanini" data-area-de="stefanini" hidden>
+    <a class="subaba" data-aba="stefanini" href="#stefanini">Painel</a>
+    <a class="subaba" data-aba="stefanini-oportunidades" href="#stefanini-oportunidades">Oportunidades</a>
+    <a class="subaba" data-aba="stefanini-contas" href="#stefanini-contas">Contas</a>
+    <a class="subaba" data-aba="stefanini-contatos" href="#stefanini-contatos">Contatos</a>
+    <a class="subaba" data-aba="stefanini-reunioes" href="#stefanini-reunioes">Reuniões</a>
+    <a class="subaba" data-aba="stefanini-atividades" href="#stefanini-atividades">Atividades</a>
   </nav>
 
   <div class="timeline" id="timeline" role="group" aria-label="Mês de referência" data-area-de="financeiro">
@@ -759,6 +769,238 @@
     </section>
   </main>
 
+  <!-- Stefanini: CRM de vendas (stefanini.js) -->
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-meta">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-meta">Meta de vendas</h2>
+        <div class="timeline-ano stf-ano" role="group" aria-label="Ano da meta">
+          <button type="button" class="seta-ano" id="stf-ano-anterior" aria-label="Ano anterior">‹</button>
+          <span id="stf-ano"></span>
+          <button type="button" class="seta-ano" id="stf-ano-proximo" aria-label="Próximo ano">›</button>
+        </div>
+      </div>
+      <div class="stf-kpis" id="stf-kpis" data-depende="stf_metas stf_oportunidades" aria-live="polite"></div>
+      <form class="formulario" id="stf-meta-form" hidden novalidate>
+        <h3>Meta anual</h3>
+        <label class="campo">Ano
+          <input id="stf-meta-ano" name="ano" type="number" min="2000" max="2100" step="1" inputmode="numeric">
+        </label>
+        <label class="campo">Valor da meta (R$)
+          <input id="stf-meta-valor" name="valorMeta" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Ex.: 1000000">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="stf-meta-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar meta</button>
+        </div>
+      </form>
+      <p class="aviso" id="stf-meta-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="stf-meta-editar">Definir meta</button>
+      <p class="dica-saude">Realizado = oportunidades em <strong>Win</strong> fechadas no ano. Pipeline = oportunidades em aberto (todos os estágios menos Win e Lose). Quanto falta = meta − realizado.</p>
+      <p class="aviso" id="stf-aviso" role="alert" hidden></p>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-stf-funil">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-funil">Funil por estágio</h2>
+        <span class="mes-atual">quantidade · valor</span>
+      </div>
+      <div id="stf-funil" data-depende="stf_oportunidades"></div>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini-oportunidades" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-op">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-op">Oportunidades</h2>
+        <span class="mes-atual" id="stf-op-resumo"></span>
+      </div>
+      <label class="campo stf-filtro">Estágio
+        <select id="stf-op-filtro" aria-label="Filtrar por estágio"></select>
+      </label>
+      <p class="estado" id="stf-op-vazio" data-depende="stf_oportunidades stf_contas"></p>
+      <ul class="stf-cartoes" id="stf-op-lista"></ul>
+      <form class="formulario" id="stf-op-form" hidden novalidate>
+        <h3 id="stf-op-form-titulo">Nova oportunidade</h3>
+        <label class="campo largo">Nome
+          <input id="stf-op-nome" name="nome" type="text" maxlength="120" placeholder="Ex.: Projeto de modernização">
+        </label>
+        <label class="campo">Conta
+          <select id="stf-op-conta" name="contaId"></select>
+        </label>
+        <label class="campo">Contato
+          <select id="stf-op-contato" name="contatoId"></select>
+        </label>
+        <label class="campo">Estágio
+          <select id="stf-op-estagio" name="estagio"></select>
+        </label>
+        <label class="campo">Valor estimado (R$, opcional)
+          <input id="stf-op-valor" name="valorEstimado" type="number" min="0" step="0.01" inputmode="decimal">
+        </label>
+        <label class="campo" id="stf-op-fechada" hidden>Fechada em
+          <input id="stf-op-fechada-em" name="fechadaEm" type="date">
+        </label>
+        <label class="campo largo">Notas
+          <textarea id="stf-op-notas" name="notas" rows="3" maxlength="5000"></textarea>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" data-stf-cancelar>Cancelar</button>
+          <button type="submit" class="botao primario">Salvar oportunidade</button>
+        </div>
+      </form>
+      <p class="aviso" id="stf-op-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="stf-op-adicionar">+ Nova oportunidade</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini-contas" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-contas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-contas">Contas</h2>
+        <span class="mes-atual" id="stf-conta-resumo"></span>
+      </div>
+      <p class="estado" id="stf-conta-vazio" data-depende="stf_contas">Nenhuma conta ainda. Cadastre as contas (clientes) e depois os contatos, oportunidades, reuniões e atividades de cada uma.</p>
+      <p class="aviso" id="stf-contas-aviso" role="alert" hidden></p>
+      <ul class="stf-cartoes" id="stf-conta-lista"></ul>
+      <form class="formulario" id="stf-conta-form" hidden novalidate>
+        <h3 id="stf-conta-form-titulo">Nova conta</h3>
+        <label class="campo largo">Nome
+          <input id="stf-conta-nome" name="nome" type="text" maxlength="120">
+        </label>
+        <label class="campo">Status
+          <select id="stf-conta-status" name="status"></select>
+        </label>
+        <label class="campo">Segmento
+          <input id="stf-conta-segmento" name="segmento" type="text" maxlength="80" placeholder="Ex.: Varejo">
+        </label>
+        <label class="campo">Consultor
+          <input id="stf-conta-consultor" name="consultor" type="text" maxlength="80">
+        </label>
+        <label class="campo">Relacionamento desde
+          <input id="stf-conta-desde" name="relacionamentoDesde" type="date">
+        </label>
+        <label class="campo-check"><input id="stf-conta-stf" name="contratoStf" type="checkbox"> Contrato STF</label>
+        <label class="campo-check"><input id="stf-conta-sda" name="contratoSda" type="checkbox"> Contrato SDA</label>
+        <label class="campo largo">Notas
+          <textarea id="stf-conta-notas" name="notas" rows="3" maxlength="5000"></textarea>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" data-stf-cancelar>Cancelar</button>
+          <button type="submit" class="botao primario">Salvar conta</button>
+        </div>
+      </form>
+      <p class="aviso" id="stf-conta-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="stf-conta-adicionar">+ Nova conta</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini-contatos" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-contatos">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-contatos">Contatos</h2>
+        <span class="mes-atual" id="stf-contato-resumo"></span>
+      </div>
+      <label class="campo stf-filtro">Temperatura
+        <select id="stf-contato-filtro" aria-label="Filtrar por temperatura"></select>
+      </label>
+      <p class="estado" id="stf-contato-vazio" data-depende="stf_contatos"></p>
+      <ul class="stf-cartoes" id="stf-contato-lista"></ul>
+      <form class="formulario" id="stf-contato-form" hidden novalidate>
+        <h3 id="stf-contato-form-titulo">Novo contato</h3>
+        <label class="campo largo">Nome
+          <input id="stf-contato-nome" name="nome" type="text" maxlength="120">
+        </label>
+        <label class="campo">Cargo
+          <input id="stf-contato-cargo" name="cargo" type="text" maxlength="80">
+        </label>
+        <label class="campo">Conta
+          <select id="stf-contato-conta" name="contaId"></select>
+        </label>
+        <label class="campo">E-mail
+          <input id="stf-contato-email" name="email" type="email" maxlength="200" autocomplete="off" autocapitalize="off" spellcheck="false">
+        </label>
+        <label class="campo">Telefone
+          <input id="stf-contato-telefone" name="telefone" type="tel" maxlength="40" autocomplete="off">
+        </label>
+        <label class="campo largo">Temperatura
+          <select id="stf-contato-temperatura" name="temperatura"></select>
+        </label>
+        <label class="campo largo">Notas
+          <textarea id="stf-contato-notas" name="notas" rows="3" maxlength="5000"></textarea>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" data-stf-cancelar>Cancelar</button>
+          <button type="submit" class="botao primario">Salvar contato</button>
+        </div>
+      </form>
+      <p class="aviso" id="stf-contato-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="stf-contato-adicionar">+ Novo contato</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini-reunioes" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-reunioes">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-reunioes">Reuniões</h2>
+      </div>
+      <p class="estado" id="stf-reuniao-vazio" data-depende="stf_reunioes">Nenhuma reunião registrada ainda.</p>
+      <ul class="stf-cartoes" id="stf-reuniao-lista"></ul>
+      <form class="formulario" id="stf-reuniao-form" hidden novalidate>
+        <h3 id="stf-reuniao-form-titulo">Nova reunião</h3>
+        <label class="campo">Data
+          <input id="stf-reuniao-data" name="data" type="date">
+        </label>
+        <label class="campo">Conta (opcional)
+          <select id="stf-reuniao-conta" name="contaId"></select>
+        </label>
+        <label class="campo largo">Título
+          <input id="stf-reuniao-titulo" name="titulo" type="text" maxlength="160">
+        </label>
+        <label class="campo largo">Anotações
+          <textarea id="stf-reuniao-anotacoes" name="anotacoes" rows="6" maxlength="20000"></textarea>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" data-stf-cancelar>Cancelar</button>
+          <button type="submit" class="botao primario">Salvar reunião</button>
+        </div>
+      </form>
+      <p class="aviso" id="stf-reuniao-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="stf-reuniao-adicionar">+ Nova reunião</button>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-stefanini" data-vista="stefanini-atividades" hidden>
+    <section class="painel" aria-labelledby="titulo-stf-atividades">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-stf-atividades">Atividades</h2>
+      </div>
+      <p class="estado" id="stf-atividade-vazio" data-depende="stf_atividades"></p>
+      <ul class="stf-cartoes stf-lista-atividades" id="stf-atividade-lista"></ul>
+      <form class="formulario" id="stf-atividade-form" hidden novalidate>
+        <h3 id="stf-atividade-form-titulo">Nova atividade</h3>
+        <label class="campo largo">Descrição
+          <input id="stf-atividade-descricao" name="descricao" type="text" maxlength="300">
+        </label>
+        <label class="campo">Data (opcional)
+          <input id="stf-atividade-data" name="data" type="date">
+        </label>
+        <label class="campo">Conta (opcional)
+          <select id="stf-atividade-conta" name="contaId"></select>
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" data-stf-cancelar>Cancelar</button>
+          <button type="submit" class="botao primario">Salvar atividade</button>
+        </div>
+      </form>
+      <p class="aviso" id="stf-atividade-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="stf-atividade-adicionar">+ Nova atividade</button>
+      <details class="stf-feitas" id="stf-feitas" hidden>
+        <summary id="stf-feitas-titulo">Feitas (0)</summary>
+        <ul class="stf-cartoes stf-lista-atividades" id="stf-feitas-lista"></ul>
+      </details>
+    </section>
+  </main>
+
   <main class="vista-faturas vista-inicio" data-vista="inicio" hidden>
     <section class="painel saudacao" aria-labelledby="inicio-saudacao">
       <div class="painel-cabecalho">
@@ -1316,6 +1558,7 @@
   <script src="estudos.js"></script>
   <script src="saude.js"></script>
   <script src="shark.js"></script>
+  <script src="stefanini.js"></script>
   <script src="vida.js"></script>
   <script src="bemestar.js"></script>
   <script src="rotina.js"></script>
