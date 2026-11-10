@@ -14,7 +14,7 @@ const BILL_BRAND_MAP = [
   { chaves: ["itau black", "itaublack"], nome: "Itaú Black", cor: "#161616", texto: "#FF7A1A", sigla: "IB", logo: "", escuro: true },
   { chaves: ["itau"], nome: "Itaú", cor: "#FF6200", texto: "#0b1f66", sigla: "itaú", logo: "" },
   { chaves: ["nubank", "nu pagamentos"], nome: "Nubank", cor: "#8A05BE", texto: "#ffffff", sigla: "nu", logo: "" },
-  { chaves: ["bradesco"], nome: "Bradesco", cor: "#CC092F", texto: "#ffffff", sigla: "B", logo: "" },
+  { chaves: ["bradesco", "bradescard"], nome: "Bradesco", cor: "#CC092F", texto: "#ffffff", sigla: "B", logo: "" },
   { chaves: ["c&a", "c & a", "cea pay", "c e a"], nome: "C&A", cor: "#1d3f8f", texto: "#ffffff", sigla: "C&A", logo: "" },
   { chaves: ["inter"], nome: "Inter", cor: "#FF7A00", texto: "#1a1a1a", sigla: "in", logo: "" },
   { chaves: ["c6"], nome: "C6 Bank", cor: "#242424", texto: "#ffffff", sigla: "C6", logo: "", escuro: true },

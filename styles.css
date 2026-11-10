@@ -2180,12 +2180,12 @@ main:not([hidden]) > :nth-child(n+4) { animation-delay: 120ms; }
   margin: 0 auto;
   justify-content: stretch;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 1fr);
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: none;
+  /* Controle de pagamentos ocupa a largura toda da grade no desktop. */
   grid-template-areas:
     "fluxo      fluxo      fluxo"
     "dividas    pizza      torre"
-    "pagamentos pagamentos torre"
-    ".          .          torre";
+    "pagamentos pagamentos pagamentos";
 }
 .area-fluxo { grid-area: fluxo; }
 @media (max-width: 1340px) {
@@ -2259,6 +2259,7 @@ main:not([hidden]) > :nth-child(n+4) { animation-delay: 120ms; }
 .botao-info:hover, .botao-info[aria-expanded="true"] { color: var(--acento); border-color: var(--acento); background: var(--acento-tenue); }
 .botao-info:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 @media (max-width: 640px) { .notas-conta { padding-left: 0; } }
+@media (min-width: 641px) { .tabela-contas td.conta { min-width: 260px; } }
 
 /* Faturas: cada cartão na cor da marca */
 .cartao.com-marca {
@@ -2447,7 +2448,6 @@ main:not([hidden]) > :nth-child(n+4) { animation-delay: 120ms; }
 }
 .stf-kpi[data-tom="bom"] { --tom: var(--progresso); background: color-mix(in srgb, var(--progresso) 9%, var(--superficie-2)); }
 .stf-kpi[data-tom="ruim"] { --tom: var(--perigo); background: color-mix(in srgb, var(--perigo) 9%, var(--superficie-2)); }
-.stf-kpi[data-tom="padrao"] { --tom: var(--progresso); }
 .stf-kpi[data-kpi="meta"] { --tom: var(--acento); }
 .stf-kpi[data-tom="bom"] .stf-kpi-valor { color: var(--progresso); }
 .stf-kpi[data-tom="ruim"] .stf-kpi-valor { color: var(--perigo); }
