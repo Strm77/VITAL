@@ -9,7 +9,7 @@
 const dataCurta = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 const horaCurta = new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-const pag = { contas: [], armazenamento: null, editandoId: null, carregado: false, erro: false };
+const pag = { contas: [], armazenamento: null, editandoId: null, carregado: false, erro: false, notasAbertas: new Set() };
 
 const ORIGENS_PAGAMENTO = { proprio: "Recursos próprios", cheque_especial: "Cheque especial", outro_credito: "Outro crédito" };
 
@@ -296,11 +296,14 @@ function renderizarPagamentos() {
       c.status === "pago" && c.origemPagamento && c.origemPagamento !== "proprio" ? `Pago com ${ORIGENS_PAGAMENTO[c.origemPagamento].toLowerCase()}` : "",
       c.observacao ? escapar(c.observacao) : "",
     ].filter(Boolean);
+    // Linha compacta (F4): as descrições ficam guardadas e abrem no "i"; nada sai do banco.
+    const notasAbertas = pag.notasAbertas.has(c.id);
     const tr = document.createElement("tr");
     tr.className = "conta-" + st.chave;
     tr.innerHTML = `
-      <td class="conta" data-rotulo="Conta"><span class="conta-nome">${escapar(c.nome)}</span>${c.origem === "fatura" ? ' <span class="origem-tag">cartão</span>' : ""}
-        ${notas.map((n) => `<span class="sub">${n}</span>`).join("")}</td>
+      <td class="conta" data-rotulo="Conta"><span class="conta-nome"${atributosSelo(c.nome)}>${escapar(c.nome)}</span>${c.origem === "fatura" ? ' <span class="origem-tag">cartão</span>' : ""}${notas.length
+          ? ` <button type="button" class="botao-info" data-acao="notas" aria-expanded="${notasAbertas}" aria-label="Detalhes de ${escapar(c.nome)}" title="Detalhes"></button>` : ""}
+        <span class="notas-conta"${notasAbertas ? "" : " hidden"}>${notas.map((n) => `<span class="sub">${n}</span>`).join("")}</span></td>
       <td class="tipo-conta" data-rotulo="Tipo">${c.tipo ? `<span class="chip-tipo ${c.tipo}">${c.tipo === "fixa" ? "Fixa" : "Variável"}</span> ` : ""}${c.categoria ? `<span class="chip-cat">${escapar(c.categoria)}</span>` : ""}</td>
       <td class="data venc" data-rotulo="Vencimento">${venc ? dataBRCurta(venc) : '<span class="a-confirmar-tag">vencimento a confirmar</span>'}</td>
       <td class="num valor" data-rotulo="Valor">${moeda.format(Number(c.valor) || 0)}</td>
@@ -324,7 +327,16 @@ function renderizarPagamentos() {
         : { ...dados, status: "pago", pagoEm: new Date().toISOString() };
       try { await pag.armazenamento.salvar(id, novo); }
       catch { avisoPag("Não foi possível atualizar o status. Tente de novo."); renderizarPagamentos(); return; }
+      // Confete só depois que a gravação confirmou (F3), nunca no clique.
+      if (novo.status === "pago" && typeof confete === "function") confete();
       await registrarEventoConta({ contaId: id, faturaId: c.faturaId, evento: novo.status === "pago" ? "pagamento" : "pagamento_desfeito", origem: "manual", ...diferencaConta(c, novo) });
+    });
+    tr.querySelector("[data-acao=notas]")?.addEventListener("click", (e) => {
+      const b = e.currentTarget;
+      const abrir = b.getAttribute("aria-expanded") !== "true";
+      b.setAttribute("aria-expanded", String(abrir));
+      tr.querySelector(".notas-conta").hidden = !abrir;
+      abrir ? pag.notasAbertas.add(c.id) : pag.notasAbertas.delete(c.id);
     });
     tr.querySelector("[data-acao=editar]").addEventListener("click", () => abrirFormularioPag(c.id));
     const ex = tr.querySelector("[data-acao=excluir]");

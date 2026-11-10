@@ -105,6 +105,13 @@ function renderizarFluxo() {
   const pct = (v) => `${Math.max(0, (v / escala) * 100)}%`;
   const sinal = (v) => (v < 0 ? "−" : "") + moeda.format(Math.abs(v));
   const aberto = raiz.querySelector(".linha")?.getAttribute("aria-expanded") === "true";
+  // Cartão de número: rótulo pequeno em cima, número grande, detalhe embaixo (F1).
+  const stat = (tom, icone, rotulo, valor, sub) => `
+      <div class="stat ${tom}">
+        <span class="stat-rotulo"><span class="stat-icone" data-icone="${icone}" aria-hidden="true"></span>${rotulo}</span>
+        <strong class="stat-valor">${valor}</strong>
+        <span class="stat-sub">${sub}</span>
+      </div>`;
 
   raiz.innerHTML = `
     <div class="painel-cabecalho">
@@ -112,20 +119,18 @@ function renderizarFluxo() {
       <span class="mes-atual">${nomeMesRef()}</span>
     </div>
     ${vazio ? `<p class="estado">Cadastre seus ganhos e suas contas para ver quanto entra, quanto sai e quanto sobra.</p>` : `
-    <div class="fluxo-numeros">
-      <div><span class="rotulo-fluxo">Entradas</span> <strong class="entrada">${moeda.format(r.ganhos)}</strong></div>
-      <div><span class="rotulo-fluxo">Saídas</span> <strong class="saida">${moeda.format(r.saidas)}</strong></div>
-      <div><span class="rotulo-fluxo">${r.sobra >= 0 ? "Sobra" : "Falta"}</span> <strong class="${r.sobra >= 0 ? "entrada" : "saida"}">${moeda.format(Math.abs(r.sobra))}</strong></div>
+    <div class="fluxo-stats">
+      ${stat("entrada", "↑", "Entradas", moeda.format(r.ganhos), r.sharkAReceber ? `+ ${moeda.format(r.sharkAReceber)} do SHARK a receber` : "ganhos do mês")}
+      ${stat("saida", "↓", "Saídas", moeda.format(r.saidas), `já saiu ${moeda.format(r.jaSaiu)}`)}
+      ${stat(r.sobra >= 0 ? "entrada destaque" : "saida destaque", r.sobra >= 0 ? "＋" : "−", r.sobra >= 0 ? "Sobra" : "Falta", moeda.format(Math.abs(r.sobra)), "previsão para o fim do mês")}
+      ${stat(r.disponivel >= 0 ? "neutro" : "saida", "◎", "Disponível agora", sinal(r.disponivel), "entradas − o que já saiu")}
+      ${stat("alerta", "⏳", "Ainda vai sair", moeda.format(r.aSair), "contas e parcelas a vencer")}
     </div>
     <div class="fluxo-barras" aria-hidden="true">
       <div class="fluxo-trilho"><span class="seg-entrada" style="width:${pct(r.ganhos)}"></span></div>
       <div class="fluxo-trilho">
         <span class="seg-saiu" style="width:${pct(r.jaSaiu)}"></span><span class="seg-vai-sair" style="width:${pct(r.aSair)}"></span>
       </div>
-    </div>
-    <div class="porcentagem">
-      <span>Disponível agora <strong>${sinal(r.disponivel)}</strong></span>
-      <span>Ainda vai sair <strong>${moeda.format(r.aSair)}</strong></span>
     </div>
     ${r.chequeEspecial ? `<p class="aviso-cheque">Saldo do banco: ${moeda.format(r.chequeEspecial)} pagos com cheque especial neste mês continuam devidos ao banco (já contados uma vez nas saídas).</p>` : ""}
     <button class="linha" aria-expanded="${aberto}" aria-controls="detalhes-fluxo">

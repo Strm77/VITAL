@@ -218,7 +218,11 @@ test("V16 — cada fatia com cor própria, legenda visível e toque mostra nome 
   const cores = await pagina.$$eval("#pizza path", (p) => p.map((x) => x.getAttribute("fill")));
   assert.ok(cores.length >= 6, `fatias: ${cores.length}`);
   assert.equal(new Set(cores).size, cores.length, "nenhuma cor repetida");
-  assert.equal(await pagina.isVisible("#legenda"), true, "legenda visível na tela");
+  // V3 (F2): por padrão só o total; a lista de contas abre em "Ver detalhes".
+  assert.equal(await pagina.isVisible("#legenda"), false, "legenda recolhida por padrão");
+  assert.equal(await pagina.isVisible("#pizza-total"), true, "total sempre à vista");
+  await pagina.click("#legenda-alternar");
+  assert.equal(await pagina.isVisible("#legenda"), true, "legenda visível depois de abrir os detalhes");
   const caixa = await pagina.locator("#legenda li[data-indice]").first().boundingBox();
   assert.ok(caixa.width > 100 && caixa.height > 10);
   await pagina.locator("#pizza path").nth(1).click();

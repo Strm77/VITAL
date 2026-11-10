@@ -121,6 +121,9 @@
   </div>
 
   <main class="vista-financeiro" data-vista="painel">
+    <!-- Dinheiro do mês: faixa de números no topo (torre.js) -->
+    <section class="painel bloco bloco-fluxo area-fluxo" id="bloco-fluxo" aria-label="Dinheiro do mês" data-depende="ganhos gastos dividas pagamentos"></section>
+
     <div class="coluna-dividas area-dividas">
     <section class="painel" aria-labelledby="titulo-dividas">
       <div class="painel-cabecalho">
@@ -193,12 +196,14 @@
       </div>
       <p class="estado" id="grafico-vazio" data-depende="dividas pagamentos faturas cartoes" hidden>Nada para pagar neste mês: sem parcelas de dívidas, contas ou faturas de cartão vencendo.</p>
       <p class="total-pizza" id="pizza-total" data-depende="dividas pagamentos"></p>
-      <!-- Legenda visível: cor, nome, valor e percentual de cada fatia; tocar destaca a fatia (V16) -->
-      <ul class="legenda visivel" id="legenda"></ul>
+      <!-- Legenda (cor, nome, valor e % de cada fatia) recolhida em "ver detalhes"; tocar destaca a fatia (V16) -->
+      <button type="button" class="ver-detalhes" id="legenda-alternar" aria-expanded="false" aria-controls="legenda">
+        <span>Ver detalhes</span><span class="seta" aria-hidden="true"></span>
+      </button>
+      <ul class="legenda visivel" id="legenda" hidden></ul>
     </section>
 
     <section class="torre area-torre" aria-label="Ganhos, gastos e investimentos">
-      <div class="painel bloco bloco-fluxo" id="bloco-fluxo" data-depende="ganhos gastos dividas pagamentos"></div>
       <div class="painel bloco" id="bloco-ganhos" data-depende="ganhos"></div>
       <div class="painel bloco" id="bloco-gastos" data-depende="gastos dividas pagamentos"></div>
       <div class="painel bloco" id="bloco-investimentos" data-depende="investimentos"></div>
@@ -695,7 +700,10 @@
           <button type="button" class="botao mini seta-mes" id="agenda-proximo" aria-label="Próximo mês"></button>
         </div>
       </div>
-      <div class="agenda" id="agenda"></div>
+      <div class="agenda-layout">
+        <div class="agenda" id="agenda"></div>
+        <aside class="agenda-detalhe" id="agenda-detalhe" aria-live="polite" aria-label="Dia escolhido"></aside>
+      </div>
     </section>
 
     <section class="painel" aria-labelledby="titulo-eventos">
@@ -1052,13 +1060,26 @@
   </main>
 
   <main class="vista-faturas vista-inicio" data-vista="inicio" hidden>
-    <section class="painel saudacao" aria-labelledby="inicio-saudacao">
-      <div class="painel-cabecalho">
-        <h2 id="inicio-saudacao">Olá</h2>
-        <span class="mes-atual" id="inicio-data"></span>
-      </div>
-      <p class="inicio-frase" id="inicio-frase"></p>
-    </section>
+    <div class="inicio-topo">
+      <section class="painel saudacao" aria-labelledby="inicio-saudacao">
+        <div class="saudacao-mascote" id="mascote"></div>
+        <div class="saudacao-texto">
+          <div class="painel-cabecalho">
+            <h2 id="inicio-saudacao">Olá</h2>
+            <span class="mes-atual" id="inicio-data"></span>
+          </div>
+          <p class="inicio-frase" id="inicio-frase"></p>
+        </div>
+      </section>
+
+      <section class="painel painel-atencao" aria-labelledby="titulo-atencao">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-atencao"><span class="icone-titulo alerta" aria-hidden="true"></span>O que merece atenção hoje</h2>
+          <span class="mes-atual" id="atencao-total"></span>
+        </div>
+        <ul class="atencao" id="atencao" data-depende="afazeres compromissos habitos pagamentos tarefas registros planos"></ul>
+      </section>
+    </div>
 
     <div class="inicio-grade">
       <section class="painel" aria-labelledby="titulo-sentindo">
@@ -1070,7 +1091,7 @@
         <div class="humor-dias" id="humor-dias" role="img"></div>
       </section>
 
-      <section class="painel" aria-labelledby="titulo-prioridades">
+      <section class="painel painel-prioridades" aria-labelledby="titulo-prioridades">
         <div class="painel-cabecalho">
           <h2 id="titulo-prioridades">Minhas 3 prioridades da semana</h2>
           <span class="mes-atual" id="prioridades-semana"></span>
@@ -1080,38 +1101,32 @@
       </section>
     </div>
 
-    <section class="painel" aria-labelledby="titulo-atencao">
-      <div class="painel-cabecalho">
-        <h2 id="titulo-atencao">O que merece atenção hoje</h2>
-        <span class="mes-atual" id="atencao-total"></span>
-      </div>
-      <ul class="atencao" id="atencao" data-depende="afazeres compromissos habitos pagamentos tarefas registros planos"></ul>
-    </section>
-
-    <section class="painel" aria-labelledby="titulo-andamento">
-      <div class="painel-cabecalho">
-        <h2 id="titulo-andamento">Metas em andamento</h2>
-        <span class="mes-atual" id="andamento-total"></span>
-      </div>
-      <div class="andamento" id="andamento" data-depende="metas planos registros frentes projetos"></div>
-    </section>
-
-    <section class="painel" aria-labelledby="titulo-roda">
-      <div class="painel-cabecalho">
-        <h2 id="titulo-roda">Satisfação com a vida</h2>
-        <span class="mes-atual" id="roda-mes"></span>
-      </div>
-      <div class="roda" id="roda"></div>
-      <form class="formulario roda-form" id="roda-form" hidden novalidate>
-        <h3>Como está cada área da sua vida? (0 a 10)</h3>
-        <div class="roda-campos largo" id="roda-campos"></div>
-        <div class="acoes largo">
-          <button type="button" class="botao" id="roda-cancelar">Cancelar</button>
-          <button type="submit" class="botao primario">Salvar avaliação</button>
+    <div class="inicio-grade inicio-grade-baixo">
+      <section class="painel" aria-labelledby="titulo-andamento">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-andamento">Metas em andamento</h2>
+          <span class="mes-atual" id="andamento-total"></span>
         </div>
-      </form>
-      <button type="button" class="botao adicionar" id="roda-avaliar">Avaliar este mês</button>
-    </section>
+        <div class="andamento" id="andamento" data-depende="metas planos registros frentes projetos"></div>
+      </section>
+
+      <section class="painel painel-roda" aria-labelledby="titulo-roda">
+        <div class="painel-cabecalho">
+          <h2 id="titulo-roda">Satisfação com a vida</h2>
+          <span class="mes-atual" id="roda-mes"></span>
+        </div>
+        <div class="roda" id="roda"></div>
+        <form class="formulario roda-form" id="roda-form" hidden novalidate>
+          <h3>Como está cada área da sua vida? (0 a 10)</h3>
+          <div class="roda-campos largo" id="roda-campos"></div>
+          <div class="acoes largo">
+            <button type="button" class="botao" id="roda-cancelar">Cancelar</button>
+            <button type="submit" class="botao primario">Salvar avaliação</button>
+          </div>
+        </form>
+        <button type="button" class="botao adicionar" id="roda-avaliar">Avaliar este mês</button>
+      </section>
+    </div>
   </main>
 
   <main class="vista-faturas vista-bemestar" data-vista="saude-bemestar" hidden>
@@ -1597,6 +1612,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>
   <script src="comum.js"></script>
+  <script src="marcas.js"></script>
   <script src="supabase.js"></script>
   <script src="dividas.js"></script>
   <script src="app.js"></script>

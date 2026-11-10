@@ -482,11 +482,18 @@ function renderizarCartoes() {
       const botao = document.createElement("button");
       botao.type = "button";
       botao.className = "cartao" + (fat.filtroCartao === c.id ? " selecionado" : "");
+      // Cor da marca do cartão (selo provisório, F6): Nubank roxo, Itaú laranja, Itaú Black quase preto...
+      const marca = marcaDe(c.nome);
+      if (marca) {
+        botao.classList.add("com-marca");
+        botao.style.setProperty("--marca", marca.cor);
+        botao.style.setProperty("--marca-texto", marca.texto === "#ffffff" || marca.escuro ? "#ffffff" : marca.texto);
+      }
       botao.setAttribute("aria-pressed", String(fat.filtroCartao === c.id));
       botao.innerHTML = `
         <div class="cartao-topo">
           <span class="cartao-nome">${escapar(c.nome)}</span>
-          <span class="chip" aria-hidden="true"></span>
+          ${marca ? seloMarca(c.nome, { classe: "no-cartao" }) : '<span class="chip" aria-hidden="true"></span>'}
         </div>
         <span class="cartao-final">•••• ${escapar(c.final || "····")}</span>
         <span class="cartao-total">${ultima
