@@ -1026,7 +1026,7 @@ function renderizarAgenda() {
     shk.diaAgenda = b.dataset.dia;
     renderizarAgenda();
     document.querySelector(`#agenda [data-dia="${shk.diaAgenda}"]`)?.focus();
-    if (window.matchMedia("(max-width: 900px)").matches) document.getElementById("agenda-detalhe").scrollIntoView({ block: "nearest", behavior: "smooth" });
+    if (window.matchMedia("(max-width: 900px)").matches) document.getElementById("agenda-detalhe").scrollIntoView({ block: "nearest", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }));
   renderizarDiaAgenda(mes);
 }
