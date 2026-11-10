@@ -2390,11 +2390,15 @@ main:not([hidden]) > :nth-child(n+4) { animation-delay: 120ms; }
 }
 .logo-cliente::before { content: attr(data-logo); }
 .logo-cliente.com-logo { background: #ffffff; padding: 4px; }
-.cliente-titulo { display: grid; gap: 2px; min-width: 0; }
-.cliente-titulo h2 { margin: 0; font-size: var(--fs-sub); font-weight: 700; }
-.cliente-abrir { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 12px; max-width: 100%; overflow-wrap: anywhere; border-radius: var(--r-track); }
-.cliente-abrir:hover { color: var(--acento); }
-.cliente-abrir:focus-visible { outline: 2px solid var(--foco); outline-offset: 3px; }
+/* O nome fica num h2 simples; o botão (seta) cobre o título inteiro, então tocar no nome abre o cliente. */
+.cliente-titulo { position: relative; display: grid; grid-template-columns: auto auto 1fr; align-items: center; column-gap: 12px; row-gap: 2px; min-width: 0; }
+.cliente-titulo h2 { margin: 0; font-size: var(--fs-sub); font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
+.cliente-titulo .cliente-resumo { grid-column: 1 / -1; }
+.cliente-abrir { all: unset; cursor: pointer; display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--r-track); }
+.cliente-abrir::after { content: ""; position: absolute; inset: -6px; border-radius: var(--r-control); }
+.cliente-titulo:hover h2 { color: var(--acento); }
+.cliente-abrir:focus-visible { outline: none; }
+.cliente-abrir:focus-visible::after { outline: 2px solid var(--foco); }
 .cliente-resumo { font-size: var(--fs-label); color: var(--texto-suave); }
 .cliente-shark .cliente-dinheiro { margin: 12px 0 0; }
 .cliente-corpo { margin-top: 4px; animation: v3-surgir var(--dur-medio) var(--ease) both; }

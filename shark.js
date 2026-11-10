@@ -24,7 +24,8 @@ const shk = {
   abertas: new Set(),
   historicos: new Set(),
   // Clientes abertos na vista Clientes (S2): cada cliente é um cartão que expande.
-  clientesAbertos: new Set(),
+  // Lembrado neste aparelho (só conveniência de tela; não é dado do painel).
+  clientesAbertos: new Set((() => { try { return JSON.parse(localStorage.getItem("vital-ui.clientesAbertos") || "[]"); } catch { return []; } })()),
   // Dia escolhido no calendário (S4).
   diaAgenda: null,
 };
@@ -728,6 +729,7 @@ function htmlEtapas(f, c) {
 }
 
 function renderizarClientesShark() {
+  try { localStorage.setItem("vital-ui.clientesAbertos", JSON.stringify([...shk.clientesAbertos])); } catch {}
   const raiz = document.getElementById("clientes-shark");
   document.getElementById("clientes-vazio").hidden = shk.clientes.length > 0;
   document.getElementById("frente-adicionar").hidden = !shk.clientes.length || !document.getElementById("frente-form").hidden;
@@ -746,7 +748,8 @@ function renderizarClientesShark() {
       <div class="cliente-cab">
         ${logoCliente(c, corCliente(c))}
         <div class="cliente-titulo">
-          <h2><button type="button" class="cliente-abrir" data-acao="abrir-cliente" aria-expanded="${aberto}" aria-controls="${idCorpo}">${escapar(c.nome)}<span class="seta" aria-hidden="true"></span></button></h2>
+          <h2 id="${idCorpo}-nome">${escapar(c.nome)}</h2>
+          <button type="button" class="cliente-abrir" data-acao="abrir-cliente" aria-expanded="${aberto}" aria-controls="${idCorpo}" aria-labelledby="${idCorpo}-nome"><span class="seta" aria-hidden="true"></span></button>
           <span class="cliente-resumo">${frentes.length} frente${frentes.length === 1 ? "" : "s"}${pendentes ? ` · ${artes(pendentes)} a entregar` : ""}</span>
         </div>
         <div class="acoes cliente-acoes">
