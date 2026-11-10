@@ -329,11 +329,11 @@ function renderizarPainelStf() {
   const p = calcularPainelStf(stf.oportunidades, stf.metas, ano);
   document.getElementById("stf-ano").textContent = ano;
   // Blocos separados (T1). Cor só com meta definida: Realizado vermelho abaixo da meta e verde ao
-  // atingir; Pipeline verde acima de 50% da meta. Sem meta, o tom fica como antes.
+  // atingir; Pipeline verde acima de 50% da meta. Sem meta, tudo neutro (nada de atingimento fictício).
   const comMeta = p.meta != null && p.meta > 0;
   const tons = {
     meta: "neutro",
-    realizado: comMeta ? (p.realizado >= p.meta ? "bom" : "ruim") : "padrao",
+    realizado: comMeta ? (p.realizado >= p.meta ? "bom" : "ruim") : "neutro",
     pipeline: comMeta && p.pipeline > p.meta * 0.5 ? "bom" : "neutro",
     falta: comMeta && p.falta <= 0 ? "bom" : "neutro",
   };
