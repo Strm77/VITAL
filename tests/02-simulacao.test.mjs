@@ -223,11 +223,11 @@ test("7b. Dinheiro do mês: entradas, saídas, já saiu e sobra", async () => {
   const pagas = outubro.filter((c) => c.pagar).reduce((t, c) => t + c.valor, 0);
   const saidas = contas + parcelas + gastosAvulsos;
   const jaSaiu = pagas + parcelasPagas + gastosAvulsos;
-  const numeros = await texto(pagina, "#bloco-fluxo .fluxo-numeros");
+  const numeros = await texto(pagina, "#bloco-fluxo .fluxo-stats");
   assert.ok(numeros.includes(`Entradas ${brl(centavos(ganhos))}`), numeros);
   assert.ok(numeros.includes(`Saídas ${brl(centavos(saidas))}`), numeros);
   assert.ok(numeros.includes(`Falta ${brl(centavos(saidas - ganhos))}`), numeros);
-  const linha = await texto(pagina, "#bloco-fluxo .porcentagem");
+  const linha = await texto(pagina, "#bloco-fluxo .fluxo-stats"); // V3: números viraram cartões (mesmos valores)
   assert.ok(linha.includes(`Disponível agora −${brl(centavos(jaSaiu - ganhos))}`) || linha.includes(`Disponível agora ${brl(centavos(ganhos - jaSaiu))}`), linha);
   assert.ok(linha.includes(`Ainda vai sair ${brl(centavos(saidas - jaSaiu))}`), linha);
   // Quanto eu gastei = todas as saídas; Quanto eu ganho mostra a mesma sobra/falta.

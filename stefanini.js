@@ -98,6 +98,13 @@ function stfAviso(id, texto) {
 function stfChipStatus(status) {
   return `<span class="stf-chip stf-status ${STF_TOM_STATUS[status] || ""}">${escapar(status || "")}</span>`;
 }
+/* Cor de cada estágio: azul no começo do funil, roxo perto do fechamento; Win verde, Lose vermelho. */
+function stfCorEstagio(estagio) {
+  if (estagio === "Win") return "var(--progresso)";
+  if (estagio === "Lose") return "var(--perigo)";
+  const i = Math.max(0, STF_ESTAGIOS.indexOf(estagio));
+  return `color-mix(in srgb, var(--acento) ${Math.round((i / 6) * 100)}%, var(--serie-1))`;
+}
 function stfChipEstagio(estagio) {
   const tom = estagio === "Win" ? "bom" : estagio === "Lose" ? "ruim" : "";
   return `<span class="stf-chip stf-estagio ${tom}">${escapar(estagio || "")}</span>`;
@@ -321,16 +328,26 @@ function renderizarPainelStf() {
   const ano = stf.ano;
   const p = calcularPainelStf(stf.oportunidades, stf.metas, ano);
   document.getElementById("stf-ano").textContent = ano;
+  // Blocos separados (T1). Cor só com meta definida: Realizado vermelho abaixo da meta e verde ao
+  // atingir; Pipeline verde acima de 50% da meta. Sem meta, o tom fica como antes.
+  const comMeta = p.meta != null && p.meta > 0;
+  const tons = {
+    meta: "neutro",
+    realizado: comMeta ? (p.realizado >= p.meta ? "bom" : "ruim") : "padrao",
+    pipeline: comMeta && p.pipeline > p.meta * 0.5 ? "bom" : "neutro",
+    falta: comMeta && p.falta <= 0 ? "bom" : "neutro",
+  };
+  const icones = { meta: "◎", realizado: "✓", pipeline: "⇢", falta: "…" };
   const kpi = (rotulo, valor, chave, extra = "") =>
-    `<div class="stf-kpi" data-kpi="${chave}"><span class="stf-kpi-rotulo">${rotulo}</span><strong class="stf-kpi-valor">${valor}</strong>${extra ? `<span class="stf-kpi-sub">${extra}</span>` : ""}</div>`;
+    `<div class="stf-kpi" data-kpi="${chave}" data-tom="${tons[chave]}"><span class="stf-kpi-rotulo"><span class="stf-kpi-icone" aria-hidden="true">${icones[chave]}</span>${rotulo}</span><strong class="stf-kpi-valor">${valor}</strong>${extra ? `<span class="stf-kpi-sub">${extra}</span>` : ""}</div>`;
   const faltaTexto = p.falta == null ? "—" : moeda.format(Math.max(p.falta, 0));
   const faltaSub = p.falta == null ? "defina a meta" : p.falta <= 0
     ? (p.falta < 0 ? `meta batida · ${moeda.format(-p.falta)} acima` : "meta batida") : `${Math.round(p.progresso * 100)}% da meta realizado`;
   document.getElementById("stf-kpis").innerHTML = `
     <div class="stf-kpi-grade">
       ${kpi(`Meta ${ano}`, p.meta == null ? "—" : moeda.format(p.meta), "meta", p.meta == null ? "sem meta para este ano" : "")}
-      ${kpi("Realizado", moeda.format(p.realizado), "realizado", `${stfPlural(p.ganhas, "oportunidade ganha", "oportunidades ganhas")} no ano`)}
-      ${kpi("Pipeline", moeda.format(p.pipeline), "pipeline", `${stfPlural(p.abertas, "oportunidade aberta", "oportunidades abertas")}`)}
+      ${kpi("Realizado", moeda.format(p.realizado), "realizado", `${stfPlural(p.ganhas, "oportunidade ganha", "oportunidades ganhas")} no ano${comMeta ? (tons.realizado === "bom" ? " · meta atingida" : " · abaixo da meta") : ""}`)}
+      ${kpi("Pipeline", moeda.format(p.pipeline), "pipeline", `${stfPlural(p.abertas, "oportunidade aberta", "oportunidades abertas")}${tons.pipeline === "bom" ? " · acima de 50% da meta" : ""}`)}
       ${kpi("Quanto falta", faltaTexto, "falta", faltaSub)}
     </div>
     ${p.meta ? `<div class="barra stf-barra" role="progressbar" aria-label="Realizado da meta de ${ano}"><div class="preenchimento"></div></div>` : ""}`;
@@ -397,7 +414,7 @@ async function stfSalvarMeta(e) {
 
 function stfCartaoOp(o) {
   const contato = stfContato(o.contatoId);
-  return `<li class="stf-cartao" data-stf-item="op" data-id="${stfAttr(o.id)}">
+  return `<li class="stf-cartao stf-op" data-stf-item="op" data-id="${stfAttr(o.id)}" style="--estagio:${stfCorEstagio(o.estagio)}">
       <div class="stf-cartao-topo"><h3>${escapar(o.nome)}</h3>${stfChipEstagio(o.estagio)}</div>
       <div class="stf-cartao-info">
         ${stfLinkConta(o.contaId)}
@@ -425,8 +442,8 @@ function renderizarOportunidadesStf() {
 }
 
 function stfCartaoContato(c) {
-  return `<li class="stf-cartao" data-stf-item="contato" data-id="${stfAttr(c.id)}">
-      <div class="stf-cartao-topo"><h3>${escapar(c.nome)}</h3>${stfChipTemperatura(c.temperatura)}</div>
+  return `<li class="stf-cartao stf-contato" data-stf-item="contato" data-id="${stfAttr(c.id)}">
+      <div class="stf-cartao-topo"><span class="stf-contato-cab">${avatarIniciais(c.nome)}<h3>${escapar(c.nome)}</h3></span>${stfChipTemperatura(c.temperatura)}</div>
       <div class="stf-cartao-info">
         ${c.cargo ? `<span>${escapar(c.cargo)}</span>` : ""}
         ${stfLinkConta(c.contaId)}
@@ -449,9 +466,18 @@ function renderizarContatosStf() {
 }
 
 function stfCartaoReuniao(r, curto = false) {
-  return `<li class="stf-cartao" data-stf-item="reuniao" data-id="${stfAttr(r.id)}">
-      <div class="stf-cartao-topo"><h3>${escapar(r.titulo)}</h3><span class="stf-data">${stfData(r.data)}</span></div>
-      <div class="stf-cartao-info">${curto ? "" : stfLinkConta(r.contaId)}</div>
+  // Cartão com selo de data (T5). "A confirmar" no título ou nas anotações = visual de pendente.
+  const [ano, mes, dia] = String(r.data || "").slice(0, 10).split("-");
+  const aConfirmar = /a confirmar/i.test(`${r.titulo || ""} ${r.anotacoes || ""}`);
+  const futura = r.data && String(r.data).slice(0, 10) > stfIsoHoje();
+  return `<li class="stf-cartao stf-reuniao${aConfirmar ? " a-confirmar" : ""}${futura ? " futura" : ""}" data-stf-item="reuniao" data-id="${stfAttr(r.id)}">
+      <div class="stf-reuniao-corpo">
+        <span class="stf-reuniao-data" aria-hidden="true"><strong>${dia ? Number(dia) : "?"}</strong><span>${mes ? MESES_CURTOS[Number(mes) - 1] : ""}</span><small>${ano || ""}</small></span>
+        <div class="stf-reuniao-texto">
+          <div class="stf-cartao-topo"><h3>${escapar(r.titulo)}</h3><span class="stf-data">${stfData(r.data)}</span></div>
+          <div class="stf-cartao-info">${curto ? "" : stfLinkConta(r.contaId)}${aConfirmar ? '<span class="stf-chip atencao">a confirmar</span>' : futura ? '<span class="stf-chip">agendada</span>' : ""}</div>
+        </div>
+      </div>
       ${r.anotacoes ? `<p class="stf-notas">${escapar(r.anotacoes)}</p>` : ""}
       ${curto ? "" : stfAcoes("reuniao", r.id, r.titulo)}
     </li>`;
@@ -547,10 +573,10 @@ function stfCartaoConta(c) {
   const aberta = stf.abertas.has(c.id);
   const ops = stf.oportunidades.filter((o) => o.contaId === c.id);
   const contratos = [c.contratoStf ? "STF" : "", c.contratoSda ? "SDA" : ""].filter(Boolean);
-  return `<li class="stf-cartao stf-conta${aberta ? " aberta" : ""}" data-stf-item="conta" data-id="${stfAttr(c.id)}">
+  return `<li class="stf-cartao stf-conta stf-tom-${STF_TOM_STATUS[c.status] || "neutro"}${aberta ? " aberta" : ""}" data-stf-item="conta" data-id="${stfAttr(c.id)}">
       <div class="stf-cartao-topo">
         <button type="button" class="stf-abrir" data-stf-abrir="${stfAttr(c.id)}" aria-expanded="${aberta}">
-          <h3>${escapar(c.nome)}</h3><span class="seta" aria-hidden="true"></span>
+          ${seloMarca(c.nome, { mapa: STF_LOGO_MAP, classe: "grande" })}<h3>${escapar(c.nome)}</h3><span class="seta" aria-hidden="true"></span>
         </button>
         ${stfChipStatus(c.status)}
       </div>

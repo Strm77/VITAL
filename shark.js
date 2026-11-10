@@ -23,6 +23,10 @@ const shk = {
   agendaMes: null,
   abertas: new Set(),
   historicos: new Set(),
+  // Clientes abertos na vista Clientes (S2): cada cliente é um cartão que expande.
+  clientesAbertos: new Set(),
+  // Dia escolhido no calendário (S4).
+  diaAgenda: null,
 };
 
 const STOCK_CAR = "Stock Car";
@@ -404,19 +408,20 @@ function renderizarListaTarefas() {
   const fim = somarDias(hoje, 60);
   const todas = todasTarefas().filter((t) => !shk.filtro || t.cliente.id === shk.filtro);
   const grupos = [
-    { titulo: "Atrasadas", filtro: (t) => pendente(t) && t.prazo && t.prazo < hoje },
-    { titulo: "Esta semana", filtro: (t) => pendente(t) && t.prazo >= hoje && t.prazo <= somarDias(semana0, 6) },
-    { titulo: "Próxima semana", filtro: (t) => pendente(t) && t.prazo >= somarDias(semana0, 7) && t.prazo <= somarDias(semana0, 13) },
-    { titulo: "Mais adiante", filtro: (t) => pendente(t) && t.prazo >= somarDias(semana0, 14) && t.prazo <= fim },
-    { titulo: "Sem prazo", filtro: (t) => pendente(t) && !t.prazo && (t.frente.tipo !== "pacote" || t.extra) },
-    { titulo: "Entregues nos últimos 7 dias", filtro: (t) => t.status === "entregue" && t.entregueEm >= somarDias(hoje, -6) && (t.frente.tipo !== "pacote" || t.extra), feitas: true },
+    // Blocos por janela de prazo (S3): só reorganiza o que já é calculado.
+    { chave: "atrasadas", icone: "!", titulo: "Atrasadas", filtro: (t) => pendente(t) && t.prazo && t.prazo < hoje },
+    { chave: "semana", icone: "★", titulo: "Entregas desta semana", filtro: (t) => pendente(t) && t.prazo >= hoje && t.prazo <= somarDias(semana0, 6) },
+    { chave: "proxima", icone: "→", titulo: "Próxima semana", filtro: (t) => pendente(t) && t.prazo >= somarDias(semana0, 7) && t.prazo <= somarDias(semana0, 13) },
+    { chave: "adiante", icone: "»", titulo: "Mais adiante", filtro: (t) => pendente(t) && t.prazo >= somarDias(semana0, 14) && t.prazo <= fim },
+    { chave: "sem-prazo", icone: "○", titulo: "Sem prazo", filtro: (t) => pendente(t) && !t.prazo && (t.frente.tipo !== "pacote" || t.extra) },
+    { chave: "entregues", icone: "✓", titulo: "Entregues nos últimos 7 dias", filtro: (t) => t.status === "entregue" && t.entregueEm >= somarDias(hoje, -6) && (t.frente.tipo !== "pacote" || t.extra), feitas: true },
   ];
   const html = grupos.map((g) => {
     const lista = todas.filter(g.filtro).sort((a, b) => (a.prazo || "9").localeCompare(b.prazo || "9") || (a.ordem ?? 99) - (b.ordem ?? 99));
     if (!lista.length) return "";
     return `
-      <div class="grupo-tarefas${g.feitas ? " feitas" : ""}">
-        <h3>${g.titulo} <span>${artes(somaQtd(lista))}</span></h3>
+      <div class="grupo-tarefas grupo-${g.chave}${g.feitas ? " feitas" : ""}">
+        <h3><span class="grupo-icone" aria-hidden="true">${g.icone}</span>${g.titulo} <span>${artes(somaQtd(lista))}</span></h3>
         <ul class="tarefas">${lista.map(linhaTarefa).join("")}</ul>
       </div>`;
   }).join("");
@@ -633,6 +638,7 @@ async function salvarMaterial(e) {
   if (url.length > 2000) return erro("O link pode ter até 2000 caracteres.", f.url);
   const botao = e.target.querySelector("[type=submit]");
   botao.disabled = true;
+  shk.clientesAbertos.add(cliente.id);
   try {
     await shk.arm.materiais.salvar(shk.editando.material, { clienteId: cliente.id, frenteId: frente ? frente.id : null, rotulo, url });
     fecharFormularioMaterial();
@@ -732,10 +738,17 @@ function renderizarClientesShark() {
     const doCliente = receb.filter((r) => r.clienteId === c.id);
     const recebidoAno = somaValor(doCliente.filter((r) => r.recebidoEm && r.recebidoEm.startsWith(ano)));
     const aReceber = somaValor(doCliente.filter((r) => !r.recebidoEm));
+    const aberto = shk.clientesAbertos.has(c.id);
+    const pendentes = somaQtd(todasTarefas().filter((t) => t.cliente.id === c.id && pendente(t) && t.prazo));
+    const idCorpo = `cliente-corpo-${String(c.id).replace(/[^\w-]/g, "")}`;
     return `
-    <section class="painel cliente-shark" data-cliente="${escapar(c.id)}" style="--cor:${corCliente(c)}">
-      <div class="painel-cabecalho">
-        <h2><span class="ponto-cor grande"></span>${escapar(c.nome)}</h2>
+    <section class="painel cliente-shark${aberto ? " aberto" : ""}" data-cliente="${escapar(c.id)}" style="--cor:${corCliente(c)}">
+      <div class="cliente-cab">
+        ${logoCliente(c, corCliente(c))}
+        <div class="cliente-titulo">
+          <h2><button type="button" class="cliente-abrir" data-acao="abrir-cliente" aria-expanded="${aberto}" aria-controls="${idCorpo}">${escapar(c.nome)}<span class="seta" aria-hidden="true"></span></button></h2>
+          <span class="cliente-resumo">${frentes.length} frente${frentes.length === 1 ? "" : "s"}${pendentes ? ` · ${artes(pendentes)} a entregar` : ""}</span>
+        </div>
         <div class="acoes cliente-acoes">
           <button type="button" class="botao mini" data-acao="nova-frente">+ Frente</button>
           <button type="button" class="botao mini" data-acao="editar-cliente">Editar</button>
@@ -747,13 +760,20 @@ function renderizarClientesShark() {
         <span>A receber <strong>${moeda.format(aReceber)}</strong></span>
         ${Number(c.valorMensal) > 0 ? `<span>Mensal <strong>${moeda.format(c.valorMensal)}</strong> dia ${c.diaPagamento || 10}</span>` : ""}
       </div>
-      ${htmlMateriais(materiaisDe(c.id), c.id)}
-      ${frentes.map((f) => (f.tipo === "pacote" ? htmlPacote(f, c) : htmlEtapas(f, c))).join("") || `<p class="estado">Nenhuma frente de trabalho. Use “+ Frente” para criar um pacote de artes ou artes por etapa.</p>`}
+      <div class="cliente-corpo" id="${idCorpo}"${aberto ? "" : " hidden"}>
+        ${htmlMateriais(materiaisDe(c.id), c.id)}
+        ${frentes.map((f) => (f.tipo === "pacote" ? htmlPacote(f, c) : htmlEtapas(f, c))).join("") || `<p class="estado">Nenhuma frente de trabalho. Use “+ Frente” para criar um pacote de artes ou artes por etapa.</p>`}
+      </div>
     </section>`;
   }).join("");
 
   raiz.querySelectorAll(".cliente-shark").forEach((sec) => {
     const c = clienteDe(sec.dataset.cliente);
+    sec.querySelector("[data-acao=abrir-cliente]").addEventListener("click", () => {
+      shk.clientesAbertos.has(c.id) ? shk.clientesAbertos.delete(c.id) : shk.clientesAbertos.add(c.id);
+      renderizarClientesShark();
+      sec.ownerDocument.querySelector(`.cliente-shark[data-cliente="${CSS.escape(c.id)}"] [data-acao=abrir-cliente]`)?.focus();
+    });
     sec.querySelector("[data-acao=nova-frente]").addEventListener("click", () => abrirFormularioFrente("", c.id));
     sec.querySelector("[data-acao=editar-cliente]").addEventListener("click", () => abrirFormularioCliente(c.id));
     const ex = sec.querySelector("[data-acao=excluir-cliente]");
@@ -877,7 +897,11 @@ async function salvarCliente(e) {
     inicioCobranca: mensal > 0 ? (f.inicioCobranca.value || mesDe(hojeDia())) : null,
     ativo: atual ? atual.ativo !== false : true,
   };
-  try { await shk.arm.clientes.salvar(shk.editando.cliente, dados); fecharFormularioCliente(); } catch {}
+  try {
+    const id = await shk.arm.clientes.salvar(shk.editando.cliente, dados);
+    if (id) { shk.clientesAbertos.add(id); renderizarClientesShark(); }
+    fecharFormularioCliente();
+  } catch {}
 }
 
 /* Formulário de frente */
@@ -947,6 +971,7 @@ async function salvarFrente(e) {
   }
   const botao = e.target.querySelector("[type=submit]");
   botao.disabled = true;
+  shk.clientesAbertos.add(dados.clienteId); // mostra a frente recém-salva aberta no cliente
   try {
     const id = await shk.arm.frentes.salvar(shk.editando.frente, dados);
     const ja = Math.round(Number(f.jaEntregues.value));
@@ -979,17 +1004,49 @@ function renderizarAgenda() {
     const eventos = shk.eventos.filter((e) => e.data === d);
     const pend = doDia.filter(pendente);
     const titulo = [...eventos.map((e) => `🏁 ${e.calendario}: ${e.nome}`), ...doDia.map((t) => `${t.status === "entregue" ? "✓" : "•"} ${t.nome} (${t.cliente.nome})`)].join("\n");
+    const rotulo = `${dataBR(d)}: ${[eventos.length ? `${eventos.length} evento${eventos.length === 1 ? "" : "s"}` : "", doDia.length ? artes(somaQtd(doDia)) : ""].filter(Boolean).join(", ") || "nada marcado"}`;
+    // Cada dia é um botão (S4): tocar mostra no painel ao lado o que há nele.
     dias.push(`
-      <div class="agenda-dia${mesDe(d) !== mes ? " fora" : ""}${d === hoje ? " hoje" : ""}${pend.some((t) => d < hoje) ? " atrasada" : ""}" ${titulo ? `title="${escapar(titulo)}"` : ""}>
+      <button type="button" class="agenda-dia${mesDe(d) !== mes ? " fora" : ""}${d === hoje ? " hoje" : ""}${pend.some((t) => d < hoje) ? " atrasada" : ""}${d === shk.diaAgenda ? " escolhido" : ""}${doDia.length || eventos.length ? " tem" : ""}" data-dia="${d}" aria-pressed="${d === shk.diaAgenda}" aria-label="${escapar(rotulo)}" ${titulo ? `title="${escapar(titulo)}"` : ""}>
         <span class="agenda-num">${paraData(d).getDate()}</span>
         ${eventos.map((e) => `<span class="agenda-evento">🏁 ${escapar(e.nome)}</span>`).join("")}
-        ${doDia.length ? `<span class="agenda-artes">${doDia.slice(0, 6).map((t) => `<i style="--cor:${corCliente(t.cliente)}" class="${t.status === "entregue" ? "ok" : ""}"></i>`).join("")}${doDia.length > 6 ? `<em>+${doDia.length - 6}</em>` : ""}</span>
+        ${doDia.length ? `<span class="agenda-nomes">${doDia.slice(0, 2).map((t) => `<span class="${t.status === "entregue" ? "ok" : ""}" style="--cor:${corCliente(t.cliente)}">${escapar(t.nome)}</span>`).join("")}</span>
+        <span class="agenda-artes">${doDia.slice(0, 6).map((t) => `<i style="--cor:${corCliente(t.cliente)}" class="${t.status === "entregue" ? "ok" : ""}"></i>`).join("")}${doDia.length > 6 ? `<em>+${doDia.length - 6}</em>` : ""}</span>
         <span class="agenda-qtd">${artes(somaQtd(pend))}</span>` : ""}
-      </div>`);
+      </button>`);
   }
-  document.getElementById("agenda").innerHTML = `
-    <div class="agenda-semana">${["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => `<span>${d}</span>`).join("")}</div>
+  const agenda = document.getElementById("agenda");
+  agenda.innerHTML = `
+    <div class="agenda-semana" aria-hidden="true">${["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((d) => `<span>${d}</span>`).join("")}</div>
     <div class="agenda-grade">${dias.join("")}</div>`;
+  agenda.querySelectorAll("[data-dia]").forEach((b) => b.addEventListener("click", () => {
+    shk.diaAgenda = b.dataset.dia;
+    renderizarAgenda();
+    document.querySelector(`#agenda [data-dia="${shk.diaAgenda}"]`)?.focus();
+    if (window.matchMedia("(max-width: 900px)").matches) document.getElementById("agenda-detalhe").scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }));
+  renderizarDiaAgenda(mes);
+}
+
+/* Painel do dia escolhido no calendário: etapas/eventos e artes com prazo nele (marcar entregue aqui também). */
+function renderizarDiaAgenda(mes) {
+  const raiz = document.getElementById("agenda-detalhe");
+  if (!raiz) return;
+  const hoje = hojeDia();
+  const d = shk.diaAgenda || (mesDe(hoje) === mes ? hoje : null);
+  if (!d) {
+    raiz.innerHTML = `<p class="estado">Toque num dia do calendário para ver as artes e os eventos dele.</p>`;
+    return;
+  }
+  const eventos = shk.eventos.filter((e) => e.data === d);
+  const lista = todasTarefas().filter((t) => t.prazo === d).sort((a, b) => (a.ordem ?? 99) - (b.ordem ?? 99));
+  const pend = lista.filter(pendente);
+  raiz.innerHTML = `
+    <h3 class="agenda-detalhe-titulo">${capitalizar(new Intl.DateTimeFormat("pt-BR", { weekday: "long", day: "numeric", month: "long" }).format(paraData(d)))}${d === hoje ? ' <span class="stf-chip bom">hoje</span>' : ""}</h3>
+    <p class="sub">${lista.length ? `${artes(somaQtd(lista))} com prazo · ${artes(somaQtd(pend))} a entregar` : "Nenhuma arte com prazo neste dia."}</p>
+    ${eventos.length ? `<ul class="agenda-detalhe-eventos">${eventos.map((e) => `<li><span aria-hidden="true">🏁</span> <strong>${escapar(e.nome)}</strong> <small>${escapar(e.calendario)}${e.local ? ` · ${escapar(e.local)}` : ""}</small></li>`).join("")}</ul>` : ""}
+    ${lista.length ? `<ul class="tarefas">${lista.map(linhaTarefa).join("")}</ul>` : ""}`;
+  ligarTarefas(raiz, lista);
 }
 
 function renderizarEventosShark() {
@@ -1232,8 +1289,8 @@ async function iniciarShark() {
   document.getElementById("receb-adicionar").addEventListener("click", () => abrirFormularioReceb(null));
   document.getElementById("receb-cancelar").addEventListener("click", fecharFormularioReceb);
   document.getElementById("receb-form").addEventListener("submit", salvarReceb);
-  document.getElementById("agenda-anterior").addEventListener("click", () => { shk.agendaMes = mesAnterior(shk.agendaMes || mesDe(hojeDia())); renderizarAgenda(); });
-  document.getElementById("agenda-proximo").addEventListener("click", () => { shk.agendaMes = proximoMes(shk.agendaMes || mesDe(hojeDia())); renderizarAgenda(); });
+  document.getElementById("agenda-anterior").addEventListener("click", () => { shk.diaAgenda = null; shk.agendaMes = mesAnterior(shk.agendaMes || mesDe(hojeDia())); renderizarAgenda(); });
+  document.getElementById("agenda-proximo").addEventListener("click", () => { shk.diaAgenda = null; shk.agendaMes = proximoMes(shk.agendaMes || mesDe(hojeDia())); renderizarAgenda(); });
   document.getElementById("shark-limite").addEventListener("change", (e) => {
     const n = Math.round(Number(e.target.value));
     if (n >= 1 && n <= 200) { try { localStorage.setItem(CHAVE_LIMITE_SHARK, String(n)); } catch {} }

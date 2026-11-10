@@ -210,9 +210,13 @@ function renderizarPrioridades() {
   lista.innerHTML = [1, 2, 3].map((o) => {
     const p = prioridadeDe(semana, o);
     return `
-      <li class="prioridade${p?.feita ? " feita" : ""}">
+      <li class="prioridade${p?.feita ? " feita" : ""}${p?.feita && vida.recemFeita === o ? " recem" : ""}">
+        <span class="prioridade-num" aria-hidden="true">${p?.feita ? '<svg viewBox="0 0 24 24"><path pathLength="100" d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : o}</span>
         <input type="checkbox" data-prioridade-feita="${o}" ${p ? "" : "disabled"} ${p?.feita ? "checked" : ""} aria-label="Prioridade ${o} feita">
-        <input type="text" class="prioridade-texto" data-prioridade="${o}" maxlength="120" value="${escapar(p?.texto || "")}" placeholder="${["O que mais importa esta semana?", "Segunda prioridade", "Terceira prioridade"][o - 1]}" aria-label="Prioridade ${o}">
+        <span class="prioridade-campo">
+          <input type="text" class="prioridade-texto" data-prioridade="${o}" maxlength="120" value="${escapar(p?.texto || "")}" placeholder="${["O que mais importa esta semana?", "Segunda prioridade", "Terceira prioridade"][o - 1]}" aria-label="Prioridade ${o}">
+          ${p?.feita ? '<svg class="risco-lapis" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><path pathLength="100" d="M2 6 C 25 3, 55 8, 98 4"/></svg>' : ""}
+        </span>
       </li>`;
   }).join("");
 
@@ -239,8 +243,16 @@ function ligarPrioridades() {
     try {
       if (t.dataset.prioridade) { await salvarPrioridade(Number(t.dataset.prioridade), { texto: t.value }); t.blur(); }
       if (t.dataset.prioridadeFeita) {
-        await salvarPrioridade(Number(t.dataset.prioridadeFeita), { feita: t.checked });
-        if (t.checked) { avisoVida("Prioridade cumprida! 🎯", "acerto"); if (typeof confete === "function") confete(); }
+        const ordem = Number(t.dataset.prioridadeFeita);
+        await salvarPrioridade(ordem, { feita: t.checked });
+        // Só depois de gravado: check desenhado + risco de lápis (V3) e confete.
+        if (t.checked) {
+          vida.recemFeita = ordem;
+          renderizarPrioridades();
+          setTimeout(() => { if (vida.recemFeita === ordem) vida.recemFeita = null; }, 1500);
+          avisoVida("Prioridade cumprida! 🎯", "acerto");
+          if (typeof confete === "function") confete();
+        }
       }
     } catch { avisoVida("Não foi possível salvar a prioridade.", "erro"); }
   });
@@ -412,6 +424,8 @@ function renderizarRoda() {
       ${r.foco.length ? `<p class="roda-foco">Foco: <strong>${r.foco.map((a) => `${a.icone} ${a.nome}`).join(" e ")}</strong> — as áreas com menor nota.</p>` : ""}
       ${historico.length > 1 ? `<p class="sub">Média por mês: ${historico.map((h) => `${MESES_CURTOS[Number(h.m.slice(5)) - 1]} ${umaCasa(h.media)}`).join(" · ")}</p>` : ""}
     </div>
+    <details class="roda-detalhes"${vida.rodaAberta ? " open" : ""}>
+    <summary>Ver as ${AREAS_VIDA.length} áreas</summary>
     <ul class="roda-areas">${AREAS_VIDA.map((a) => {
       const n = r.notas[a.id];
       const antes = r.antes[a.id];
@@ -425,7 +439,9 @@ function renderizarRoda() {
         <span class="roda-nota">${n ?? "—"}${antes != null && n != null && n !== antes ? ` <small class="${n > antes ? "sobe" : "desce"}">${n > antes ? "+" : ""}${n - antes}</small>` : ""}</span>
       </li>`;
     }).join("")}</ul>
-    ${r.anterior ? `<p class="sub roda-legenda"><span class="roda-antes-marca"></span> mês anterior</p>` : ""}`;
+    ${r.anterior ? `<p class="sub roda-legenda"><span class="roda-antes-marca"></span> mês anterior</p>` : ""}
+    </details>`;
+  raiz.querySelector(".roda-detalhes").addEventListener("toggle", (e) => { vida.rodaAberta = e.target.open; });
 }
 
 function abrirFormularioRoda() {
@@ -504,6 +520,8 @@ function agendarVida() {
 
 async function iniciarVida() {
   if (!document.getElementById("atencao")) return;
+  const mascote = document.getElementById("mascote");
+  if (mascote && typeof MASCOTE_SVG === "string") mascote.innerHTML = MASCOTE_SVG;
   ligarCheckin();
   ligarPrioridades();
   document.getElementById("roda-avaliar").addEventListener("click", abrirFormularioRoda);

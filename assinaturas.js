@@ -163,7 +163,7 @@ function renderizarAssinaturas() {
       <button type="button" class="link-login" data-nao-assinatura="${escapar(c.faturaId)}|${c.indice}">Não é assinatura</button></span>`).join("");
     tr.innerHTML = `
       <td class="conta"><strong>${escapar(a.nome)}</strong>${cobrancas}</td>
-      <td>${a.cartoes.map(escapar).join(", ")}</td>
+      <td class="cartoes-assinatura">${a.cartoes.map((n) => `<span class="cartao-com-selo">${seloMarca(n)}${escapar(n)}</span>`).join(", ")}</td>
       <td class="num"${a.confirmada ? "" : ` title="Soma observada no mês, não é mensalidade confirmada"`}>${moeda.format(a.valorAtual)}${variacao}</td>
       <td><span class="meses-assinatura" aria-label="Cobrada em: ${ultimos.filter((m) => a.meses.has(m)).map(mesCurtoA).join(", ") || "nenhum dos últimos 6 meses"}">
         ${ultimos.map((m) => `<i class="${a.meses.has(m) ? "cobrado" : ""}" title="${mesCurtoA(m)}${a.meses.has(m) ? ": " + moeda.format(a.meses.get(m)) : ""}"></i>`).join("")}

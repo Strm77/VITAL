@@ -477,6 +477,10 @@ function renderizarGrafico() {
   dica.hidden = true;
   document.getElementById("grafico-vazio").hidden = fatias.length > 0;
   svg.parentElement.hidden = fatias.length === 0;
+  const alternarLegenda = document.getElementById("legenda-alternar");
+  alternarLegenda.hidden = fatias.length === 0;
+  alternarLegenda.querySelector("span").textContent =
+    `${alternarLegenda.getAttribute("aria-expanded") === "true" ? "Esconder" : "Ver"} detalhes (${fatias.length} ${fatias.length === 1 ? "item" : "itens"})`;
   if (!fatias.length) return;
 
   const ns = "http://www.w3.org/2000/svg";
@@ -559,7 +563,20 @@ document.addEventListener("click", (e) => {
   }
 });
 
+/* "Ver detalhes" da pizza: por padrão só o total; a lista de contas abre aqui (F2). */
+function ligarLegenda() {
+  const botao = document.getElementById("legenda-alternar");
+  const lista = document.getElementById("legenda");
+  botao.addEventListener("click", () => {
+    const abrir = botao.getAttribute("aria-expanded") !== "true";
+    botao.setAttribute("aria-expanded", String(abrir));
+    lista.hidden = !abrir;
+    botao.querySelector("span").textContent = botao.querySelector("span").textContent.replace(/^(Ver|Esconder)/, abrir ? "Esconder" : "Ver");
+  });
+}
+
 async function iniciar() {
+  ligarLegenda();
   alternar(document.getElementById("botao-resumo"), document.getElementById("detalhes-resumo"), "resumo");
   document.getElementById("botao-adicionar").addEventListener("click", () => abrirFormulario(""));
   document.getElementById("botao-cancelar").addEventListener("click", () => { mostrarAviso(""); fecharFormulario(); });

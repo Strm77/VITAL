@@ -292,6 +292,29 @@ escala tipográfica, o espaçamento (grade de 4px), os raios e o movimento são 
 - **Acessibilidade:** contraste AA nos dois temas, foco visível, "Pular para o conteúdo" e respeito a
   "reduzir movimento".
 
+### V3 — personalidade e uso da tela (só apresentação)
+
+Nenhuma tabela ou registro mudou nesta rodada (zero migração). O que mudou é como os dados aparecem:
+
+- **Visão geral:** robozinho (SVG em `marcas.js`, `MASCOTE_SVG`) acena ao abrir; "O que merece atenção hoje"
+  sobe para o lado da saudação; prioridades em bloco roxo com check desenhado e risco de lápis depois de salvar;
+  "Satisfação com a vida" compacta (as áreas abrem em "Ver as áreas").
+- **Financeiro:** "Dinheiro do mês" virou faixa de números no topo; a pizza mostra só o total (lista em "Ver
+  detalhes"); o Controle de pagamentos mostra nome + selo da marca (as descrições abrem no "i" e continuam no
+  banco); confete só depois que o pagamento foi gravado; cartões das Faturas na cor da marca.
+- **SHARK:** tarefas em blocos por prazo; clientes em cartões que abrem; calendário clicável com painel do dia.
+- **Stefanini:** meta em blocos coloridos (Realizado vermelho abaixo da meta e verde ao atingir; Pipeline verde
+  acima de 50% da meta); oportunidades, contas, contatos (com avatar) e reuniões (selo de data) em cartões.
+- **Movimento:** 200–400 ms, sempre desligado por "reduzir movimento".
+
+**Selos de marca e logos provisórios** — tudo em `marcas.js`, para trocar sem refatorar:
+
+- `BILL_BRAND_MAP` (bancos/cartões) e `STF_LOGO_MAP` (contas da Stefanini): busca por trecho do nome, na ordem
+  (Itaú Black antes de Itaú). Preencha `logo` com o caminho de um PNG/SVG oficial para usá-lo no lugar da sigla.
+- `CLIENT_LOGO_MAP` (clientes do SHARK): `{ "kmkzy": "icones/clientes/kmkzy.png" }`; sem entrada, aparece o
+  aperto de mãos na cor do cliente.
+- Arquivos de logo novos precisam estar dentro de `icones/` (o `build.sh` já copia a pasta inteira).
+
 ## Navegação e timeline
 
 **Financeiro** tem um submenu: **Painel** e **Faturas**. Acima de todas as seções fica a
