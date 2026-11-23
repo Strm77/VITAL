@@ -90,6 +90,9 @@ test("Roda da vida: avaliar o mês mostra a média e onde focar", async () => {
 
 test("Rotina › Tarefas: prioridade, prazo, atrasada, editar, concluir e excluir", async () => {
   await pagina.click(".aba[data-area=rotina]");
+  // A área abre no Life Game; Tarefas segue como sub-aba.
+  await pagina.waitForSelector('main[data-vista="rotina-jogo"]:not([hidden])');
+  await pagina.click('.subaba[data-aba="rotina"]');
   await pagina.waitForSelector('main[data-vista="rotina"]:not([hidden])');
   assert.equal(await pagina.isVisible('.submenu[data-area-de="rotina"]'), true);
   const nova = async (titulo, prioridade, prazo) => {

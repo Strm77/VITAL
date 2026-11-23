@@ -2494,3 +2494,54 @@ main:not([hidden]) > :nth-child(n+4) { animation-delay: 120ms; }
 @media (min-width: 1440px) {
   .andamento { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
+
+/* ---------- Life Game (Rotina) e Listas ---------- */
+.jogo-nivel { display: grid; gap: 8px; margin-top: 12px; }
+.jogo-nivel-topo { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.jogo-nivel-topo strong { font-size: var(--fs-display); font-weight: 700; font-variant-numeric: tabular-nums; }
+.jogo-nivel-selo { font-size: var(--fs-label); font-weight: 600; padding: 4px 12px; border-radius: var(--r-pill); background: var(--acento-tenue); color: var(--acento); }
+.jogo-nivel small { font-size: var(--fs-label); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.jogo-barra { height: 8px; border-radius: var(--r-track); background: var(--trilho); overflow: hidden; }
+.jogo-barra span { display: block; height: 100%; background: var(--acento); border-radius: inherit; transition: width var(--dur-short) var(--ease); }
+.jogo-habitos { list-style: none; margin: 8px 0 0; padding: 0; }
+.jogo-habito { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid var(--borda); }
+.jogo-habito:first-child { border-top: 0; }
+.jogo-habito-texto { display: grid; gap: 4px; min-width: 0; }
+.jogo-habito-texto small { font-size: var(--fs-label); color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+.jogo-pontos { display: flex; flex-wrap: wrap; gap: 4px; }
+.jogo-pontos i { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--borda-forte); }
+.jogo-pontos i.cheio { background: var(--progresso); border-color: var(--progresso); }
+.jogo-habito.completo .jogo-habito-texto strong { color: var(--progresso); }
+.jogo-habito-acoes { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.jogo-check { min-height: var(--alvo-toque); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.jogo-tarefa-rapida { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+.jogo-xp-campo { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-label); color: var(--texto-suave); }
+.jogo-xp-campo input { width: 80px; }
+.chip-xp { font-size: var(--fs-mini); padding: 2px 8px; border-radius: var(--r-pill); background: var(--acento-tenue); color: var(--acento); font-weight: 600; font-variant-numeric: tabular-nums; }
+.afazer:has(.chip-xp) { grid-template-columns: 18px minmax(0, 1fr) auto auto; }
+.lista-item { grid-template-columns: 18px minmax(0, 1fr) auto; }
+.lista-obs { white-space: pre-line; }
+@media (max-width: 600px) {
+  .jogo-habito { grid-template-columns: 1fr; }
+  .jogo-habito-acoes { justify-content: flex-start; }
+  .jogo-tarefa-rapida { grid-template-columns: minmax(0, 1fr) auto; }
+  .jogo-tarefa-rapida input[name=titulo] { grid-column: 1 / -1; }
+  .afazer:has(.chip-xp) .chip-xp { display: none; }
+  .afazer:has(.chip-xp) { grid-template-columns: 18px minmax(0, 1fr) auto; }
+}
+.jogo-heroi { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 12px; }
+.jogo-personagem { width: 132px; }
+.jogo-heroi-info { display: grid; gap: 8px; min-width: 0; }
+.jogo-heroi .jogo-nivel { margin-top: 0; }
+.jogo-equipamento { margin: 0; font-size: var(--fs-body-sm); color: var(--texto-suave); }
+.jogo-evolucao { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-label); color: var(--texto-suave); }
+.jogo-evolucao input { width: 72px; font: inherit; font-size: var(--fs-body-sm); padding: 4px 8px; margin: 0 4px; border: 1px solid var(--borda-forte); border-radius: var(--r-control); background: var(--fundo); color: var(--texto); }
+.equip path, .equip rect { fill: var(--superficie-3); stroke: var(--robo-borda); stroke-width: 2; stroke-linejoin: round; }
+.equip-capacete path, .equip-peitoral rect, .equip-escudo path { fill: var(--acento-tenue); stroke: var(--acento); }
+.equip-detalhe { fill: none !important; stroke: var(--acento) !important; }
+.equip-espada rect { fill: var(--superficie-2); }
+@media (max-width: 600px) {
+  .jogo-heroi { grid-template-columns: 88px minmax(0, 1fr); gap: 12px; }
+  .jogo-personagem { width: 88px; }
+  .jogo-evolucao input { font-size: var(--fs-body); }
+}

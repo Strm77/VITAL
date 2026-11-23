@@ -197,6 +197,12 @@ const COLUNAS = {
   projetos: ["nome", "objetivo", "prazo", "status", "area"],
   afazeres: ["titulo", "prazo", "prioridade", "projeto_id", "feito_em"],
   blocos_tempo: ["data", "area", "minutos", "descricao"],
+  // Life Game e Listas (schema vida)
+  jogo_habitos: ["nome", "vezes_dia", "xp", "ativo"],
+  jogo_tarefas: ["titulo", "xp", "feita_em"],
+  jogo_checks: ["habito_id", "tarefa_id", "data", "xp", "descricao"],
+  jogo_personagem: ["niveis_por_estagio"],
+  lista_itens: ["item", "categoria", "area", "observacoes", "data_item", "concluido_em"],
   // schema shark
   clientes: ["nome", "cor", "valor_mensal", "dia_pagamento", "inicio_cobranca", "ativo"],
   frentes: ["cliente_id", "nome", "tipo", "meta_artes", "prazo", "calendario", "inicio", "modelo", "valor_por_etapa"],
@@ -211,7 +217,7 @@ const COLUNAS = {
   pagamentos: ["nome", "valor", "vencimento", "status", "pago_em", "origem", "fatura_id", "valor_fatura", "valor_editado", "tipo", "categoria", "mes_referencia", "vencimento_a_confirmar", "pagar_em", "observacao", "origem_pagamento", "divida_id"],
 };
 // Colunas que podem ficar vazias (quando o campo some do formulário, vira null no banco).
-const ANULAVEIS = new Set(["humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "hora", "recorrencia_meses", "projeto_id", "feito_em", "icone", "area", "valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura", "parcelas_quitadas", "saldo_informado", "saldo_informado_em", "avaliacao", "situacao", "mes_referencia", "pagar_em", "observacao", "origem_pagamento", "divida_id", "antes", "depois", "detalhe"]);
+const ANULAVEIS = new Set(["humor", "energia", "estresse", "sono_horas", "sono_qualidade", "agua_copos", "hora", "recorrencia_meses", "projeto_id", "feito_em", "icone", "area", "valor_mensal", "dia_pagamento", "inicio_cobranca", "meta_artes", "calendario", "inicio", "valor_por_etapa", "local", "evento_id", "item", "entregue_em", "recebido_em", "referencia", "refeicao", "minutos", "intensidade", "objetivo", "data_fim", "meta_horas", "meta_semanal_horas", "materia", "concluido_em", "topico_id", "nota", "link", "prazo", "descricao", "tipo", "categoria", "total_informado", "dia_vencimento", "parcelas_pagas", "meta", "final", "vencimento", "arquivo", "pago_em", "origem", "fatura_id", "valor_fatura", "parcelas_quitadas", "saldo_informado", "saldo_informado_em", "avaliacao", "situacao", "mes_referencia", "pagar_em", "observacao", "origem_pagamento", "divida_id", "antes", "depois", "detalhe", "habito_id", "tarefa_id", "feita_em", "observacoes", "data_item", "niveis_por_estagio"]);
 const NUMERICAS = new Set(["sono_horas", "meta_sono", "valor_mensal", "valor_por_etapa", "meta_horas", "meta_semanal_horas", "valor_alvo", "total_informado", "valor", "valor_parcela", "valor_aplicado", "valor_atual", "meta", "valor_fatura", "saldo_informado"]);
 
 /* Schema "stefanini" (CRM de vendas). No painel as tabelas têm nome com prefixo (stf_metas não se
@@ -269,7 +275,8 @@ function objetoParaLinha(tabela, item) {
 const SCHEMA_DA_TABELA = { planos: "estudos", topicos: "estudos", sessoes: "estudos", registros: "saude", objetivos: "saude",
   clientes: "shark", frentes: "shark", eventos: "shark", tarefas: "shark", recebimentos: "shark", materiais: "shark",
   checkins: "vida", prioridades: "vida", satisfacao: "vida", habitos: "vida", habitos_feitos: "vida",
-  compromissos: "vida", projetos: "vida", afazeres: "vida", blocos_tempo: "vida" };
+  compromissos: "vida", projetos: "vida", afazeres: "vida", blocos_tempo: "vida",
+  jogo_habitos: "vida", jogo_tarefas: "vida", jogo_checks: "vida", jogo_personagem: "vida", lista_itens: "vida" };
 
 function armazenamentoSupabase(tabela) {
   const schema = STEFANINI[tabela] ? "stefanini" : SCHEMA_DA_TABELA[tabela] || "financeiro";

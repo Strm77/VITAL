@@ -187,6 +187,42 @@ repetição (ex.: dentista a cada 6 meses) já agenda a próxima quando é marca
 
 No Supabase esses dados ficam no schema `vida`.
 
+## Life Game (a área Rotina)
+
+A aba **Rotina** virou **Life Game**: abre na sub-aba **Jogo** e mantém Tarefas, Agenda, Projetos,
+Hábitos e Tempo como estavam (os endereços `#rotina…` continuam os mesmos).
+
+- **Checklist do dia:** hábitos criados pela pessoa, cada um com nome, **quantas vezes por dia** (1 a 20)
+  e **quanto XP vale cada check** (1 a 1000). Cada toque em “✓ +XP” é um check; ao bater as vezes do dia
+  o hábito fica completo. “Desfazer” tira o último check de hoje.
+- **Coisas a fazer:** tarefas com o XP de concluir. Concluir grava um check com o XP; reabrir tira esse check.
+- **XP e nível:** o XP total é a soma dos checks (o valor fica guardado no check, então mudar o XP de um
+  hábito não reescreve o que já foi ganho; excluir hábito ou tarefa não apaga o XP). Cada nível pede
+  100 XP a mais que o anterior (nível 2 com 100 XP, 3 com 300, 4 com 600…).
+- **Personagem:** o robozinho da Visão geral é o personagem do jogo, com o nível e o XP atuais. Ele começa
+  **sem armadura** e ganha uma peça (capacete, ombreiras, peitoral, escudo, espada) **a cada N níveis**.
+  N é configurável no próprio jogo e começa vazio — sem regra fixa: enquanto não for definido, o robô fica
+  sem armadura. As peças ficam em `jogo.js` (`EQUIPAMENTOS` e `PECAS_SVG`).
+- Nada vem pré-definido: nenhum hábito, tarefa, check, conquista ou configuração. Ainda não há lembretes,
+  horários nem recorrências.
+
+## Listas (compras, desejos, coisas a fazer, melhorias de vida)
+
+Sub-aba **Life Game › Listas**: cada item tem **item** e **categoria** (sugestões: Compras, Desejos, Coisas
+a fazer, Melhorias de vida — qualquer outra pode ser digitada) e, opcionais, **área/ambiente**,
+**observações** e **data**. Sem preço nem marca. Os itens aparecem agrupados por categoria e por área, com
+filtros por categoria e por área; a caixinha marca como concluído (vai para “Concluídos”, sem apagar).
+
+Dados iniciais (inseridos direto no banco da conta, não no repositório): categoria Compras, área Banheiro,
+sem data — Cesto de roupa suja; 2 jogos de toalhas (banho e rosto); 2 jogos de tapetes para o banheiro;
+Escova de dente nova; Papel higiênico.
+
+No Supabase: `vida.jogo_habitos`, `vida.jogo_tarefas`, `vida.jogo_checks`, `vida.jogo_personagem` e
+`vida.lista_itens` (RLS por usuário e tempo real). Migração: `20261123120000_life_game_listas.sql` — só
+aditiva (cria as cinco tabelas; nada do que existe muda). Aplicada no Supabase em 23/11/2026, versão
+`20261123015519` (contagem de todas as tabelas conferida antes e depois: nada mudou; as novas começaram
+vazias, e depois entraram só os 5 itens da lista).
+
 ## SHARK (design)
 
 A aba **SHARK** é o gerenciador de tarefas do estúdio de design, com quatro subpáginas:
@@ -397,6 +433,9 @@ npm run simulacao   # gera tests/saida/simulacao.json com o cenário de simulaç
   ordem, validações, os dois atalhos (nada entra sem confirmação), histórico com edição, PDF A4 lido
   de volta com o pdf.js (negrito, ordem, centralização, várias páginas), conta excluída sem perder o
   nome, celular a 390px e a migração. Dados fictícios.
+- `tests/17-life-game.test.mjs` — Life Game (hábitos com várias vezes por dia, XP, limite, desfazer,
+  tarefas, XP preservado), personagem (sem armadura até definir o intervalo), Listas (categorias, áreas,
+  filtros, concluir, editar, excluir), celular a 390px, Supabase simulado e a migração. Dados fictícios.
 - `tests/04-tema.test.mjs` também confere o sistema visual: roxo só no foco nos dois temas, superfícies
   neutras, Manrope carregada, abas de 44px e campos de 16px no celular e "reduzir movimento".
 - Os testes usam a data fixa de 08/10/2026; capturas de tela ficam em `tests/saida/`.

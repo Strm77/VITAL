@@ -14,7 +14,7 @@ Uma única pessoa: o dono do painel. Usa principalmente no celular, várias veze
 ## Product Purpose
 
 V.I.T.A.L é o painel pessoal que reflete a vida do dono num lugar só: finanças (dívidas, contas, faturas,
-assinaturas, metas), estudos, saúde e bem-estar, rotina (tarefas, agenda, projetos, hábitos, tempo), o
+assinaturas, metas), estudos, saúde e bem-estar, Life Game (a rotina como jogo: checklist diário com XP, coisas a fazer, personagem que evolui, tarefas, agenda, projetos, hábitos, tempo e listas de compras/desejos/melhorias), o
 estúdio de design SHARK (clientes, frentes, artes, recebimentos) e o CRM de vendas Stefanini (contas,
 contatos, oportunidades, reuniões, atividades e meta anual).
 
