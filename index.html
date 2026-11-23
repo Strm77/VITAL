@@ -60,7 +60,7 @@
       <a class="aba" data-area="financeiro" href="#painel">Financeiro</a>
       <a class="aba" data-area="estudos" href="#estudos">Estudos</a>
       <a class="aba" data-area="saude" href="#saude">Saúde</a>
-      <a class="aba" data-area="rotina" href="#rotina">Rotina</a>
+      <a class="aba" data-area="rotina" href="#rotina-jogo">Life Game</a>
       <a class="aba aba-shark" data-area="shark" href="#shark">SHARK</a>
       <a class="aba aba-stefanini" data-area="stefanini" href="#stefanini">Stefanini</a>
     </nav>
@@ -85,12 +85,14 @@
     <a class="subaba" data-aba="saude-bemestar" href="#saude-bemestar">Bem-estar</a>
   </nav>
 
-  <nav class="submenu" aria-label="Rotina" data-area-de="rotina" hidden>
+  <nav class="submenu" aria-label="Life Game" data-area-de="rotina" hidden>
+    <a class="subaba" data-aba="rotina-jogo" href="#rotina-jogo">Jogo</a>
     <a class="subaba" data-aba="rotina" href="#rotina">Tarefas</a>
     <a class="subaba" data-aba="rotina-agenda" href="#rotina-agenda">Agenda</a>
     <a class="subaba" data-aba="rotina-projetos" href="#rotina-projetos">Projetos</a>
     <a class="subaba" data-aba="rotina-habitos" href="#rotina-habitos">Hábitos</a>
     <a class="subaba" data-aba="rotina-tempo" href="#rotina-tempo">Tempo</a>
+    <a class="subaba" data-aba="rotina-listas" href="#rotina-listas">Listas</a>
   </nav>
 
   <nav class="submenu" aria-label="SHARK" data-area-de="shark" hidden>
@@ -1213,6 +1215,77 @@
     </section>
   </main>
 
+  <main class="vista-faturas vista-rotina" data-vista="rotina-jogo" hidden>
+    <section class="painel jogo-placar" aria-labelledby="titulo-jogo">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-jogo">Life Game</h2>
+        <span class="mes-atual" id="jogo-hoje"></span>
+      </div>
+      <div class="jogo-heroi">
+        <div class="jogo-personagem" id="jogo-personagem" data-depende="jogo_checks jogo_personagem"></div>
+        <div class="jogo-heroi-info">
+          <div class="jogo-nivel" id="jogo-nivel" data-depende="jogo_checks"></div>
+          <p class="jogo-equipamento" id="jogo-equipamento" data-depende="jogo_checks jogo_personagem"></p>
+          <form class="jogo-evolucao" id="jogo-evolucao-form" novalidate>
+            <label>O robô ganha um equipamento a cada
+              <input id="jogo-niveis-estagio" name="niveis" type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="—">
+              níveis</label>
+            <button type="submit" class="botao mini">Salvar</button>
+          </form>
+          <p class="aviso" id="jogo-evolucao-aviso" role="alert" hidden></p>
+        </div>
+      </div>
+      <div class="shark-numeros" id="jogo-numeros" data-depende="jogo_checks jogo_habitos jogo_tarefas"></div>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-jogo-checklist">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-jogo-checklist">Checklist do dia</h2>
+        <span class="mes-atual" id="jogo-checklist-resumo"></span>
+      </div>
+      <p class="estado" id="jogo-habitos-vazio" data-depende="jogo_habitos">Nenhum hábito no checklist ainda. Crie os seus: dê um nome, diga quantas vezes por dia e quanto XP vale cada check.</p>
+      <ul class="jogo-habitos" id="jogo-habitos"></ul>
+      <form class="formulario" id="jogo-habito-form" hidden novalidate>
+        <h3 id="jogo-habito-form-titulo">Novo hábito</h3>
+        <label class="campo largo">Nome
+          <input id="jogo-habito-nome" name="nome" type="text" maxlength="60" required>
+        </label>
+        <label class="campo">Vezes por dia
+          <input id="jogo-habito-vezes" name="vezesDia" type="number" min="1" max="20" step="1" inputmode="numeric" value="1">
+        </label>
+        <label class="campo">XP por check
+          <input id="jogo-habito-xp" name="xp" type="number" min="1" max="1000" step="1" inputmode="numeric" value="10">
+        </label>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="jogo-habito-cancelar">Cancelar</button>
+          <button type="submit" class="botao primario">Salvar hábito</button>
+        </div>
+      </form>
+      <p class="aviso" id="jogo-habito-aviso" role="alert" hidden></p>
+      <button type="button" class="botao adicionar" id="jogo-habito-adicionar">+ Novo hábito</button>
+    </section>
+
+    <section class="painel" aria-labelledby="titulo-jogo-tarefas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-jogo-tarefas">Coisas a fazer</h2>
+        <span class="mes-atual" id="jogo-tarefas-resumo"></span>
+      </div>
+      <form class="tarefa-rapida jogo-tarefa-rapida" id="jogo-tarefa-form" novalidate>
+        <input id="jogo-tarefa-titulo" name="titulo" type="text" maxlength="140" placeholder="O que precisa ser feito?" aria-label="Nova coisa a fazer">
+        <label class="jogo-xp-campo">XP <input id="jogo-tarefa-xp" name="xp" type="number" min="1" max="1000" step="1" inputmode="numeric" value="10" aria-label="XP ao concluir"></label>
+        <button type="submit" class="botao primario" id="jogo-tarefa-salvar">Adicionar</button>
+        <button type="button" class="botao" id="jogo-tarefa-cancelar" hidden>Cancelar</button>
+      </form>
+      <p class="aviso" id="jogo-tarefa-aviso" role="alert" hidden></p>
+      <p class="estado" id="jogo-tarefas-vazio" data-depende="jogo_tarefas">Nada na lista. Anote acima o que precisa ser feito e quanto XP vale concluir.</p>
+      <ul class="tarefas" id="jogo-tarefas"></ul>
+      <details class="stf-feitas jogo-feitas" id="jogo-tarefas-feitas" hidden>
+        <summary id="jogo-tarefas-feitas-titulo">Feitas</summary>
+        <ul class="tarefas" id="jogo-tarefas-feitas-lista"></ul>
+      </details>
+    </section>
+  </main>
+
   <main class="vista-faturas vista-rotina" data-vista="rotina" hidden>
     <section class="painel" aria-labelledby="titulo-tarefas">
       <div class="painel-cabecalho">
@@ -1389,6 +1462,51 @@
       </form>
       <p class="aviso" id="tempo-aviso" role="alert" hidden></p>
       <ul class="blocos-tempo" id="blocos-tempo"></ul>
+    </section>
+  </main>
+
+  <main class="vista-faturas vista-rotina" data-vista="rotina-listas" hidden>
+    <section class="painel" aria-labelledby="titulo-listas">
+      <div class="painel-cabecalho">
+        <h2 id="titulo-listas">Listas</h2>
+        <span class="mes-atual" id="listas-resumo"></span>
+      </div>
+      <p class="dica-saude">Compras, desejos, coisas a fazer e melhorias de vida, separados por categoria e por área da casa ou da vida.</p>
+      <div class="filtro-clientes" id="listas-filtro-categoria" role="group" aria-label="Filtrar por categoria"></div>
+      <div class="filtro-clientes" id="listas-filtro-area" role="group" aria-label="Filtrar por área"></div>
+      <p class="estado" id="listas-vazio" data-depende="lista_itens">Nenhum item ainda. Registre abaixo o que você quer comprar, fazer ou melhorar.</p>
+      <div class="listas-grupos" id="listas-grupos"></div>
+      <details class="stf-feitas listas-feitos" id="listas-concluidos" hidden>
+        <summary id="listas-concluidos-titulo">Concluídos</summary>
+        <ul class="lista-itens" id="listas-concluidos-lista"></ul>
+      </details>
+    </section>
+    <section class="painel" aria-labelledby="titulo-lista-form">
+      <div class="painel-cabecalho"><h2 id="titulo-lista-form">Novo item</h2></div>
+      <form class="formulario" id="lista-form" novalidate>
+        <label class="campo largo">Item
+          <input id="lista-item" name="texto" type="text" maxlength="200" required>
+        </label>
+        <label class="campo">Categoria
+          <input id="lista-categoria" name="categoria" type="text" maxlength="40" list="lista-categorias" placeholder="Ex.: Compras" required>
+        </label>
+        <label class="campo">Área / ambiente (opcional)
+          <input id="lista-area" name="area" type="text" maxlength="60" list="lista-areas" placeholder="Ex.: Banheiro">
+        </label>
+        <label class="campo">Data (opcional)
+          <input id="lista-data" name="dataItem" type="date">
+        </label>
+        <label class="campo largo">Observações (opcional)
+          <textarea id="lista-observacoes" name="observacoes" rows="2" maxlength="1000"></textarea>
+        </label>
+        <datalist id="lista-categorias"></datalist>
+        <datalist id="lista-areas"></datalist>
+        <div class="acoes largo">
+          <button type="button" class="botao" id="lista-cancelar" hidden>Cancelar</button>
+          <button type="submit" class="botao primario" id="lista-salvar">Adicionar</button>
+        </div>
+      </form>
+      <p class="aviso" id="lista-aviso" role="alert" hidden></p>
     </section>
   </main>
 
@@ -1629,5 +1747,6 @@
   <script src="vida.js"></script>
   <script src="bemestar.js"></script>
   <script src="rotina.js"></script>
+  <script src="jogo.js"></script>
 </body>
 </html>

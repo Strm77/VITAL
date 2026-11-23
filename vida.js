@@ -5,7 +5,8 @@
  * bemestar.js e rotina.js usam estes dados e se registram em vida.renders.
  */
 
-const TABELAS_VIDA = ["checkins", "prioridades", "satisfacao", "habitos", "habitos_feitos", "compromissos", "projetos", "afazeres", "blocos_tempo"];
+const TABELAS_VIDA = ["checkins", "prioridades", "satisfacao", "habitos", "habitos_feitos", "compromissos", "projetos", "afazeres", "blocos_tempo",
+  "jogo_habitos", "jogo_tarefas", "jogo_checks", "jogo_personagem", "lista_itens"];
 const vida = {
   ...Object.fromEntries(TABELAS_VIDA.map((t) => [t, []])),
   arm: {},

@@ -310,6 +310,7 @@ test("Visão geral, Bem-estar e Rotina gravam no schema vida", async () => {
   await pagina.fill("#meta-agua", "10");
   await pagina.click("#bemestar-metas-form [type=submit]");
   await pagina.click(".aba[data-area=rotina]");
+  await pagina.click('.subaba[data-aba="rotina"]');
   await pagina.fill("#afazer-titulo", "Ligar para o contador");
   await pagina.click("#afazer-salvar");
   await pagina.waitForFunction(() => {
